@@ -379,7 +379,7 @@ const DEFAULTS = {
   // sculpting
   lobes: 0, lobeDepth: 0.06, lobeProfile: 'Gadroon', lobeStart: 0.08, lobeEnd: 0.72, twist: 0,
   relief: 'Leaves', reliefHeight: 0.24, reliefCount: 9, reliefRows: 1, reliefStart: 0.07, reliefEnd: 0.63,
-  rings: 2, ringHeight: 0.13, ringPos: 0.795, rimWaves: 0, rimDepth: 0.6, rimFrom: 0.72,
+  rings: 2, ringHeight: 0.13, ringPos: 0.795, rimWaves: 0, rimHeight: 0.6, rimFrom: 0.72,
   // handles
   handles: 0, handleLow: 0.62, handleHigh: 0.9, handleReach: 4.2, handleArch: 0.35, handleThick: 1.1, handleFlat: 0.78,
   // base glaze
@@ -408,7 +408,7 @@ const FORMS = {
   baluster: { name: 'Baluster', set: { height: 34, footRadius: 5.0, footHeight: 1.5, waistRadius: 4.2, bellyRadius: 9.4, bellyPos: 0.4, shoulderRadius: 6.0, shoulderPos: 0.66, neckRadius: 2.8, neckPos: 0.84, lipRadius: 4.2, lipBead: 0.12, squash: 0, lobes: 0, twist: 0, relief: 'Leaves', reliefHeight: 0.24, reliefCount: 9, reliefRows: 1, reliefStart: 0.07, reliefEnd: 0.63, rings: 2, ringHeight: 0.13, ringPos: 0.795, handles: 0 } },
   bottle: { name: 'Bottle', set: { height: 37, footRadius: 4.7, footHeight: 0.9, waistRadius: 4.5, bellyRadius: 8.3, bellyPos: 0.25, shoulderRadius: 3.4, shoulderPos: 0.52, neckRadius: 1.6, neckPos: 0.78, lipRadius: 2.3, lipBead: 0.16, squash: 0, lobes: 0, twist: 0, relief: 'Scales', reliefHeight: 0.14, reliefCount: 14, reliefRows: 7, reliefStart: 0.05, reliefEnd: 0.46, rings: 1, ringHeight: 0.16, ringPos: 0.55, handles: 0 } },
   gourd: { name: 'Double gourd', set: { height: 33, footRadius: 4.3, footHeight: 1.0, waistRadius: 4.3, bellyRadius: 9.2, bellyPos: 0.27, shoulderRadius: 3.5, shoulderPos: 0.57, neckRadius: 5.5, neckPos: 0.75, lipRadius: 1.9, lipBead: 0.1, squash: 0, lobes: 0, twist: 0, relief: 'Vines', reliefHeight: 0.2, reliefCount: 6, reliefRows: 3, reliefStart: 0.06, reliefEnd: 0.5, rings: 1, ringHeight: 0.12, ringPos: 0.57, handles: 0 } },
-  tulip: { name: 'Tulip', set: { height: 30, footRadius: 4.2, footHeight: 2.4, waistRadius: 2.9, bellyRadius: 6.4, bellyPos: 0.36, shoulderRadius: 5.3, shoulderPos: 0.6, neckRadius: 4.8, neckPos: 0.8, lipRadius: 7.6, lipBead: 0.05, squash: 0, lobes: 6, lobeDepth: 0.11, lobeProfile: 'Gadroon', lobeStart: 0.16, lobeEnd: 1, twist: 70, relief: 'None', rings: 1, ringHeight: 0.18, ringPos: 0.1, rimWaves: 6, rimDepth: 0.6, rimFrom: 0.72, handles: 0 } },
+  tulip: { name: 'Tulip', set: { height: 30, footRadius: 4.2, footHeight: 2.4, waistRadius: 2.9, bellyRadius: 6.4, bellyPos: 0.36, shoulderRadius: 5.3, shoulderPos: 0.6, neckRadius: 4.8, neckPos: 0.8, lipRadius: 7.6, lipBead: 0.05, squash: 0, lobes: 6, lobeDepth: 0.11, lobeProfile: 'Gadroon', lobeStart: 0.16, lobeEnd: 1, twist: 70, relief: 'None', rings: 1, ringHeight: 0.18, ringPos: 0.1, rimWaves: 6, rimHeight: 0.6, rimFrom: 0.72, handles: 0 } },
   amphora: { name: 'Amphora', set: { height: 36, footRadius: 4.4, footHeight: 2.0, waistRadius: 3.3, bellyRadius: 8.8, bellyPos: 0.5, shoulderRadius: 7.0, shoulderPos: 0.68, neckRadius: 2.5, neckPos: 0.86, lipRadius: 3.7, lipBead: 0.15, squash: 0, lobes: 0, twist: 0, relief: 'Spiral ribs', reliefHeight: 0.1, reliefCount: 18, reliefRows: 2, reliefStart: 0.1, reliefEnd: 0.5, rings: 3, ringHeight: 0.11, ringPos: 0.8, handles: 2, handleLow: 0.67, handleHigh: 0.905, handleReach: 4.4, handleArch: 0.4, handleThick: 1.1, handleFlat: 0.78 } },
   bowl: { name: 'Bowl', set: { height: 13, footRadius: 4.6, footHeight: 0.9, waistRadius: 4.2, bellyRadius: 10.6, bellyPos: 0.42, shoulderRadius: 12.6, shoulderPos: 0.72, neckRadius: 13.5, neckPos: 0.9, lipRadius: 14.2, lipBead: 0.06, squash: 0, lobes: 0, twist: 0, relief: 'Cabochons', reliefHeight: 0.22, reliefCount: 16, reliefRows: 1, reliefStart: 0.52, reliefEnd: 0.9, rings: 0, handles: 0 } },
 };
@@ -831,7 +831,7 @@ function buildVessel(p, level) {
   // the lobe crowns (theta = 0). The rise is held to the zone it grows over, to one wave width at the lip, and to what
   // a twisted wall can take before its columns fold over each other.
   const rimN = Math.round(p.rimWaves), rimFrom = Math.min(p.rimFrom, 0.95);
-  const rimRise = rimN > 0 ? clamp(p.rimDepth, 0, 1) * Math.min(5, (1 - rimFrom) * H, TAU * dec[M] / rimN, H / (Math.abs(twist) * rimN + 1e-9)) : 0;
+  const rimRise = rimN > 0 ? clamp(p.rimHeight, 0, 1) * Math.min(5, (1 - rimFrom) * H, TAU * dec[M] / rimN, H / (Math.abs(twist) * rimN + 1e-9)) : 0;
   const rimEnv = (h) => rimRise * smooth(rimFrom, 1, h);
   const rimAt = (theta, h) => rimEnv(h) * (0.5 + 0.5 * Math.cos(theta * rimN));
   const cosT = new Float64Array(C1), sinT = new Float64Array(C1), lobeS = new Float64Array(C1), rimS = new Float64Array(C1), line = new Float64Array(C1);
@@ -1459,7 +1459,7 @@ composer.addPass(outputPass);
 
 const state = {
   maxR: 10, reach: 0, rise: 0, optics: null, basisN: 0, vertices: 0,
-  framed: false, posed: false, userMoved: false, usable: 1, span: 1,           // camera fit
+  framed: false, posed: false, userMoved: false, usable: 1, span: Infinity,           // camera fit
   scale: 1, lod: 0, frame: 0, n: 0, tuned: 0, settle: 8, raised: -Infinity, hold: 8000, drew: false, quality: '',   // adaptive quality
 };
 const LEVELS = Object.keys(DETAIL);                  // coarse to fine
@@ -1489,7 +1489,7 @@ function freeView(w, h) {
     const r = panel.getBoundingClientRect();
     if (sheetLayout.matches) y1 = Math.max(y0 + 40, r.top - st.top - 8); else x1 = Math.max(40, r.left - st.left - 8);
   }
-  const k = clamp(Math.min(x1 / (w * state.span), (y1 - y0) / bh), 0.15, 1);   // the frame shrinks until the fitted piece is inside what is left
+  const k = clamp(Math.min(x1 / (w * Math.min(1, state.span * h / w)), (y1 - y0) / bh), 0.15, 1);   // the frame shrinks until the fitted piece is inside what is left
   return { k, cx: x1 / 2, cy: (y0 + y1) / 2, usable: bh / h, fit: `${w}x${h}/${Math.round(y0)}/${Math.round(bh)}` };
 }
 
@@ -1533,7 +1533,7 @@ function frameCamera() {
   const se = Math.abs(dir.y), ce = Math.sqrt(Math.max(0, 1 - se * se));
   const tall = Math.max(up + 0.4, up * ce + rs * se + 0.25);                // half-height of the silhouette from that elevation
   const dist = Math.max(tall / (tv * state.usable), (rs + 0.35) / (tv * free / h)) * 1.08 + up * Math.max(0, se - 0.2);   // the rim is nearer than the target when looking down
-  const span = Math.min(1, (rs + 0.35) * 1.08 * h / (dist * tv * w));       // share of the stage width the fit needs
+  const span = (rs + 0.35) * 1.08 / (dist * tv);                            // width the fit needs, in stage heights
   if (span !== state.span) { state.span = span; layoutDirty = true; }
   state.posed = true;
   controls.target.set(0, targetY(), 0);
@@ -1734,7 +1734,7 @@ const GUI_DEF = [
     opt('relief', 'Relief motif', Object.keys(RELIEFS)), num('reliefHeight', 'Relief height · cm', -0.3, 0.6, 0.01), num('reliefCount', 'Repeats around', 2, 40, 1),
     num('reliefRows', 'Rows', 1, 12, 1), num('reliefStart', 'Band from'), num('reliefEnd', 'Band to'),
     num('rings', 'Collar rings', 0, 5, 1), num('ringHeight', 'Ring height · cm', 0, 0.4, 0.01), num('ringPos', 'Ring position', 0.05, 0.97, 0.005),
-    num('rimWaves', 'Rim waves', 0, 12, 1), num('rimDepth', 'Rim wave height', 0, 1, 0.01), num('rimFrom', 'Rim waves from', 0.4, 0.95, 0.005)] },
+    num('rimWaves', 'Rim waves', 0, 12, 1), num('rimHeight', 'Rim wave height', 0, 1, 0.01), num('rimFrom', 'Rim waves from', 0.4, 0.95, 0.005)] },
   { title: 'Handles', kind: 'geo', preset: 'form', items: [
     num('handles', 'Count', 0, 4, 1), num('handleLow', 'Lower joint', 0.1, 0.9, 0.005), num('handleHigh', 'Upper joint', 0.2, 0.98, 0.005), num('handleReach', 'Reach · cm', 1, 10, 0.1),
     num('handleArch', 'Arch', 0, 1.2), num('handleThick', 'Thickness · cm', 0.5, 2.4, 0.02), num('handleFlat', 'Strap flatness', 0.5, 1.8, 0.01)] },
@@ -1778,7 +1778,7 @@ const DEPENDS = [
   [['reliefHeight'], () => P.relief !== 'None'],
   [['reliefCount', 'reliefRows', 'reliefStart', 'reliefEnd'], reliefOn],
   [['ringHeight', 'ringPos'], () => P.rings > 0],
-  [['rimDepth', 'rimFrom'], () => P.rimWaves > 0],
+  [['rimHeight', 'rimFrom'], () => P.rimWaves > 0],
   [['handleLow', 'handleHigh', 'handleReach', 'handleArch', 'handleThick', 'handleFlat'], () => P.handles > 0],
   [['crackleSize', 'crackleStain', 'mosaic'], () => P.crackle > 0],
   [['dripAmp'], () => P.dripCount > 0],
@@ -1820,6 +1820,8 @@ for (const group of GUI_DEF) {
 
 function applyParams(values, { silent } = {}) {
   let n = 0, geo = false;
+  // rimDepth was this height in centimetres (0..5) before it became the 0..1 fraction rimHeight
+  if (values && typeof values.rimDepth === 'number' && !('rimHeight' in values)) values = { ...values, rimHeight: values.rimDepth / 5 };
   for (const [key, value] of Object.entries(values || {})) {
     const it = SCHEMA[key];
     if (!it) continue;
@@ -1998,7 +2000,7 @@ function tick(now) {
   last = now;
   if (geoDirty) { const level = geoDirty; geoDirty = null; rebuildGeometry(level); updateStage(); state.settle = Math.max(state.settle, 2); }
   resize();
-  if (!state.framed && stageEl.clientWidth > 2) { frameCamera(); state.framed = true; }
+  if (!state.framed && stageEl.clientWidth > 2) { frameCamera(); state.framed = true; resize(); }   // the fit may change the view offset: apply it before this frame is drawn
   if (P.spin) { vesselGroup.rotation.y += P.spin * TAU / 60 * dt; stale = true; }
   controls.update();
   const fogNear = clamp(camera.position.distanceTo(controls.target) + 3, 13, 33);   // the fog stays behind the vessel at every zoom
