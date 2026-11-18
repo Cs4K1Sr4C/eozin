@@ -8,7 +8,7 @@
 <meta name="description" content="Parametric THREE.js simulation of eozin, the reduction-fired metallic lustre glaze of Zsolnay ceramics.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Federo&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link id="webfonts" rel="stylesheet" media="print" href="https://fonts.googleapis.com/css2?family=Federo&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <style>
 /* Layout: one darkened vitrine. The vessel owns the whole frame; a museum label sits left,
    the kiln instrument panel right, and the preset shelf runs along the bottom edge. */
@@ -51,7 +51,8 @@ button { font: inherit; color: inherit; }
   grid-template-columns: minmax(0, 296px) minmax(0, 1fr) minmax(0, 332px);
   grid-template-rows: auto minmax(0, 1fr) auto;
   gap: 12px;
-  padding-block: 14px;
+  padding-top: max(14px, env(safe-area-inset-top, 0px));
+  padding-bottom: max(14px, env(safe-area-inset-bottom, 0px));
   padding-left: max(16px, env(safe-area-inset-left, 0px));
   padding-right: max(16px, env(safe-area-inset-right, 0px));
 }
@@ -137,7 +138,8 @@ button { font: inherit; color: inherit; }
   grid-column: 3; grid-row: 1 / 4;
   align-self: start;
   max-height: 100%;
-  overflow: auto;
+  display: flex; flex-direction: column;   /* lil-gui's own list is the scroller: only then can its sliders */
+  overflow: hidden;                        /* tell a scroll (swipe or wheel) from a drag */
 }
 .controls .lil-gui {
   --width: 100%;
@@ -166,7 +168,8 @@ button { font: inherit; color: inherit; }
   font: 500 10.5px/1.3 var(--font-ui); letter-spacing: 0.14em; text-transform: uppercase;
   color: var(--ink-3); padding: 12px 14px 10px; height: auto;
 }
-.controls .lil-gui.root > .children { padding-bottom: 6px; }
+.controls .lil-gui.root { min-height: 0; }
+.controls .lil-gui.root > .children { padding-bottom: 6px; scrollbar-width: thin; scrollbar-color: var(--well-hi) transparent; overscroll-behavior: contain; }
 .controls .lil-gui .lil-gui > .title { font-weight: 500; border-top: 1px solid var(--line); height: 32px; line-height: 32px; padding-left: 14px; }
 .controls .lil-gui .lil-gui > .children { border-left: 0; margin-left: 0; padding: 2px 8px 8px 14px; }
 .controls .lil-gui .controller { min-height: 24px; }
@@ -174,6 +177,10 @@ button { font: inherit; color: inherit; }
 .controls .lil-gui .controller.function .name { text-align: left; padding: 0 8px; }
 .controls .lil-gui .slider { --slider-color: var(--gilt); }
 .controls .lil-gui .controller.number .fill { background: var(--gilt); opacity: 0.55; border-right-color: var(--gilt); }
+@media (pointer: coarse) {                 /* finger-sized rows; 16 px inputs keep iOS from zooming in on focus */
+  .controls .lil-gui { --widget-height: 30px; --font-size: 13px; --input-font-size: 16px; }
+  .controls .lil-gui .controller { min-height: 32px; }
+}
 
 /* ---------- preset shelf ---------- */
 .dock {
@@ -225,13 +232,13 @@ button { font: inherit; color: inherit; }
 
 @media (max-width: 1280px) { .chip small { display: none; } }
 @media (max-width: 1080px) {
-  .app { grid-template-columns: minmax(0, 1fr); padding-block: 10px; }
+  .app { grid-template-columns: minmax(0, 1fr); padding-top: max(10px, env(safe-area-inset-top, 0px)); padding-bottom: max(10px, env(safe-area-inset-bottom, 0px)); }
   .chip small { display: inline; }
   .label, .controls { justify-self: end; width: min(100%, 420px); }
   .mast { display: flex; }
   .label, .controls { grid-column: 1; grid-row: 2; display: none; }
   .label.open { display: flex; }
-  .controls.open { display: block; }
+  .controls.open { display: flex; }
   .label .eyebrow, .label .wordmark { display: none; }
   .dock { grid-column: 1; grid-row: 3; justify-self: stretch; }
   .dock-name { flex-basis: 40px; text-align: left; }
@@ -239,6 +246,9 @@ button { font: inherit; color: inherit; }
     -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent); }
   .chips::-webkit-scrollbar { display: none; }
   .toast { bottom: 110px; }
+}
+@media (max-width: 720px) {                /* phones: an open panel is a sheet over the lower stage; the vessel is drawn above it */
+  .label, .controls { width: 100%; align-self: end; max-height: 56%; }
 }
 @media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
 </style>
@@ -319,6 +329,10 @@ button { font: inherit; color: inherit; }
    ========================================================================== */
 
 const $ = (s) => document.querySelector(s);
+{ // The font stylesheet is fetched without holding back first paint (media="print" in the markup); switch it on once it is in.
+  const fonts = $('#webfonts'), show = () => { fonts.media = 'all'; };
+  if (fonts) { if (fonts.sheet) show(); else fonts.addEventListener('load', show, { once: true }); }
+}
 const statusEl = $('#status');
 function fail(message) {
   statusEl.classList.add('error');
@@ -340,7 +354,7 @@ try {
     import('three/addons/libs/lil-gui.module.min.js'),
   ]);
 } catch (err) {
-  fail('three.js could not be loaded from cdn.jsdelivr.net. Check the network connection and reload.');
+  fail('three.js could not be loaded. This page needs a browser with import maps (Safari 16.4+, Firefox 108+, Chrome 89+) and access to cdn.jsdelivr.net.');
   throw err;
 }
 
@@ -365,20 +379,20 @@ const DEFAULTS = {
   // sculpting
   lobes: 0, lobeDepth: 0.06, lobeProfile: 'Gadroon', lobeStart: 0.08, lobeEnd: 0.72, twist: 0,
   relief: 'Leaves', reliefHeight: 0.24, reliefCount: 9, reliefRows: 1, reliefStart: 0.07, reliefEnd: 0.63,
-  rings: 2, ringHeight: 0.13, ringPos: 0.795,
+  rings: 2, ringHeight: 0.13, ringPos: 0.795, rimWaves: 0, rimDepth: 2.5, rimFrom: 0.72,
   // handles
   handles: 0, handleLow: 0.62, handleHigh: 0.9, handleReach: 4.2, handleArch: 0.35, handleThick: 1.1, handleFlat: 0.78,
   // base glaze
-  glazeColor: '#16382a', bodyColor: '#d8c6a6', glazeThick: 1, pooling: 0.7, breaking: 0.45, runs: 0.4, runScale: 0.6, sag: 0.3,
+  glazeColor: '#16382a', bodyColor: '#d8c6a6', glazeThick: 1, pooling: 0.7, breaking: 0.45, runs: 0.4, runScale: 0.55, sag: 0.3,
   gloss: 0.9, peel: 0.3, crackle: 0, crackleSize: 0.9, crackleStain: 0.5, pinholes: 0.12,
   glazeLine: 0.55, dripAmp: 0.5, dripCount: 7,
   // lustre chemistry
   cu: 0.95, ag: 0.05, au: 0, bi: 0.74, coat: 0.65, coverage: 1, innerLustre: 0.55,
   // reduction firing
   kilnTemp: 617, soak: 22, reduction: 0.95, reox: 0.7, activation: 100,
-  flash: 0.45, flashScale: 0.11, flashWarp: 1, flashStretch: 0.5, flameBias: 0.25, flameDir: 40, seed: 7,
+  flash: 0.45, flashScale: 9, flashWarp: 1, flashStretch: 2, flameBias: 0.25, flameDir: 40, seed: 7,
   // film optics
-  glassIndex: 1.56, dispersion: 0.4, thickVar: 0.35, thickScale: 0.22, lustrePool: 0.35, mosaic: 0.45,
+  glassIndex: 1.56, dispersion: 0.4, thickVar: 0.35, thickScale: 4.5, lustrePool: 0.35, mosaic: 0.45,
   trimThick: 1, trimFill: 1, trimCover: 1, spectral: 16,
   // decoration
   deco: 'Relief motif', decoCount: 12, decoRows: 8, decoSoft: 0.3, decoThick: 0.8, decoFill: 1, decoSilver: 0.6, decoMatte: 0,
@@ -386,55 +400,64 @@ const DEFAULTS = {
   env: 'Atelier softboxes', envRot: 20, envInt: 1, keyInt: 2.2, keyAz: 38, keyEl: 46, exposure: 1, tone: 'ACES',
   bloom: 0.22, spin: 1.2, plinth: true, detail: 'Standard', pixelRatio: 2, adaptive: true,
 };
-const P = { ...DEFAULTS };
-if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) P.spin = 0;
+// The state the page opens in, and returns to on Reset: the defaults, with the turntable still if motion is unwelcome.
+const START = { ...DEFAULTS, spin: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : DEFAULTS.spin };
+const P = { ...START };
 
 const FORMS = {
   baluster: { name: 'Baluster', set: { height: 34, footRadius: 5.0, footHeight: 1.5, waistRadius: 4.2, bellyRadius: 9.4, bellyPos: 0.4, shoulderRadius: 6.0, shoulderPos: 0.66, neckRadius: 2.8, neckPos: 0.84, lipRadius: 4.2, lipBead: 0.12, squash: 0, lobes: 0, twist: 0, relief: 'Leaves', reliefHeight: 0.24, reliefCount: 9, reliefRows: 1, reliefStart: 0.07, reliefEnd: 0.63, rings: 2, ringHeight: 0.13, ringPos: 0.795, handles: 0 } },
-  bottle: { name: 'Bottle', set: { height: 37, footRadius: 4.7, footHeight: 0.9, waistRadius: 4.5, bellyRadius: 8.3, bellyPos: 0.25, shoulderRadius: 3.4, shoulderPos: 0.52, neckRadius: 1.55, neckPos: 0.78, lipRadius: 2.3, lipBead: 0.16, squash: 0, lobes: 0, twist: 0, relief: 'Scales', reliefHeight: 0.14, reliefCount: 14, reliefRows: 7, reliefStart: 0.05, reliefEnd: 0.46, rings: 1, ringHeight: 0.16, ringPos: 0.55, handles: 0 } },
+  bottle: { name: 'Bottle', set: { height: 37, footRadius: 4.7, footHeight: 0.9, waistRadius: 4.5, bellyRadius: 8.3, bellyPos: 0.25, shoulderRadius: 3.4, shoulderPos: 0.52, neckRadius: 1.6, neckPos: 0.78, lipRadius: 2.3, lipBead: 0.16, squash: 0, lobes: 0, twist: 0, relief: 'Scales', reliefHeight: 0.14, reliefCount: 14, reliefRows: 7, reliefStart: 0.05, reliefEnd: 0.46, rings: 1, ringHeight: 0.16, ringPos: 0.55, handles: 0 } },
   gourd: { name: 'Double gourd', set: { height: 33, footRadius: 4.3, footHeight: 1.0, waistRadius: 4.3, bellyRadius: 9.2, bellyPos: 0.27, shoulderRadius: 3.5, shoulderPos: 0.57, neckRadius: 5.5, neckPos: 0.75, lipRadius: 1.9, lipBead: 0.1, squash: 0, lobes: 0, twist: 0, relief: 'Vines', reliefHeight: 0.2, reliefCount: 6, reliefRows: 3, reliefStart: 0.06, reliefEnd: 0.5, rings: 1, ringHeight: 0.12, ringPos: 0.57, handles: 0 } },
-  tulip: { name: 'Tulip', set: { height: 30, footRadius: 4.2, footHeight: 2.4, waistRadius: 2.9, bellyRadius: 6.4, bellyPos: 0.36, shoulderRadius: 5.3, shoulderPos: 0.6, neckRadius: 4.8, neckPos: 0.8, lipRadius: 7.6, lipBead: 0.05, squash: 0, lobes: 6, lobeDepth: 0.11, lobeProfile: 'Gadroon', lobeStart: 0.16, lobeEnd: 1, twist: 70, relief: 'None', rings: 1, ringHeight: 0.18, ringPos: 0.1, handles: 0 } },
+  tulip: { name: 'Tulip', set: { height: 30, footRadius: 4.2, footHeight: 2.4, waistRadius: 2.9, bellyRadius: 6.4, bellyPos: 0.36, shoulderRadius: 5.3, shoulderPos: 0.6, neckRadius: 4.8, neckPos: 0.8, lipRadius: 7.6, lipBead: 0.05, squash: 0, lobes: 6, lobeDepth: 0.11, lobeProfile: 'Gadroon', lobeStart: 0.16, lobeEnd: 1, twist: 70, relief: 'None', rings: 1, ringHeight: 0.18, ringPos: 0.1, rimWaves: 6, rimDepth: 2.5, rimFrom: 0.72, handles: 0 } },
   amphora: { name: 'Amphora', set: { height: 36, footRadius: 4.4, footHeight: 2.0, waistRadius: 3.3, bellyRadius: 8.8, bellyPos: 0.5, shoulderRadius: 7.0, shoulderPos: 0.68, neckRadius: 2.5, neckPos: 0.86, lipRadius: 3.7, lipBead: 0.15, squash: 0, lobes: 0, twist: 0, relief: 'Spiral ribs', reliefHeight: 0.1, reliefCount: 18, reliefRows: 2, reliefStart: 0.1, reliefEnd: 0.5, rings: 3, ringHeight: 0.11, ringPos: 0.8, handles: 2, handleLow: 0.67, handleHigh: 0.905, handleReach: 4.4, handleArch: 0.4, handleThick: 1.1, handleFlat: 0.78 } },
   bowl: { name: 'Bowl', set: { height: 13, footRadius: 4.6, footHeight: 0.9, waistRadius: 4.2, bellyRadius: 10.6, bellyPos: 0.42, shoulderRadius: 12.6, shoulderPos: 0.72, neckRadius: 13.5, neckPos: 0.9, lipRadius: 14.2, lipBead: 0.06, squash: 0, lobes: 0, twist: 0, relief: 'Cabochons', reliefHeight: 0.22, reliefCount: 16, reliefRows: 1, reliefStart: 0.52, reliefEnd: 0.9, rings: 0, handles: 0 } },
 };
 
-// Every lustre preset starts from these, so one preset never leaks trims into the next.
-const LUSTRE_RESET = ['trimThick', 'trimFill', 'trimCover', 'thickVar', 'thickScale', 'mosaic', 'coverage', 'glazeThick', 'activation', 'flashScale', 'flashWarp', 'flashStretch', 'decoSoft'];
+// A preset names what differs from DEFAULTS; a chip click restores every other parameter of its groups (see presetState).
+// Paste thickness stays at its default in all of them: the layers differ in depth through the kiln schedule and trimThick.
 const LUSTRES = {
-  zold: { name: 'Zöld', note: 'green-gold', set: { glazeColor: '#16382a', cu: 0.95, ag: 0.05, au: 0, bi: 0.74, coat: 0.65, kilnTemp: 617, soak: 22, reduction: 0.95, reox: 0.7, flash: 0.45, deco: 'Relief motif', decoThick: 0.8, decoFill: 1, decoSilver: 0.6, decoMatte: 0, crackle: 0 } },
-  hajnal: { name: 'Hajnal', note: 'dawn red', set: { glazeColor: '#4a0f12', cu: 0.98, ag: 0.27, au: 0, bi: 0.85, coat: 0.94, kilnTemp: 700, soak: 60, reduction: 0.95, reox: 0.69, flash: 0.5, deco: 'Relief motif', decoThick: 0.7, decoFill: 0.9, decoSilver: 0.5, decoMatte: 0, crackle: 0 } },
-  labrador: { name: 'Labrador', note: 'blue', set: { glazeColor: '#0c1830', cu: 0.03, ag: 1, au: 0, bi: 0.75, coat: 1.2, kilnTemp: 580, soak: 60, reduction: 0.88, reox: 0.42, flash: 0.55, deco: 'Relief motif', decoThick: 1.25, decoFill: 0.8, decoSilver: -0.3, decoMatte: 0, crackle: 0 } },
-  ibolya: { name: 'Ibolya', note: 'violet', set: { glazeColor: '#2a1238', cu: 0.6, ag: 0.55, au: 0, bi: 0.9, coat: 0.9, kilnTemp: 650, soak: 30, reduction: 0.7, reox: 0.9, flash: 0.6, thickVar: 0.55, deco: 'Relief motif', decoThick: 0.75, decoFill: 1, decoSilver: -0.6, decoMatte: 0, crackle: 0 } },
-  bronz: { name: 'Bronz', note: 'gilt bronze', set: { glazeColor: '#3a2412', cu: 0.95, ag: 0.05, au: 0.75, bi: 0.75, coat: 1.4, kilnTemp: 631, soak: 26, reduction: 0.88, reox: 0.84, flash: 0.4, deco: 'Relief motif', decoThick: 0.85, decoFill: 0.8, decoSilver: 0.4, decoMatte: 0.25, crackle: 0 } },
-  gyongyhaz: { name: 'Gyöngyház', note: 'nacre', set: { glazeColor: '#ddd6c6', cu: 0, ag: 0.03, au: 0, bi: 1, coat: 0.9, kilnTemp: 600, soak: 30, reduction: 0.5, reox: 0.85, flash: 0.6, trimCover: 1.7, thickVar: 0.75, deco: 'Marbled veins', decoThick: 1.35, decoFill: 1.6, decoSilver: 0.3, decoMatte: 0, crackle: 0.55 } },
+  zold: { name: 'Zöld', note: 'green-gold', set: { glazeColor: '#16382a', cu: 0.95, ag: 0.05, au: 0, bi: 0.74, kilnTemp: 617, soak: 22, reduction: 0.95, reox: 0.7, flash: 0.45, deco: 'Relief motif', decoThick: 0.8, decoFill: 1, decoSilver: 0.6, decoMatte: 0, crackle: 0 } },
+  hajnal: { name: 'Hajnal', note: 'dawn red', set: { glazeColor: '#4a0f12', cu: 0.98, ag: 0.27, au: 0, bi: 0.85, trimThick: 1.45, kilnTemp: 700, soak: 60, reduction: 0.95, reox: 0.69, flash: 0.5, deco: 'Relief motif', decoThick: 0.7, decoFill: 0.9, decoSilver: 0.5, decoMatte: 0, crackle: 0 } },
+  labrador: { name: 'Labrador', note: 'blue', set: { glazeColor: '#0c1830', cu: 0.03, ag: 1, au: 0, bi: 0.75, trimThick: 1.85, kilnTemp: 580, soak: 60, reduction: 0.88, reox: 0.42, flash: 0.55, deco: 'Relief motif', decoThick: 1.25, decoFill: 0.8, decoSilver: -0.3, decoMatte: 0, crackle: 0 } },
+  ibolya: { name: 'Ibolya', note: 'violet', set: { glazeColor: '#2a1238', cu: 0.6, ag: 0.55, au: 0, bi: 0.9, trimThick: 1.38, kilnTemp: 650, soak: 30, reduction: 0.7, reox: 0.9, flash: 0.6, thickVar: 0.55, deco: 'Relief motif', decoThick: 0.75, decoFill: 1, decoSilver: -0.6, decoMatte: 0, crackle: 0 } },
+  bronz: { name: 'Bronz', note: 'gilt bronze', set: { glazeColor: '#3a2412', cu: 0.95, ag: 0.05, au: 0.75, bi: 0.75, trimThick: 2.15, kilnTemp: 631, soak: 26, reduction: 0.88, reox: 0.84, flash: 0.4, deco: 'Relief motif', decoThick: 0.85, decoFill: 0.8, decoSilver: 0.4, decoMatte: 0.25, crackle: 0 } },
+  gyongyhaz: { name: 'Gyöngyház', note: 'nacre', set: { glazeColor: '#ddd6c6', cu: 0, ag: 0.03, au: 0, bi: 1, trimThick: 1.38, kilnTemp: 600, soak: 30, reduction: 0.5, reox: 0.85, flash: 0.6, trimCover: 1.7, thickVar: 0.75, deco: 'Marbled veins', decoThick: 1.35, decoFill: 1.6, decoSilver: 0.3, decoMatte: 0, crackle: 0.55 } },
 };
 
 /* --------------------------------------------------------------------------
    1. Firing model
    Ion exchange carries Cu+/Ag+ into the softened glaze (Arrhenius diffusion);
    the reducing atmosphere converts them to metal colloids. Silver and gold
-   reduce more readily than copper. Re-oxidation on cooling strips metal from
-   the outermost skin, leaving a clear cover film; bismuth raises its index.
+   reduce more readily than copper. The paste is the metal reservoir: a thicker
+   coat feeds more metal into the layer, it does not drive it deeper.
+   Re-oxidation on cooling clears the metal from a skin above the lustre layer
+   (never deeper than the layer, and only where the firing reduced it), leaving
+   a clear cover film; bismuth raises its index.
    -------------------------------------------------------------------------- */
 function deriveOptics(p) {
-  const TK = p.kilnTemp + 273.15, T0 = 873.15;
-  const arr = Math.exp(-(p.activation * 1000 / 8.314) / 2 * (1 / TK - 1 / T0)); // sqrt(D / D at 600 °C)
+  const TK = p.kilnTemp + 273.15, T0 = 873.15, TX = 1073.15;
+  // sqrt(D / D at 600 °C and 100 kJ/mol). The barrier term pivots at 800 °C, above the kiln range, so a higher
+  // barrier slows diffusion at every temperature the kiln can reach.
+  const arr = Math.exp(-(100 * 1000 / 8.314) / 2 * (1 / TK - 1 / T0) - ((p.activation - 100) * 1000 / 8.314) / 2 * (1 / TK - 1 / TX));
   const time = Math.sqrt(p.soak / 30);
-  const depth = 150 * arr * time * p.coat * p.trimThick;
+  const depth = 97.5 * arr * time * p.trimThick;                                 // diffusion length, nm
   const drive = p.reduction * time * arr;
+  const supply = (1 - Math.exp(-1.6 * p.coat)) / (1 - Math.exp(-1.6 * 0.65));    // metal on offer; 1 at the default coat
   const conv = [1 - Math.exp(-1.9 * drive * p.reduction), 1 - Math.exp(-3.6 * drive), 1 - Math.exp(-6 * drive)];
-  let fill = [0.42 * p.cu * conv[0], 0.42 * p.ag * conv[1], 0.42 * p.au * conv[2]].map((v) => v * p.trimFill);
+  let fill = [0.42 * p.cu * conv[0], 0.42 * p.ag * conv[1], 0.42 * p.au * conv[2]].map((v) => v * p.trimFill * supply);
   const total = fill[0] + fill[1] + fill[2];
   if (total > 0.62) fill = fill.map((v) => v * 0.62 / total);
-  const radius = 3 + 26 * Math.min(1.6, drive) * Math.sqrt(arr);
+  const grow = Math.min(1.6, drive) * Math.sqrt(arr);                            // ripening: more drive and heat, coarser colloids
+  const strip = Math.min(p.reox * 90 * Math.sqrt(arr) * smooth(0, 0.3, drive), depth);
   return {
     nGlass: p.glassIndex,
     disp: 3000 + p.dispersion * 15000,       // Cauchy B coefficient, nm^2
     nCover: p.glassIndex + p.bi * 0.72,
-    dCover: (6 + p.reox * 90 * Math.sqrt(arr) + p.bi * 55) * p.trimCover,
+    dCover: (6 + strip + p.bi * 55) * p.trimCover,
     dMetal: Math.max(depth, 1),
-    fill, radius,
-    haze: clamp((radius - 20) / 240, 0, 0.16),
+    fill,
+    radius: Math.min(2 + 9 * grow, 0.5 * Math.max(depth, 1)),                    // nm; a colloid is never wider than its layer
+    haze: clamp((26 * grow - 17) / 240, 0, 0.16),
   };
 }
 
@@ -471,23 +494,30 @@ function spectralBasis(n, lo = 395, hi = 705) {
     sum[0] += c[0]; sum[1] += c[1]; sum[2] += c[2];
   }
   for (const c of w) { c[0] /= sum[0]; c[1] /= sum[1]; c[2] /= sum[2]; }   // a flat spectrum maps to white
-  return { lam, w };
+  return { lam, w, bw: 0.5 * (hi - lo) / n };                              // bw: half the sample spacing, nm
 }
 const cadd = (a, b) => [a[0] + b[0], a[1] + b[1]];
 const csub = (a, b) => [a[0] - b[0], a[1] - b[1]];
 const cmul = (a, b) => [a[0] * b[0] - a[1] * b[1], a[0] * b[1] + a[1] * b[0]];
 const cdiv = (a, b) => { const d = Math.max(b[0] * b[0] + b[1] * b[1], 1e-12); return [(a[0] * b[0] + a[1] * b[1]) / d, (a[1] * b[0] - a[0] * b[1]) / d]; };
-const csqrt = (z) => { const m = Math.hypot(z[0], z[1]); return [Math.sqrt(Math.max(0.5 * (m + z[0]), 0)), (z[1] < 0 ? -1 : 1) * Math.sqrt(Math.max(0.5 * (m - z[0]), 0))]; };
+// principal root; the small component comes from 2ab = Im z, never from |z| - |Re z| (that difference cancels in float32)
+const csqrt = (z) => { const a = Math.sqrt(0.5 * (Math.hypot(z[0], z[1]) + Math.abs(z[0]))), b = a > 0 ? 0.5 * Math.abs(z[1]) / a : 0, s = z[1] < 0 ? -1 : 1; return z[0] >= 0 ? [a, s * b] : [b, s * a]; };
+const sinc = (x) => (Math.abs(x) < 1e-3 ? 1 : Math.sin(x) / x);
 const rfl = (a, b) => cdiv(csub(a, b), cadd(a, b));
-function stackR(n0, n1, n2, n3, p1, p2) {           // Airy recursion over two films
+// Airy recursion over two films. Each spectral sample stands for a band of wavelengths: coh is the contrast the
+// cover-film fringes keep after averaging over that band (1 for a single wavelength), so thick films wash out to
+// their phase-averaged reflectance instead of aliasing into false colours.
+function stackR(n0, n1, n2, n3, p1, p2, coh) {
   const r01 = rfl(n0, n1), r12 = rfl(n1, n2), r23 = rfl(n2, n3);
   let x = cmul(r23, p2);
   const r13 = cdiv(cadd(r12, x), cadd([1, 0], cmul(r12, x)));
   x = cmul(r13, p1);
   const r = cdiv(cadd(r01, x), cadd([1, 0], cmul(r01, x)));
-  return r[0] * r[0] + r[1] * r[1];
+  const a = r01[0] * r01[0] + r01[1] * r01[1], b = Math.min(r13[0] * r13[0] + r13[1] * r13[1], 1);
+  const inc = (a + b - 2 * a * b) / Math.max(1 - a * b, 1e-6);            // phase average of the Airy sum
+  return inc + (r[0] * r[0] + r[1] * r[1] - inc) * coh;
 }
-function lustreAt(lam, cosT, o) {
+function lustreAt(lam, cosT, o, bw = 0) {            // bw: half-width of the band this sample stands for, nm
   const s2 = 1 - cosT * cosT;
   const dl = 1 / (lam * lam) - 2.8796e-6;           // dispersion relative to the sodium D line
   const ng = o.nGlass + o.disp * dl, nc = o.nCover + o.disp * 1.5 * dl;
@@ -509,16 +539,17 @@ function lustreAt(lam, cosT, o) {
   const p1 = [Math.cos(a1), Math.sin(a1)];
   const d2 = [2 * k0 * o.dMetal * q2[0], 2 * k0 * o.dMetal * q2[1]];
   const att = Math.exp(-Math.min(d2[1], 60));
-  const p2 = [att * Math.cos(d2[0]), att * Math.sin(d2[0])];
-  const Rs = stackR([cosT, 0], q1, q2, q3, p1, p2);
-  const Rp = stackR([1 / cosT, 0], cdiv(e1, q1), cdiv(e2, q2), cdiv(em, q3), p1, p2);
+  const coh = sinc(a1 * bw / lam), f2 = att * sinc(d2[0] * bw / lam);
+  const p2 = [f2 * Math.cos(d2[0]), f2 * Math.sin(d2[0])];
+  const Rs = stackR([cosT, 0], q1, q2, q3, p1, p2, coh);
+  const Rp = stackR([1 / cosT, 0], cdiv(e1, q1), cdiv(e2, q2), cdiv(em, q3), p1, p2, coh);
   const R = Math.min(1, 0.5 * (Rs + Rp));
   return { R, T: (1 - R) * att * att };
 }
 function lustreRGB(cosT, o, basis) {
   const R = [0, 0, 0];
   for (let i = 0; i < basis.lam.length; i++) {
-    const s = lustreAt(basis.lam[i], cosT, o), w = basis.w[i];
+    const s = lustreAt(basis.lam[i], cosT, o, basis.bw), w = basis.w[i];
     R[0] += w[0] * s.R; R[1] += w[1] * s.R; R[2] += w[2] * s.R;
   }
   return R.map((v) => clamp(v, 0, 1));
@@ -604,7 +635,7 @@ const RELIEFS = {
     const dt = Math.abs(x + dir * 0.13 * Math.sin(ph * 2 + 0.9));
     v = Math.max(v, 0.45 * Math.exp(-dt * dt / 0.0012));                   // tendril
     const phc = (Math.round(ph / Math.PI - 0.5) + 0.5) * Math.PI;          // bud at each crest
-    const rr = Math.hypot((x - dir * A * 1.28 * Math.sin(phc)) / 0.11, (ph - phc) / Math.PI * asp / 0.2);
+    const rr = Math.hypot((x - dir * A * 1.28 * Math.sin(phc)) / 0.11, (ph - phc) / Math.PI * asp / Math.min(0.2, 0.42 * asp));   // squat rows: the bud stays inside its own
     if (rr < 1) v = Math.max(v, Math.sqrt(1 - rr * rr));
     return v;
   },
@@ -612,7 +643,8 @@ const RELIEFS = {
   'Hammered': (u, b, n, rows, asp) => {
     const gx = u * n, gy = b * rows, ix = Math.floor(gx), iy = Math.floor(gy);
     let best = 9;
-    for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) {
+    const ry = Math.min(6, Math.max(1, Math.ceil(0.62 / asp)));            // rows whose dents can reach this point
+    for (let dj = -ry; dj <= ry; dj++) for (let di = -1; di <= 1; di++) {
       const cx = ix + di, cy = iy + dj, wx = ((cx % n) + n) % n;
       const d = Math.hypot(gx - (cx + 0.15 + 0.7 * hash2(wx, cy, 1)), (gy - (cy + 0.15 + 0.7 * hash2(wx, cy, 2))) * asp);
       if (d < best) best = d;
@@ -620,11 +652,14 @@ const RELIEFS = {
     return -(1 - smooth(0, 0.62, best));
   },
   'Cabochons': (u, b, n, rows, asp) => {
-    const by = b * rows, row = Math.min(rows - 1, Math.floor(by));
-    const ax = u * n + (row & 1 ? 0.5 : 0), x = ax - Math.floor(ax) - 0.5;
-    const yy = (by - row - 0.5) * asp / Math.min(0.42 * asp, 0.5);
-    const rr = Math.hypot(x / (0.34 * (1 - 0.3 * clamp(yy, -1, 1))), yy);   // teardrop, narrower at the top
-    return Math.max(rr < 1 ? Math.sqrt(1 - rr * rr) : 0, 0.24 * Math.exp(-((rr - 1.3) ** 2) / 0.05));
+    const by = b * rows, r0 = Math.min(rows - 1, Math.floor(by)), sy = Math.min(0.42 * asp, 0.5);
+    let v = 0;
+    for (let row = Math.max(0, r0 - 1); row <= Math.min(rows - 1, r0 + 1); row++) {   // a collar reaches into the rows above and below
+      const ax = u * n + (row & 1 ? 0.5 : 0), x = ax - Math.floor(ax) - 0.5, yy = (by - row - 0.5) * asp / sy;
+      const rr = Math.hypot(x / (0.34 * (1 - 0.3 * clamp(yy, -1, 1))), yy);           // teardrop, narrower at the top
+      v = Math.max(v, rr < 1 ? Math.sqrt(1 - rr * rr) : 0, 0.24 * Math.exp(-((rr - 1.3) ** 2) / 0.05));
+    }
+    return v;
   },
 };
 
@@ -678,7 +713,9 @@ function gridIndex(R, C1, base = 0) {
 }
 
 function buildVessel(p, level) {
-  const H = p.height, D = DETAIL[level] || DETAIL.Standard, C = D.cols, C1 = C + 1, M = 960, dy = H / M;
+  const H = p.height, D = DETAIL[level] || DETAIL.Standard, M = 960, dy = H / M;
+  // Gadroon and flute profiles have creases: the column count is a multiple of twice the lobe count, so every crease has a column.
+  const C = p.lobes > 0 ? Math.max(2 * p.lobes, Math.round(D.cols / (2 * p.lobes)) * 2 * p.lobes) : D.cols, C1 = C + 1;
 
   // --- meridian: smooth body, then turned decoration (collar rings, rim bead)
   const y1 = clamp(p.footHeight, 0.2, H * 0.22);
@@ -698,6 +735,10 @@ function buildVessel(p, level) {
   }
   const sample = (arr, y) => { const t = clamp(y / dy, 0, M - 1e-6), i = Math.floor(t); return arr[i] + (arr[i + 1] - arr[i]) * (t - i); };
   const wallAt = (y) => p.wall * (1 + 0.35 * (1 - clamp(y / H, 0, 1)) ** 2);
+  const normalAt = (y) => {                         // outward meridian normal of the undecorated wall
+    const i = clamp(Math.round(y / dy), 1, M - 1), tr = body[i + 1] - body[i - 1], l = Math.hypot(tr, 2 * dy);
+    return [2 * dy / l, -tr / l];
+  };
 
   const rows = [];                                   // [r, y, region]  0 foot/underside, 1 outer wall, 2 lip, 3 interior
   const push = (r, y, reg) => rows.push([Math.max(r, 0), y, reg]);
@@ -721,7 +762,7 @@ function buildVessel(p, level) {
     if (pts[i][1] > glBot && pts[i][1] < glTop) w += 1.5;
     cum.push(cum[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]) * w);
   }
-  const outerStart = rows.length, nO = D.outer;
+  const nO = D.outer;
   for (let k = 0, i = 1; k < nO; k++) {
     const target = cum[cum.length - 1] * k / (nO - 1);
     while (i < cum.length - 1 && cum[i] < target) i++;
@@ -764,6 +805,9 @@ function buildVessel(p, level) {
     for (let s = 1; s <= 8 && fx > 1e-3; s++) poly.push([fx * (1 - s / 8), yF]);
     poly[poly.length - 1][0] = 0;
   }
+  // A plain normal offset can cross the outer wall where the profile turns sharply: hold the interior half a wall inside it.
+  const inside = (r, y) => (y < H ? Math.min(r, sample(body, y) - 0.5 * wallAt(y)) : r);
+  for (const q of poly) q[0] = Math.max(0, inside(q[0], q[1]));
   {
     const cl = [0];
     for (let i = 1; i < poly.length; i++) cl.push(cl[i - 1] + Math.hypot(poly[i][0] - poly[i - 1][0], poly[i][1] - poly[i - 1][1]));
@@ -772,25 +816,36 @@ function buildVessel(p, level) {
       const target = cl[cl.length - 1] * k / (nI - 1);
       while (i < cl.length - 1 && cl[i] < target) i++;
       const t = clamp((target - cl[i - 1]) / Math.max(cl[i] - cl[i - 1], 1e-9), 0, 1);
-      push(lerp(poly[i - 1][0], poly[i][0], t), lerp(poly[i - 1][1], poly[i][1], t), 3);
+      const y = lerp(poly[i - 1][1], poly[i][1], t);
+      push(inside(lerp(poly[i - 1][0], poly[i][0], t), y), y, 3);
     }
     rows[rows.length - 1][0] = 0;
   }
 
   // --- per-column tables
   const R = rows.length, twist = p.twist * Math.PI / 180;
-  const cosT = new Float64Array(C1), sinT = new Float64Array(C1), lobeS = new Float64Array(C1), line = new Float64Array(C1);
+  // Rim waves: one vertical shear shared by outer wall, lip and interior, so the wall keeps its section. Crests sit on
+  // the lobe crowns (theta = 0). The rise is held to the zone it grows over, to one wave width at the lip, and to what
+  // a twisted wall can take before its columns fold over each other.
+  const rimN = Math.round(p.rimWaves), rimFrom = Math.min(p.rimFrom, 0.95);
+  const rimRise = rimN > 0 ? Math.min(p.rimDepth, (1 - rimFrom) * H, TAU * dec[M] / rimN, H / (Math.abs(twist) * rimN + 1e-9)) : 0;
+  const rimEnv = (h) => rimRise * smooth(rimFrom, 1, h);
+  const rimAt = (theta, h) => rimEnv(h) * (0.5 + 0.5 * Math.cos(theta * rimN));
+  const cosT = new Float64Array(C1), sinT = new Float64Array(C1), lobeS = new Float64Array(C1), rimS = new Float64Array(C1), line = new Float64Array(C1);
   const drips = [];
   for (let q = 0; q < p.dripCount; q++) drips.push([TAU * (q + 0.15 + 0.7 * hash2(q, 3, p.seed)) / p.dripCount, 0.07 + 0.12 * hash2(q, 5, p.seed), 0.35 + 0.65 * hash2(q, 7, p.seed)]);
   for (let j = 0; j < C1; j++) {
     const th = TAU * (j % C) / C;
     cosT[j] = Math.cos(th); sinT[j] = Math.sin(th);
     lobeS[j] = p.lobes > 0 ? lobeShape(p.lobeProfile, th * p.lobes) : 0;
+    rimS[j] = 0.5 + 0.5 * Math.cos(th * rimN);
     let d = 0;
     for (const [a, s, w] of drips) { let da = Math.abs(th - a); if (da > Math.PI) da = TAU - da; d = Math.max(d, w * Math.exp(-(da * da) / (s * s))); }
     line[j] = Math.max(0.06, p.glazeLine - p.dripAmp * d);
   }
-  const lobeEnv = (h) => (p.lobeStart <= 0.005 ? 1 : smooth(p.lobeStart - 0.06, p.lobeStart + 0.06, h)) * (p.lobeEnd >= 0.995 ? 1 : 1 - smooth(p.lobeEnd - 0.06, p.lobeEnd + 0.06, h));
+  // The lobing fades in and out over 12 % of the height; near foot and lip the fade slides off the end, so the range sliders never jump.
+  const ls = p.lobeStart - 0.06 * (1 - clamp(p.lobeStart / 0.06, 0, 1)), le = p.lobeEnd + 0.06 * (1 - clamp((1 - p.lobeEnd) / 0.06, 0, 1));
+  const lobeEnv = (h) => smooth(ls - 0.06, ls + 0.06, h) * (1 - smooth(le - 0.06, le + 0.06, h));
   const lobeAt = (theta, h) => (p.lobes > 0 ? 1 + p.lobeDepth * lobeEnv(h) * lobeShape(p.lobeProfile, theta * p.lobes) : 1);
   const twAt = (h) => twist * h;
   const sx = 1 + p.squash, sz = 1 - p.squash;
@@ -804,12 +859,10 @@ function buildVessel(p, level) {
   let maxR = 0;
   for (let k = 0; k < R; k++) {
     const [r, y, reg] = rows[k], h = clamp(y / H, 0, 1);
-    const env = p.lobes > 0 ? p.lobeDepth * lobeEnv(h) : 0, tw = twAt(h), ct = Math.cos(tw), st = Math.sin(tw);
+    const env = p.lobes > 0 ? p.lobeDepth * lobeEnv(h) : 0, tw = twAt(h), ct = Math.cos(tw), st = Math.sin(tw), lift = rimEnv(h);
     let nr = 0, ny = 0, b = -1, fade = 0;
     if (reg === 1) {
-      const a = rows[Math.max(outerStart, k - 1)], c = rows[Math.min(outerEnd - 1, k + 1)];
-      const tr = c[0] - a[0], ty = c[1] - a[1], l = Math.hypot(tr, ty) || 1;
-      nr = ty / l; ny = -tr / l;
+      [nr, ny] = normalAt(y);                        // of the wall under the rings: their grooves would make the relief fold over
       if (useRelief) { b = (h - bandA) / (bandB - bandA); fade = smooth(0, 0.05, b) * smooth(1, 0.95, b); }
     }
     for (let j = 0; j < C1; j++) {
@@ -822,7 +875,7 @@ function buildVessel(p, level) {
       }
       const rr = r * (1 + env * lobeS[j]) + d * nr;
       const cp = cosT[j] * ct - sinT[j] * st, sp = sinT[j] * ct + cosT[j] * st;
-      pos[o * 3] = rr * cp * sx; pos[o * 3 + 1] = y + d * ny; pos[o * 3 + 2] = rr * sp * sz;
+      pos[o * 3] = rr * cp * sx; pos[o * 3 + 1] = y + d * ny + lift * rimS[j]; pos[o * 3 + 2] = rr * sp * sz;
       uv[o * 2] = j / C; uv[o * 2 + 1] = h;
       surf[o * 4 + 1] = Math.abs(rel); surf[o * 4 + 2] = glz; surf[o * 4 + 3] = reg;
       if (rr > maxR) maxR = rr;
@@ -842,11 +895,7 @@ function buildVessel(p, level) {
   geometry.setAttribute('aSurf', new THREE.BufferAttribute(surf, 4));
   geometry.setIndex(new THREE.BufferAttribute(gridIndex(R, C1), 1));
   geometry.computeBoundingSphere();
-  const normalAt = (y) => {                         // outward meridian normal of the undecorated wall
-    const i = clamp(Math.round(y / dy), 1, M - 1), tr = body[i + 1] - body[i - 1], l = Math.hypot(tr, 2 * dy);
-    return [2 * dy / l, -tr / l];
-  };
-  return { geometry, maxR: maxR * Math.max(sx, sz), ctx: { H, dec, sample, wallAt, lobeAt, twAt, normalAt, sx, sz }, vertices: N };
+  return { geometry, maxR: maxR * Math.max(sx, sz), rise: rimRise, ctx: { H, dec, sample, wallAt, lobeAt, twAt, rimAt, normalAt, sx, sz }, vertices: N };
 }
 
 // Pulled handles: an elliptical strap swept along a Bézier ear, thickened at both joints.
@@ -862,19 +911,50 @@ function buildHandles(p, ctx, level) {
     const phi = TAU * k / n, cp = Math.cos(phi), sp = Math.sin(phi);
     const joint = (h) => {                       // a point 0.7 wall-thicknesses under the surface, and the wall normal there
       const y = h * H, n = ctx.normalAt(y), depth = 0.7 * ctx.wallAt(y);
-      return { p: [ctx.sample(ctx.dec, y) * ctx.lobeAt(phi - ctx.twAt(h), h) - depth * n[0], y - depth * n[1]], n };
+      return { p: [ctx.sample(ctx.dec, y) * ctx.lobeAt(phi - ctx.twAt(h), h) - depth * n[0], y - depth * n[1] + ctx.rimAt(phi - ctx.twAt(h), h)], n };
     };
     const ja = joint(ha), jb = joint(hb), A = ja.p, B = jb.p, span = B[1] - A[1], Rr = p.handleReach;
-    const knee = [Math.max(A[0], B[0]) + Rr, A[1] + span * (0.5 + 0.62 * p.handleArch)], lm = span * 0.34;
-    const segs = [
-      [A, [A[0] + ja.n[0] * Rr * 0.9, A[1] + ja.n[1] * Rr * 0.9], [knee[0], knee[1] - lm], knee],
-      [knee, [knee[0], knee[1] + lm], [B[0] + jb.n[0] * Rr * 0.9, B[1] + jb.n[1] * Rr * 0.9], B],
-    ];
+    const kx = Math.max(A[0], B[0]) + Rr, ky = A[1] + span * (0.5 + 0.62 * p.handleArch), lm = span * 0.34;
+    // Seven control points: joint, joint tangent, knee tangent, knee, and back. `asked` is the ear the sliders describe.
+    // `relaxed` is one that cannot double back: joint tangents that do not cross, the knee between and clear of their
+    // ends, knee tangents sized for a minimum bend radius. The asked ear is used while its spine bends no more sharply
+    // than the strap can follow; otherwise it is blended toward the relaxed one, just far enough.
+    const asked = [A, [A[0] + ja.n[0] * Rr * 0.9, A[1] + ja.n[1] * Rr * 0.9], [kx, ky - lm], [kx, ky], [kx, ky + lm], [B[0] + jb.n[0] * Rr * 0.9, B[1] + jb.n[1] * Rr * 0.9], B];
+    const conv = ja.n[1] - jb.n[1], cj = conv > 1e-6 ? Math.min(Rr * 0.9, 0.6 * span / conv) : Rr * 0.9;
+    const pa = [A[0] + ja.n[0] * cj, A[1] + ja.n[1] * cj], pb = [B[0] + jb.n[0] * cj, B[1] + jb.n[1] * cj], gap = pb[1] - pa[1];
+    const rx = Math.max(kx, pa[0] + 0.35 * Rr, pb[0] + 0.35 * Rr), ry = clamp(ky, pa[1] + 0.25 * gap, pb[1] - 0.25 * gap), rmin = 0.9 * p.handleThick;
+    const la = clamp(Math.sqrt(0.667 * (rx - pa[0]) * rmin), 0.1 * span, ry - pa[1] + 0.6 * (rx - pa[0]));
+    const lb = clamp(Math.sqrt(0.667 * (rx - pb[0]) * rmin), 0.1 * span, pb[1] - ry + 0.6 * (rx - pb[0]));
+    const relaxed = [A, pa, [rx, ry - la], [rx, ry], [rx, ry + lb], pb, B];
+    let segs;
     const bez = (s) => {
       const g = segs[s < 0.5 ? 0 : 1], t = s < 0.5 ? s * 2 : s * 2 - 1;
       const a = (1 - t) ** 3, b = 3 * t * (1 - t) ** 2, c = 3 * t * t * (1 - t), d = t ** 3;
       return [a * g[0][0] + b * g[1][0] + c * g[2][0] + d * g[3][0], a * g[0][1] + b * g[1][1] + c * g[2][1] + d * g[3][1]];
     };
+    const shape = (w) => {                           // w = 1: as asked, w = 0: relaxed
+      const c = asked.map((q, i) => [lerp(relaxed[i][0], q[0], w), lerp(relaxed[i][1], q[1], w)]);
+      segs = [c.slice(0, 4), c.slice(3)];
+      // 'Reach' is measured from the wider joint. Where the wall bulges past the strap between the joints, the knee moves
+      // out until the centre line clears it (by half a strap, away from the joints); x is linear in the knee radius.
+      for (let q = 3; q <= 21; q++) {
+        const s = q / 24, at = bez(s), h = at[1] / H;
+        if (h <= 0 || h >= 1) continue;
+        const t = s < 0.5 ? s * 2 : 2 - s * 2;       // 0 at a joint, 1 at the knee
+        const lack = ctx.sample(ctx.dec, at[1]) * ctx.lobeAt(phi - ctx.twAt(h), h) + 0.5 * p.handleThick * Math.min(1, (t - 0.2) / 0.4) - at[0];
+        if (lack > 0) c[2][0] = c[4][0] = c[3][0] = c[3][0] + lack / (t * t * (3 - 2 * t));
+      }
+    };
+    const tight = (w) => {                           // does the spine turn on a radius below 0.65 x the strap thickness?
+      shape(w);
+      for (let i = 1, a = bez(0), b = bez(1 / 120); i < 120; i++) {
+        const c = bez((i + 1) / 120), cr = Math.abs((b[0] - a[0]) * (c[1] - b[1]) - (b[1] - a[1]) * (c[0] - b[0]));
+        if (Math.hypot(b[0] - a[0], b[1] - a[1]) * Math.hypot(c[0] - b[0], c[1] - b[1]) * Math.hypot(c[0] - a[0], c[1] - a[1]) < 1.3 * p.handleThick * cr) return true;
+        a = b; b = c;
+      }
+      return false;
+    };
+    if (tight(1)) { let lo = 0, hi = 1; for (let q = 0; q < 8; q++) { const m = (lo + hi) / 2; if (tight(m)) hi = m; else lo = m; } shape(lo); }
     let len = 0;
     for (let i = 1, q = bez(0); i <= 40; i++) { const w = bez(i / 40); len += Math.hypot(w[0] - q[0], w[1] - q[1]); q = w; }
     const capS = clamp(0.3 * ctx.wallAt(A[1]) / len, 0.004, 0.1);   // the rounded tip stays buried inside the wall
@@ -886,11 +966,13 @@ function buildHandles(p, ctx, level) {
       const end = Math.min(s, 1 - s) / capS, cap = end >= 1 ? 1 : Math.sqrt(Math.max(0, 1 - (1 - end) * (1 - end)));
       const rad = 0.5 * p.handleThick * (1 + 0.3 * (Math.exp(-((s / 0.2) ** 2)) + Math.exp(-(((1 - s) / 0.2) ** 2)))) * (0.9 + 0.1 * Math.cos(TAU * s)) * cap;
       reach = Math.max(reach, c[0] + rad);
+      // towards a joint the strap is no wider than the wall it meets can take (0.9 of its radius across)
+      const flat = Math.min(p.handleFlat, lerp(0.45 * (s < 0.5 ? A[0] : B[0]) / Math.max(rad, 1e-6), p.handleFlat, smooth(0.02, 0.22, Math.min(s, 1 - s))));
       for (let j = 0; j < A1; j++) {
-        const al = TAU * (j % NA) / NA, a = rad * Math.cos(al), bt = rad * p.handleFlat * Math.sin(al);
+        const al = TAU * (j % NA) / NA, a = rad * Math.cos(al), bt = rad * flat * Math.sin(al);
         const rho = c[0] + a * nr, o = (i * A1 + j) * 3, g = k * per + i * A1 + j;
         part[o] = (rho * cp - bt * sp) * ctx.sx; part[o + 1] = c[1] + a * ny; part[o + 2] = (rho * sp + bt * cp) * ctx.sz;
-        uv[g * 2] = k / n; uv[g * 2 + 1] = clamp(c[1] / H, 0, 1);
+        uv[g * 2] = -1; uv[g * 2 + 1] = clamp(c[1] / H, 0, 1);   // u < 0: a strap has no angle around the pot
         surf[g * 4 + 2] = 10; surf[g * 4 + 3] = 1;
       }
     }
@@ -944,6 +1026,7 @@ varying vec2 vEzUv;
 
 uniform float uUnit, uHeight;
 uniform int uSpecN;
+uniform float uSpecBW;       // half the spacing of the spectral samples, nm
 uniform float uLam[EZ_MAX];
 uniform vec3 uCMF[EZ_MAX];
 uniform vec2 uEpsCu[EZ_MAX];
@@ -1000,13 +1083,14 @@ float ezMicro(vec3 p, float fw, out float crack, out float cell, out float pit) 
     vec3 v = ezVoronoi(p / uCrackleSize + (ezNoise(p * 1.3) - 0.5) * 0.35);
     float w = max(0.012, fw * 1.3);
     crack = (1.0 - smoothstep(0.0, w, (v.y - v.x) * uCrackleSize)) * uCrackle * min(1.0, 0.03 / w);
-    cell = v.z;
+    cell = mix(0.5, v.z, smoothstep(0.0, 0.2, uCrackle));        // the mosaic comes in with the crack network, not ahead of it
     h -= crack * 0.006;
   }
   if (uPinholes > 0.001) {
     vec3 q = p * 2.3, i = floor(q), o = ezHash3(i + 3.7);
     float d = length(fract(q) - (0.2 + 0.6 * o));
-    pit = step(1.0 - uPinholes * 0.3, ezHash(i + 9.1)) * (1.0 - smoothstep(0.0, 0.06 + 0.08 * o.z, d));
+    float r0 = 0.06 + 0.08 * o.z, r = max(r0, 1.5 * fw * 2.3);   // never smaller than a pixel: a wider, shallower pit of the same volume
+    pit = step(1.0 - uPinholes * 0.3, ezHash(i + 9.1)) * (1.0 - smoothstep(0.0, r, d)) * (r0 * r0) / (r * r);
     h -= pit * 0.012;
   }
   return h;
@@ -1024,15 +1108,23 @@ vec3 ezPerturb(vec3 surfPos, vec3 n, vec2 dH, float face) {   // Mikkelsen, unno
 // ---- film optics: air / cover film / Maxwell-Garnett metal-glass composite / glaze
 vec2 ezCmul(vec2 a, vec2 b) { return vec2(a.x * b.x - a.y * b.y, a.x * b.y + a.y * b.x); }
 vec2 ezCdiv(vec2 a, vec2 b) { return vec2(a.x * b.x + a.y * b.y, a.y * b.x - a.x * b.y) / max(dot(b, b), 1e-12); }
-vec2 ezCsqrt(vec2 z) { float m = length(z); return vec2(sqrt(max(0.5 * (m + z.x), 0.0)), (z.y < 0.0 ? -1.0 : 1.0) * sqrt(max(0.5 * (m - z.x), 0.0))); }
+vec2 ezCsqrt(vec2 z) {       // principal root; the small component comes from 2ab = Im z, never from |z| - |Re z| (float32 cancellation)
+  float a = sqrt(0.5 * (length(z) + abs(z.x)));
+  float b = a > 0.0 ? 0.5 * abs(z.y) / a : 0.0;
+  float s = z.y < 0.0 ? -1.0 : 1.0;
+  return z.x >= 0.0 ? vec2(a, s * b) : vec2(b, s * a);
+}
+float ezSinc(float x) { return abs(x) < 1e-3 ? 1.0 : sin(x) / x; }
 vec2 ezRfl(vec2 a, vec2 b) { return ezCdiv(a - b, a + b); }
-float ezStack(vec2 n0, vec2 n1, vec2 n2, vec2 n3, vec2 p1, vec2 p2) {
+float ezStack(vec2 n0, vec2 n1, vec2 n2, vec2 n3, vec2 p1, vec2 p2, float coh) {   // coh: see stackR
   vec2 r01 = ezRfl(n0, n1), r12 = ezRfl(n1, n2), r23 = ezRfl(n2, n3);
   vec2 x = ezCmul(r23, p2);
   vec2 r13 = ezCdiv(r12 + x, vec2(1.0, 0.0) + ezCmul(r12, x));
   x = ezCmul(r13, p1);
   vec2 r = ezCdiv(r01 + x, vec2(1.0, 0.0) + ezCmul(r01, x));
-  return dot(r, r);
+  float a = dot(r01, r01), b = min(dot(r13, r13), 1.0);
+  float inc = (a + b - 2.0 * a * b) / max(1.0 - a * b, 1e-6);  // phase average of the Airy sum
+  return mix(inc, dot(r, r), coh);
 }
 void ezLustreEval(float cosT, vec3 fill, float dC, float dM, out vec3 R, out vec3 T) {
   float s2 = 1.0 - cosT * cosT;
@@ -1054,9 +1146,10 @@ void ezLustreEval(float cosT, vec3 fill, float dC, float dM, out vec3 R, out vec
     vec2 p1 = vec2(cos(a1), sin(a1));
     vec2 d2 = 2.0 * k0 * dM * q2;
     float att = exp(-min(d2.y, 60.0));
-    vec2 p2 = att * vec2(cos(d2.x), sin(d2.x));
-    float Rs = ezStack(vec2(cosT, 0.0), q1, q2, q3, p1, p2);
-    float Rp = ezStack(vec2(1.0 / cosT, 0.0), ezCdiv(e1, q1), ezCdiv(e2, q2), ezCdiv(em, q3), p1, p2);
+    float coh = ezSinc(a1 * uSpecBW / lam);                    // box filter over this sample's share of the spectrum
+    vec2 p2 = att * ezSinc(d2.x * uSpecBW / lam) * vec2(cos(d2.x), sin(d2.x));
+    float Rs = ezStack(vec2(cosT, 0.0), q1, q2, q3, p1, p2, coh);
+    float Rp = ezStack(vec2(1.0 / cosT, 0.0), ezCdiv(e1, q1), ezCdiv(e2, q2), ezCdiv(em, q3), p1, p2, coh);
     float r = min(0.5 * (Rs + Rp), 1.0);
     R += uCMF[i] * r;
     T += uCMF[i] * ((1.0 - r) * att * att);
@@ -1105,7 +1198,7 @@ float ezOuter = smoothstep(0.4, 0.9, ezReg) * (1.0 - smoothstep(1.1, 1.6, ezReg)
 float ezGlaze = smoothstep(-0.015, 0.025, vSurf.z + (ezNoise(ezP * 7.0) - 0.5) * 0.10 + (ezNoise(ezP * 23.0) - 0.5) * 0.03);
 
 // base glaze thickness: pooling, breaking, runs, sag
-float ezRunN = ezFbm(vec3(ezP.x, ezP.y * 0.1, ezP.z) * (uRunScale * 3.0) + uSeed);
+float ezRunN = ezFbm(vec3(ezP.x, ezP.y * 0.1, ezP.z) * uRunScale + uSeed);     // uRunScale, uFlashScale, uThickScale: 1 / size in cm
 float ezLow = ezFbm(ezP * uThickScale + vec3(uSeed * 1.7, 4.1, 2.3));
 float ezGT = max(0.03, uGlazeThick * (1.0 + uPool * 1.4 * ezCav + uRuns * 1.5 * (ezRunN - 0.5) + uSag * (0.5 - ezHN)));
 float ezBreak = 1.0 - smoothstep(0.15 * uBreak, 0.85 * uBreak + 1e-3, ezGT);
@@ -1120,7 +1213,8 @@ if (ezGlaze > 0.002) {
 if (ezGlaze < 0.998) {
   float ezC0 = ezClayRelief(ezP, ezUnder);
   ezDHc = (vec2(ezClayRelief(ezP + ezDx, ezUnder), ezClayRelief(ezP + ezDy, ezUnder)) - ezC0) * (1.0 - smoothstep(0.03, 0.09, ezFw));
-  ezClay *= (0.7 + 0.42 * ezFbm(ezP * 6.0)) * (1.0 - 0.3 * step(0.93, ezNoise(ezP * 38.0)));
+  float ezSpeck = smoothstep(0.70, 0.76, ezNoise(ezP * 12.0)) * (1.0 - smoothstep(0.03, 0.08, ezFw));   // iron specks; gone before they alias
+  ezClay *= (0.7 + 0.42 * ezFbm(ezP * 6.0)) * (1.0 - 0.3 * ezSpeck);
 }
 ezDH = mix(ezDHc, ezDH, ezGlaze) * uUnit;
 
@@ -1134,10 +1228,12 @@ ezQ.y *= uFlashStretch;
 ezQ += uSeed * vec3(3.1, 1.7, 2.9);
 vec3 ezW = vec3(ezFbm2(ezQ + 3.1), ezFbm2(ezQ + vec3(7.7, 1.3, 4.2)), ezFbm2(ezQ + 11.5)) - 0.5;
 float ezFlame = ezFbm(ezQ + uFlashWarp * 2.5 * ezW);
-float ezSide = dot(normalize(vObjNormal.xz + vec2(1e-5)), uFlameDir);
+// which way the wall faces the flame; fades to nothing where the surface turns horizontal (floor, lip crest)
+float ezSide = dot(vObjNormal.xz, uFlameDir) / max(max(length(vObjNormal.xz), 0.35 * length(vObjNormal)), 1e-4);
 float ezRed = clamp(1.0 + uFlash * 2.2 * (ezFlame - 0.5) + uFlameBias * 0.6 * ezSide, 0.0, 2.0);
 
 float ezDeco = ezDecoMask(ezRel, ezP) * ezOuter;
+if (uDeco == 3 || uDeco == 5) ezDeco *= step(-0.5, vEzUv.x);          // lattice motifs need the body's (u, v); handles carry u = -1
 
 float ezLustre = ezGlaze * uCoverage * (1.0 - 0.85 * ezPit) * mix(1.0, uInnerLustre, ezInner);
 vec3 ezFill = uFill * ezRed * (1.0 - 0.6 * ezBreak) * mix(1.0, uDecoFill, ezDeco);
@@ -1180,12 +1276,17 @@ function makeGlazeMaterial(U) {
     fs = swap(fs, '#include <map_fragment>', '#include <map_fragment>\n' + GLSL_FRAG_SURFACE);
     fs = swap(fs, '#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\nroughnessFactor = ezRough;');
     fs = swap(fs, '#include <normal_fragment_maps>', '#include <normal_fragment_maps>\n' + GLSL_FRAG_NORMAL);
-    fs = swap(fs, '#include <lights_physical_fragment>', '#include <lights_physical_fragment>\nmaterial.iridescence = ezLustre;\nmaterial.iridescenceThickness = 1.0;\nmaterial.iridescenceFresnel = ezR;\nmaterial.iridescenceF0 = ezR;');
+    // Bare glaze reflects by its own index (three's ior stays 1.5 for the clay); the film response goes in as the iridescence term.
+    fs = swap(fs, '#include <lights_physical_fragment>', '#include <lights_physical_fragment>\nmaterial.specularColor = mix(material.specularColor, vec3(pow2((uNGlass - 1.0) / (uNGlass + 1.0))), ezGlaze);\nmaterial.iridescence = ezLustre;\nmaterial.iridescenceThickness = 1.0;\nmaterial.iridescenceFresnel = ezR;');
     // Replace three's RGB thin-film approximation with the spectral film response computed above.
     const call = /material\.iridescenceFresnel = evalIridescence\([^;]*\);/;
     const lights = THREE.ShaderChunk.lights_fragment_begin;
     if (!call.test(lights)) console.warn('Eozin shader hook not found: evalIridescence');
     fs = swap(fs, '#include <lights_fragment_begin>', lights.replace(call, 'material.iridescenceFresnel = ezR;'));
+    // ezR is already the film reflectance at the view angle, so under image-based light it scales the whole GGX lobe
+    // (fab.x + fab.y). three treats it as a Schlick F0 and would add a white grazing lobe on top.
+    fs = swap(fs, '#include <lights_physical_pars_fragment>', swap(THREE.ShaderChunk.lights_physical_pars_fragment,
+      'vec3 FssEss = Fr * fab.x + specularF90 * fab.y;', 'vec3 FssEss = Fr * fab.x + mix( vec3( specularF90 ), iridescenceF0, iridescence ) * fab.y;'));
     shader.fragmentShader = fs;
   };
   return mat;
@@ -1197,7 +1298,7 @@ function makeGlazeMaterial(U) {
 const stageEl = $('#stage');
 let renderer;
 try {
-  renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: 'high-performance', preserveDrawingBuffer: false });
+  renderer = new THREE.WebGLRenderer({ antialias: false, depth: false, powerPreference: 'high-performance', preserveDrawingBuffer: false });   // the canvas only receives the final full-screen pass
 } catch (err) {
   fail('This simulation needs WebGL 2, which this browser or device did not provide.');
   throw err;
@@ -1211,7 +1312,7 @@ const UNIT = 0.1;                                    // scene units per centimet
 const GROUND = new THREE.Color('#0e0b10');
 const scene = new THREE.Scene();
 scene.background = GROUND;
-scene.fog = new THREE.Fog(GROUND, 13, 44);
+scene.fog = new THREE.Fog(GROUND, 13, 44);          // dissolves the floor into the background; tick() keeps it behind the vessel
 const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 200);
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
@@ -1239,11 +1340,10 @@ keyLight.castShadow = true;
 keyLight.shadow.mapSize.set(2048, 2048);
 keyLight.shadow.bias = -0.0004;
 keyLight.shadow.normalBias = 0.02;
-keyLight.shadow.radius = 5;
 scene.add(keyLight, keyLight.target);
 
 const U = {
-  uUnit: { value: UNIT }, uHeight: { value: 30 }, uSpecN: { value: 16 },
+  uUnit: { value: UNIT }, uHeight: { value: 30 }, uSpecN: { value: 16 }, uSpecBW: { value: 0 },
   uLam: { value: new Float32Array(MAX_SPECTRAL).fill(550) }, uCMF: { value: new Float32Array(MAX_SPECTRAL * 3) },
   uEpsCu: { value: new Float32Array(MAX_SPECTRAL * 2) }, uEpsAg: { value: new Float32Array(MAX_SPECTRAL * 2) }, uEpsAu: { value: new Float32Array(MAX_SPECTRAL * 2) },
   uNGlass: { value: 1.56 }, uDisp: { value: 9000 }, uNCover: { value: 1.56 }, uDCover: { value: 30 }, uDMetal: { value: 150 }, uHaze: { value: 0 },
@@ -1333,35 +1433,86 @@ const composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(4, 4, 
 composer.addPass(new RenderPass(scene, camera));
 const bloomPass = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.2, 0.55, 0.92);
 composer.addPass(bloomPass);
-composer.addPass(new OutputPass());
+const outputPass = new OutputPass();
+outputPass.needsSwap = false;                        // it draws to the canvas; a swap here would make the scene alternate between two MSAA targets
+composer.addPass(outputPass);
 
-const state = { maxR: 10, reach: 0, optics: null, basisN: 0, vertices: 0, framed: false, scale: 1, frame: 0, tuned: 0, quality: '' };
+const state = {
+  maxR: 10, reach: 0, rise: 0, optics: null, basisN: 0, vertices: 0,
+  framed: false, posed: false, userMoved: false, usable: 1,           // camera fit
+  scale: 1, lod: 0, frame: 0, tuned: 0, settle: 8, raised: -Infinity, hold: 8000, drew: false, quality: '',   // adaptive quality
+};
+const LEVELS = Object.keys(DETAIL);                  // coarse to fine
+const meshLevel = () => LEVELS[Math.max(0, LEVELS.indexOf(P.detail) - state.lod)];   // the chosen detail, less what the adaptive logic has given up
 
+let stale = true;                                    // the picture on screen is out of date
+const invalidate = () => { stale = true; };
+controls.addEventListener('change', invalidate);
+controls.addEventListener('start', () => { state.userMoved = true; });
+
+// --- layout: the vessel is drawn in the part of the stage that the page chrome leaves free
+const narrowLayout = window.matchMedia('(max-width: 1080px)'), sheetLayout = window.matchMedia('(max-width: 720px)');
+let layoutDirty = true;
+{
+  const watch = new ResizeObserver(() => { layoutDirty = true; });
+  for (const el of [stageEl, $('.mast'), $('.dock'), $('#label'), $('#controls')]) watch.observe(el);
+}
+function freeView(w, h) {
+  const st = stageEl.getBoundingClientRect(), mast = $('.mast').getBoundingClientRect(), dock = $('.dock').getBoundingClientRect();
+  // The band between masthead (small screens only) and preset shelf. The side panels of the wide layout are allowed for in frameCamera.
+  const y0 = mast.height ? Math.max(0, mast.bottom - st.top) + 8 : 0, bh = Math.max(80, (dock.height ? Math.min(h, dock.top - st.top) - 8 : h) - y0);
+  let x1 = w, y1 = y0 + bh;
+  const panel = narrowLayout.matches ? $('.label.open, .controls.open') : null;
+  if (panel) {                                       // an open small-screen panel: a sheet over the lower stage, or a column on the right
+    const r = panel.getBoundingClientRect();
+    if (sheetLayout.matches) y1 = Math.max(y0 + 40, r.top - st.top - 8); else x1 = Math.max(40, r.left - st.left - 8);
+  }
+  const k = clamp(Math.min(x1 / w, (y1 - y0) / bh), 0.15, 1);              // the whole frame shrinks into what is left
+  return { k, cx: x1 / 2, cy: (y0 + y1) / 2, usable: bh / h, fit: `${w}x${h}/${Math.round(y0)}/${Math.round(bh)}` };
+}
+
+// Called before every frame is drawn. A canvas that is resized after its render is presented empty, so sizes are only
+// ever changed here; reading the pixel ratio each time also follows the window onto a display with another density.
 function resize() {
   const w = Math.max(2, stageEl.clientWidth), h = Math.max(2, stageEl.clientHeight);
-  const pr = Math.min(window.devicePixelRatio || 1, P.pixelRatio) * state.scale;
-  if (state.size === `${w}x${h}@${pr}`) return;
-  state.size = `${w}x${h}@${pr}`;
-  renderer.setPixelRatio(pr);
-  renderer.setSize(w, h, false);
-  composer.setPixelRatio(pr);
-  composer.setSize(w, h);
-  camera.aspect = w / h;
-  camera.updateProjectionMatrix();
+  const pr = Math.min(window.devicePixelRatio || 1, P.pixelRatio) * state.scale, size = `${w}x${h}@${pr}`;
+  if (state.size !== size) {
+    state.size = size;
+    renderer.setPixelRatio(pr);
+    renderer.setSize(w, h, false);
+    composer.setPixelRatio(pr);
+    composer.setSize(w, h);
+    state.settle = Math.max(state.settle, 3); state.frame = 0;         // the frames around a reallocation are not steady-state samples
+    layoutDirty = true;
+  }
+  if (!layoutDirty) return;
+  layoutDirty = false;
+  const v = freeView(w, h), view = `${w}x${h}/${v.k.toFixed(3)}/${v.cx.toFixed(1)}/${v.cy.toFixed(1)}`;
+  if (state.view !== view) {                         // only the projection moves: the camera pose is the user's
+    state.view = view;
+    camera.setViewOffset(w * v.k, h * v.k, w * v.k / 2 - v.cx, h * v.k / 2 - v.cy, w, h);
+    invalidate();
+  }
+  if (state.fit !== v.fit) {                         // the free band changed: fit again, unless the user has taken the camera
+    state.fit = v.fit; state.usable = v.usable;
+    if (!state.userMoved) state.framed = false;
+  }
 }
-new ResizeObserver(resize).observe(stageEl);
 
 function targetY() { return PLINTH_H + P.height * UNIT * 0.5; }
 function frameCamera() {
   const w = stageEl.clientWidth, h = stageEl.clientHeight;
   const free = w > 1080 ? Math.max(w - 660, w * 0.34) : w;                 // width left between the side panels
-  const hs = P.height * UNIT, rs = Math.max(state.maxR, state.reach) * UNIT;
+  const up = (P.height * 0.5 + state.rise) * UNIT, rs = Math.max(state.maxR, state.reach) * UNIT;
   const tv = Math.tan(camera.fov * Math.PI / 360);
-  const dist = Math.max((hs * 0.5 + 0.5) / tv, (rs + 0.35) / (tv * free / h)) * 1.08;
+  const dist = Math.max((up + 0.4) / (tv * state.usable), (rs + 0.35) / (tv * free / h)) * 1.08;
+  // Look from where the user is looking; only the first fit and Reset choose the three-quarter view.
+  const dir = state.posed ? camera.position.clone().sub(controls.target).normalize() : new THREE.Vector3(Math.sin(0.5), 0.2, Math.cos(0.5)).normalize();
+  state.posed = true;
   controls.target.set(0, targetY(), 0);
-  const dir = new THREE.Vector3(Math.sin(0.5), 0.2, Math.cos(0.5)).normalize();
   camera.position.copy(controls.target).addScaledVector(dir, dist);
   controls.update();
+  invalidate();
 }
 
 function rebuildGeometry(level) {
@@ -1371,7 +1522,7 @@ function rebuildGeometry(level) {
   const hd = buildHandles(P, v.ctx, level);
   handleMesh.visible = !!hd;
   if (hd) { handleMesh.geometry.dispose(); handleMesh.geometry = hd.geometry; }
-  state.maxR = v.maxR; state.reach = hd ? hd.reach : 0; state.vertices = v.vertices;
+  state.maxR = v.maxR; state.rise = v.rise; state.reach = hd ? hd.reach : 0; state.vertices = v.vertices;
   if (state.framed && state.aimY !== undefined) { const dy = targetY() - state.aimY; controls.target.y += dy; camera.position.y += dy; }
   state.aimY = targetY();
   const ps = Math.max(P.footRadius * UNIT * 1.9, Math.max(state.maxR, state.reach) * UNIT * 0.9, 0.7);
@@ -1379,6 +1530,7 @@ function rebuildGeometry(level) {
   const ext = Math.max(P.height * UNIT, state.maxR * UNIT * 2) * 0.8 + 1.2, cam = keyLight.shadow.camera;
   cam.left = -ext; cam.right = ext; cam.top = ext; cam.bottom = -ext; cam.near = 0.5; cam.far = 40;
   cam.updateProjectionMatrix();
+  invalidate();
 }
 
 function setBasis(n) {
@@ -1392,7 +1544,7 @@ function setBasis(n) {
     U.uEpsAg.value.set(metalEps(METALS.ag, basis.lam[i]), i * 2);
     U.uEpsAu.value.set(metalEps(METALS.au, basis.lam[i]), i * 2);
   }
-  U.uSpecN.value = n;
+  U.uSpecN.value = n; U.uSpecBW.value = basis.bw;
 }
 
 function updateMaterial() {
@@ -1404,15 +1556,16 @@ function updateMaterial() {
   U.uFill.value.set(o.fill[0], o.fill[1], o.fill[2]);
   U.uCoverage.value = P.coverage; U.uInnerLustre.value = P.innerLustre;
   U.uGlazeColor.value.set(P.glazeColor); U.uBodyColor.value.set(P.bodyColor);
-  U.uGlazeThick.value = P.glazeThick; U.uPool.value = P.pooling; U.uBreak.value = P.breaking; U.uRuns.value = P.runs; U.uRunScale.value = P.runScale; U.uSag.value = P.sag;
+  U.uGlazeThick.value = P.glazeThick; U.uPool.value = P.pooling; U.uBreak.value = P.breaking; U.uRuns.value = P.runs; U.uRunScale.value = 1 / P.runScale; U.uSag.value = P.sag;
   U.uRough.value = 0.03 + (1 - P.gloss) * 0.55; U.uPeel.value = P.peel;
   U.uCrackle.value = P.crackle; U.uCrackleSize.value = P.crackleSize; U.uCrackleStain.value = P.crackleStain; U.uPinholes.value = P.pinholes;
-  U.uFlash.value = P.flash; U.uFlashScale.value = P.flashScale; U.uFlashWarp.value = P.flashWarp; U.uFlashStretch.value = P.flashStretch; U.uFlameBias.value = P.flameBias; U.uSeed.value = P.seed;
+  U.uFlash.value = P.flash; U.uFlashScale.value = 1 / P.flashScale; U.uFlashWarp.value = P.flashWarp; U.uFlashStretch.value = 1 / P.flashStretch; U.uFlameBias.value = P.flameBias; U.uSeed.value = P.seed;
   U.uFlameDir.value.set(Math.cos(P.flameDir * Math.PI / 180), Math.sin(P.flameDir * Math.PI / 180));
-  U.uThickVar.value = P.thickVar; U.uThickScale.value = P.thickScale; U.uLustrePool.value = P.lustrePool; U.uMosaic.value = P.mosaic;
+  U.uThickVar.value = P.thickVar; U.uThickScale.value = 1 / P.thickScale; U.uLustrePool.value = P.lustrePool; U.uMosaic.value = P.mosaic;
   U.uDeco.value = Math.max(0, DECOS.indexOf(P.deco)); U.uDecoCount.value = P.decoCount; U.uDecoRows.value = P.decoRows; U.uDecoSoft.value = P.decoSoft;
   U.uDecoThick.value = P.decoThick; U.uDecoFill.value = P.decoFill; U.uDecoSilver.value = P.decoSilver; U.uDecoMatte.value = P.decoMatte;
   labelDirty = true;
+  invalidate();
 }
 
 const TONES = { ACES: THREE.ACESFilmicToneMapping, AgX: THREE.AgXToneMapping, Neutral: THREE.NeutralToneMapping };
@@ -1429,11 +1582,23 @@ function updateStage() {
   keyLight.target.position.set(0, targetY(), 0);
   keyLight.position.set(Math.sin(az) * Math.cos(el), Math.sin(el), Math.cos(az) * Math.cos(el)).multiplyScalar(14).add(keyLight.target.position);
   keyLight.intensity = P.keyInt;
-  if (state.quality !== `${P.pixelRatio}/${P.adaptive}`) { state.quality = `${P.pixelRatio}/${P.adaptive}`; state.scale = 1; state.frame = 0; }
+  const quality = `${P.pixelRatio}/${P.adaptive}/${P.detail}`;
+  if (state.quality !== quality) {                   // a quality choice by the user hands the picture back at full quality
+    state.quality = quality; state.scale = 1; state.frame = 0; state.hold = 8000; state.raised = -Infinity;
+    if (state.lod) { state.lod = 0; if (!geoTimer) geoDirty = P.detail; }
+  }
   plinth.visible = P.plinth;
   vesselGroup.position.y = P.plinth ? PLINTH_H : 0;
   resize();
+  invalidate();
 }
+// A restored WebGL context comes back empty. three.js re-creates programs, buffers and the targets it draws into every
+// frame, but the PMREM environment is a render-target texture with no CPU copy: render it again.
+renderer.domElement.addEventListener('webglcontextrestored', () => {
+  envTarget = null;                                  // its GL objects went with the old context; nothing to dispose
+  envName = '';
+  updateStage();
+});
 
 /* --------------------------------------------------------------------------
    Label: fired-film readout and reflectance spectrum
@@ -1451,11 +1616,14 @@ function updateLabel() {
   curves[0].forEach((v, i) => { if (v > curves[0][peak]) peak = i; });
   const pct = (v) => (v * 100).toFixed(v < 0.0995 ? 1 : 0) + '%';
   const vol = (v) => (v * 100).toFixed(v > 0 && v < 0.0295 ? 1 : 0);
+  let through = 0;                                   // light that crosses the film twice, face-on, weighted by luminance
+  FINE_BASIS.lam.forEach((l, i) => { const w = FINE_BASIS.w[i]; through += (0.2126 * w[0] + 0.7152 * w[1] + 0.0722 * w[2]) * lustreAt(l, 1, o, FINE_BASIS.bw).T; });
   const rowsData = [
-    ['Lustre layer', `${o.dMetal.toFixed(0)} nm`],
+    // under an opaque film neither the layer's thickness nor the glaze colour beneath can show
+    ['Lustre layer', `${o.dMetal.toFixed(0)} nm · ${through < 0.005 ? 'opaque' : 'passes ' + pct(through)}`],
     ['Cover film', `${o.dCover.toFixed(0)} nm · n ${o.nCover.toFixed(2)}`],
     ['Metal fill, vol %', `Cu ${vol(o.fill[0])} · Ag ${vol(o.fill[1])} · Au ${vol(o.fill[2])}`],
-    ['Colloid radius', `≈ ${o.radius.toFixed(0)} nm`],
+    ['Colloid radius', o.fill[0] + o.fill[1] + o.fill[2] > 0 ? `≈ ${o.radius.toFixed(0)} nm` : '–'],
     ['Peak, face-on', `${lams[peak]} nm · ${pct(curves[0][peak])}`],
   ];
   $('#film-data').innerHTML = rowsData.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('');
@@ -1538,14 +1706,15 @@ const GUI_DEF = [
     num('lobeStart', 'Lobes from'), num('lobeEnd', 'Lobes to'), num('twist', 'Spiral twist · °', -360, 360, 1),
     opt('relief', 'Relief motif', Object.keys(RELIEFS)), num('reliefHeight', 'Relief height · cm', -0.3, 0.6, 0.01), num('reliefCount', 'Repeats around', 2, 40, 1),
     num('reliefRows', 'Rows', 1, 12, 1), num('reliefStart', 'Band from'), num('reliefEnd', 'Band to'),
-    num('rings', 'Collar rings', 0, 5, 1), num('ringHeight', 'Ring height · cm', 0, 0.4, 0.01), num('ringPos', 'Ring position', 0.05, 0.97, 0.005)] },
+    num('rings', 'Collar rings', 0, 5, 1), num('ringHeight', 'Ring height · cm', 0, 0.4, 0.01), num('ringPos', 'Ring position', 0.05, 0.97, 0.005),
+    num('rimWaves', 'Rim waves', 0, 12, 1), num('rimDepth', 'Rim wave height · cm', 0, 5, 0.05), num('rimFrom', 'Rim waves from', 0.4, 0.95, 0.005)] },
   { title: 'Handles', kind: 'geo', preset: 'form', items: [
     num('handles', 'Count', 0, 4, 1), num('handleLow', 'Lower joint', 0.1, 0.9, 0.005), num('handleHigh', 'Upper joint', 0.2, 0.98, 0.005), num('handleReach', 'Reach · cm', 1, 10, 0.1),
     num('handleArch', 'Arch', 0, 1.2), num('handleThick', 'Thickness · cm', 0.5, 2.4, 0.02), num('handleFlat', 'Strap flatness', 0.5, 1.8, 0.01)] },
   { title: 'Base glaze', kind: 'mat', preset: 'lustre', items: [
     { key: 'glazeColor', label: 'Glaze colour', color: true }, { key: 'bodyColor', label: 'Clay body', color: true },
-    num('glazeThick', 'Glaze thickness', 0.3, 2), num('pooling', 'Pooling in hollows', 0, 1.5), num('breaking', 'Breaking on edges', 0, 1.2), num('runs', 'Runs'),
-    num('runScale', 'Run width', 0.1, 2), num('sag', 'Gravity sag'), num('gloss', 'Gloss'), num('peel', 'Orange peel'), num('crackle', 'Crackle'),
+    num('glazeThick', 'Glaze thickness', 0.3, 2, 0.01, 'geo'), num('pooling', 'Pooling in hollows', 0, 1.5), num('breaking', 'Breaking on edges', 0, 1.2), num('runs', 'Runs'),
+    num('runScale', 'Run width · cm', 0.15, 3.3), num('sag', 'Gravity sag'), num('gloss', 'Gloss'), num('peel', 'Orange peel'), num('crackle', 'Crackle'),
     num('crackleSize', 'Crackle cell · cm', 0.15, 3), num('crackleStain', 'Crackle stain'), num('pinholes', 'Pinholes'),
     num('glazeLine', 'Glaze line · cm', 0, 4, 0.05, 'geo'), num('dripAmp', 'Drip length · cm', 0, 4, 0.05, 'geo'), num('dripCount', 'Drips', 0, 16, 1, 'geo')] },
   { title: 'Lustre chemistry', kind: 'mat', preset: 'lustre', open: true, items: [
@@ -1553,10 +1722,10 @@ const GUI_DEF = [
     num('coverage', 'Coverage'), num('innerLustre', 'Interior lustre')] },
   { title: 'Reduction firing', kind: 'mat', preset: 'lustre', open: true, items: [
     num('kilnTemp', 'Kiln temperature · °C', 480, 760, 1), num('soak', 'Soak · min', 5, 120, 1), num('reduction', 'Reducing atmosphere'), num('reox', 'Re-oxidation on cooling'),
-    num('activation', 'Diffusion barrier · kJ/mol', 60, 160, 1), num('flash', 'Flashing'), num('flashScale', 'Flame size', 0.02, 0.6, 0.005), num('flashWarp', 'Turbulence', 0, 2),
-    num('flashStretch', 'Flame stretch', 0.1, 3), num('flameBias', 'Flame-side bias'), num('flameDir', 'Flame direction · °', 0, 360, 1), num('seed', 'Firing seed', 0, 99, 1, 'geo')] },
+    num('activation', 'Diffusion barrier · kJ/mol', 60, 160, 1), num('flash', 'Flashing'), num('flashScale', 'Flame size · cm', 1.5, 50, 0.5), num('flashWarp', 'Turbulence', 0, 2),
+    num('flashStretch', 'Flame stretch', 0.3, 10, 0.05), num('flameBias', 'Flame-side bias'), num('flameDir', 'Flame direction · °', 0, 360, 1), num('seed', 'Firing seed', 0, 99, 1, 'geo')] },
   { title: 'Film optics', kind: 'mat', preset: 'lustre', items: [
-    num('glassIndex', 'Glaze refractive index', 1.45, 1.75, 0.005), num('dispersion', 'Dispersion'), num('thickVar', 'Thickness variation'), num('thickScale', 'Variation scale', 0.03, 1.2, 0.005),
+    num('glassIndex', 'Glaze refractive index', 1.45, 1.75, 0.005), num('dispersion', 'Dispersion'), num('thickVar', 'Thickness variation'), num('thickScale', 'Variation scale · cm', 0.8, 33, 0.1),
     num('lustrePool', 'Film pooling', -1, 1), num('mosaic', 'Crackle mosaic'), num('trimThick', 'Layer thickness ×', 0.25, 4), num('trimFill', 'Metal fill ×', 0, 3),
     num('trimCover', 'Cover film ×', 0, 4), opt('spectral', 'Spectral samples', [8, 12, 16, 24])] },
   { title: 'Decoration', kind: 'mat', preset: 'lustre', items: [
@@ -1566,18 +1735,43 @@ const GUI_DEF = [
     opt('env', 'Lighting', Object.keys(ENVS)), num('envRot', 'Light rotation · °', 0, 360, 1), num('envInt', 'Ambient level', 0, 2.5), num('keyInt', 'Key light', 0, 6, 0.05),
     num('keyAz', 'Key azimuth · °', 0, 360, 1), num('keyEl', 'Key elevation · °', 5, 85, 1), num('exposure', 'Exposure', 0.3, 2.5), opt('tone', 'Tone curve', Object.keys(TONES)),
     num('bloom', 'Highlight bloom'), num('spin', 'Turntable · rpm', -6, 6, 0.1), { key: 'plinth', label: 'Plinth' }, opt('detail', 'Mesh detail', Object.keys(DETAIL), 'geo'),
-    num('pixelRatio', 'Max pixel ratio', 1, 3, 0.25), { key: 'adaptive', label: 'Adaptive resolution' }] },
+    num('pixelRatio', 'Max pixel ratio', 1, 3, 0.25), { key: 'adaptive', label: 'Adaptive quality' }] },
 ];
 
-const SCHEMA = {};
+// A preset chip restores every parameter of its groups, so a pressed chip always shows the same piece as its #link.
+const presetKeys = (name) => GUI_DEF.filter((g) => g.preset === name).flatMap((g) => g.items.map((it) => it.key));
+const LUSTRE_KEYS = presetKeys('lustre').filter((k) => k !== 'spectral');   // the sample count is render quality, not glaze
+const FORM_KEYS = presetKeys('form');
+const presetState = (keys, set) => ({ ...Object.fromEntries(keys.map((k) => [k, DEFAULTS[k]])), ...set });
+
+// Controls that can do nothing in the current state are greyed out, so a dead slider is not taken for a broken one.
+const DEPENDS = [
+  [['lobeDepth', 'lobeProfile', 'lobeStart', 'lobeEnd'], () => P.lobes > 0],
+  [['reliefHeight', 'reliefCount', 'reliefRows', 'reliefStart', 'reliefEnd'], () => P.relief !== 'None'],
+  [['ringHeight', 'ringPos'], () => P.rings > 0],
+  [['rimDepth', 'rimFrom'], () => P.rimWaves > 0],
+  [['handleLow', 'handleHigh', 'handleReach', 'handleArch', 'handleThick', 'handleFlat'], () => P.handles > 0],
+  [['crackleSize', 'crackleStain', 'mosaic'], () => P.crackle > 0],
+  [['dripAmp'], () => P.dripCount > 0],
+  [['flashScale', 'flashWarp', 'flashStretch'], () => P.flash > 0],
+  [['decoSoft', 'decoThick', 'decoFill', 'decoSilver', 'decoMatte'], () => P.deco !== 'None' && !(P.deco === 'Relief motif' && P.relief === 'None')],
+  [['decoCount'], () => ['Scales', 'Marbled veins', 'Whiplash vines'].includes(P.deco)],
+  [['decoRows'], () => ['Bands', 'Scales', 'Whiplash vines'].includes(P.deco)],
+];
+const SCHEMA = {}, ctl = {};
+function syncControls() {
+  for (const [keys, live] of DEPENDS) { const on = live(); for (const key of keys) ctl[key].enable(on); }
+}
+
 let geoDirty = null, geoTimer = 0;
 function changed(kind) {
   if (kind === 'geo') {
     geoDirty = 'Draft';                              // light mesh while dragging, full mesh once the hand rests
     clearTimeout(geoTimer);
-    geoTimer = setTimeout(() => { geoDirty = P.detail; }, 240);
+    geoTimer = setTimeout(() => { geoTimer = 0; geoDirty = meshLevel(); }, 240);
   }
   if (kind === 'stage') updateStage(); else updateMaterial();
+  syncControls();
 }
 const gui = new GUI({ container: $('#controls'), title: 'Parameters' });
 for (const group of GUI_DEF) {
@@ -1585,26 +1779,29 @@ for (const group of GUI_DEF) {
   if (!group.open) folder.close();
   for (const it of group.items) {
     const kind = it.kind || group.kind;
-    SCHEMA[it.key] = it;
+    SCHEMA[it.key] = { ...it, kind };
     const c = it.color ? folder.addColor(P, it.key) : it.options ? folder.add(P, it.key, it.options) : it.min === undefined ? folder.add(P, it.key) : folder.add(P, it.key, it.min, it.max, it.step);
     c.name(it.label).onChange(() => { changed(kind); markPreset(null, group.preset); });
+    ctl[it.key] = c;
   }
 }
 
 function applyParams(values, { silent } = {}) {
-  let n = 0;
+  let n = 0, geo = false;
   for (const [key, value] of Object.entries(values || {})) {
     const it = SCHEMA[key];
     if (!it) continue;
+    const before = P[key];
     if (it.color) { if (typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value)) { P[key] = value; n++; } }
     else if (it.options) { if (it.options.includes(value)) { P[key] = value; n++; } }
     else if (it.min === undefined) { if (typeof value === 'boolean') { P[key] = value; n++; } }
     else if (typeof value === 'number' && Number.isFinite(value)) { P[key] = +clamp(Math.round(value / it.step) * it.step, it.min, it.max).toFixed(6); n++; }
+    if (it.kind === 'geo' && P[key] !== before) geo = true;
   }
   if (n && !silent) {
     gui.controllersRecursive().forEach((c) => c.updateDisplay());
-    updateStage(); updateMaterial();
-    geoDirty = P.detail;
+    updateStage(); updateMaterial(); syncControls();
+    if (geo) geoDirty = meshLevel();                 // uniforms alone need no new mesh
   }
   return n;
 }
@@ -1626,7 +1823,7 @@ const actions = {
     applyParams({
       glazeColor: '#' + col.getHexString(), cu: r() < 0.2 ? 0 : r(), ag: r() < 0.25 ? 0 : r(), au: r() < 0.65 ? 0 : 0.8 * r(), bi: r(), coat: 0.5 + 1.2 * r(),
       kilnTemp: Math.round(550 + 150 * r()), soak: Math.round(12 + 60 * r()), reduction: 0.45 + 0.55 * r(), reox: r(), flash: 0.25 + 0.6 * r(),
-      flashScale: 0.05 + 0.2 * r(), flashWarp: 0.4 + 1.4 * r(), seed: Math.floor(r() * 100), decoSilver: r() * 1.6 - 0.8, decoThick: 0.5 + r(),
+      flashScale: 4 + 16 * r(), flashWarp: 0.4 + 1.4 * r(), seed: Math.floor(r() * 100), decoSilver: r() * 1.6 - 0.8, decoThick: 0.5 + r(),
     });
     markPreset(null, 'lustre');
   },
@@ -1646,7 +1843,10 @@ const actions = {
       setTimeout(() => URL.revokeObjectURL(a.href), 2000);
     });
   },
-  'Reset': () => { applyParams(DEFAULTS); markPreset('zold', 'lustre'); markPreset('baluster', 'form'); state.framed = false; },
+  'Reset': () => {                                   // back to the state the page opens in, camera included
+    applyParams(START); markPreset('zold', 'lustre'); markPreset('baluster', 'form'); setHash(null);
+    state.framed = state.posed = state.userMoved = false;
+  },
 };
 const session = gui.addFolder('Session');
 for (const name of Object.keys(actions)) if (!(embedded && name === 'Save PNG')) session.add(actions, name);
@@ -1654,16 +1854,24 @@ for (const name of Object.keys(actions)) if (!(embedded && name === 'Save PNG'))
 window.addEventListener('paste', (ev) => {
   if (/^(INPUT|TEXTAREA)$/.test(document.activeElement?.tagName || '')) return;
   try {
-    const data = JSON.parse(ev.clipboardData.getData('text'));
-    if (data && typeof data === 'object' && applyParams(data)) { markPreset(null, 'form'); markPreset(null, 'lustre'); toast('Parameters restored from the clipboard.'); }
+    const data = JSON.parse(ev.clipboardData.getData('text')), was = FORM_KEYS.map((k) => P[k]).join();
+    if (data && typeof data === 'object' && applyParams(data)) {
+      markPreset(null, 'form'); markPreset(null, 'lustre'); toast('Parameters restored from the clipboard.');
+      if (FORM_KEYS.map((k) => P[k]).join() !== was) state.framed = false;   // another vessel: fit it, from the same side
+    }
   } catch { /* not a parameter set */ }
 });
 
 // --- preset shelf
 const chipEls = { lustre: {}, form: {} };
+function setHash(id) {                               // the link names the lustre on show, or nothing
+  if (location.hash === (id ? '#' + id : '')) return;
+  try { history.replaceState(null, '', id ? '#' + id : location.pathname + location.search); } catch { /* sandboxed */ }
+}
 function markPreset(id, group) {
   if (!chipEls[group]) return;
   for (const [key, el] of Object.entries(chipEls[group])) el.setAttribute('aria-pressed', String(key === id));
+  if (group === 'lustre' && !id) setHash(null);      // an edited glaze is no longer the one the link names
 }
 function buildChips() {
   for (const [id, preset] of Object.entries(LUSTRES)) {
@@ -1672,8 +1880,7 @@ function buildChips() {
     b.type = 'button'; b.className = 'chip'; b.id = `lustre-${id}`;
     b.innerHTML = `<span class="sw" style="background: linear-gradient(135deg, ${rgbCss(lustreRGB(1, o, FINE_BASIS))}, ${rgbCss(lustreRGB(0.45, o, FINE_BASIS))})"></span>${preset.name} <small>${preset.note}</small>`;
     b.addEventListener('click', () => {
-      applyParams({ ...Object.fromEntries(LUSTRE_RESET.map((k) => [k, DEFAULTS[k]])), ...preset.set }); markPreset(id, 'lustre');
-      try { history.replaceState(null, '', '#' + id); } catch { /* sandboxed */ }
+      applyParams(presetState(LUSTRE_KEYS, preset.set)); markPreset(id, 'lustre'); setHash(id);
     });
     $('#lustre-chips').append(b);
     chipEls.lustre[id] = b;
@@ -1682,7 +1889,7 @@ function buildChips() {
     const b = document.createElement('button');
     b.type = 'button'; b.className = 'chip plain'; b.id = `form-${id}`;
     b.textContent = form.name;
-    b.addEventListener('click', () => { applyParams(form.set); markPreset(id, 'form'); state.framed = false; });
+    b.addEventListener('click', () => { applyParams(presetState(FORM_KEYS, form.set)); markPreset(id, 'form'); state.framed = state.userMoved = false; });
     $('#form-chips').append(b);
     chipEls.form[id] = b;
   }
@@ -1691,6 +1898,11 @@ buildChips();
 markPreset('zold', 'lustre'); markPreset('baluster', 'form');
 const fromHash = Object.hasOwn(LUSTRES, location.hash.slice(1)) ? LUSTRES[location.hash.slice(1)] : null;
 if (fromHash) { applyParams(fromHash.set, { silent: true }); markPreset(location.hash.slice(1), 'lustre'); gui.controllersRecursive().forEach((c) => c.updateDisplay()); }
+window.addEventListener('hashchange', () => {        // a link to another lustre, followed while the page is open
+  const id = location.hash.slice(1);
+  if (Object.hasOwn(LUSTRES, id) && chipEls.lustre[id].getAttribute('aria-pressed') !== 'true') chipEls.lustre[id].click();
+});
+syncControls();
 
 // --- small screens: panels open from the masthead
 for (const id of ['label', 'controls']) {
@@ -1710,32 +1922,59 @@ updateStage();
 updateMaterial();
 rebuildGeometry(P.detail);
 
+// Adaptive quality: hold a usable frame rate on slower GPUs. Pixels go first, which keeps the piece as designed. At
+// their floor the triangles are far below a pixel and shading follows their count, so mesh levels go next. Now and
+// then the finer step is tried again; if it does not hold, the wait before the next try doubles.
+function coarser() {
+  if (state.scale > 0.5) state.scale = Math.max(0.5, state.scale * 0.82);
+  else if (meshLevel() !== LEVELS[0]) { state.lod++; geoDirty = meshLevel(); }
+  else return false;
+  return true;
+}
+function finer() {
+  if (state.lod > 0) { state.lod--; geoDirty = meshLevel(); }
+  else if (state.scale < 1) state.scale = Math.min(1, state.scale / 0.82);
+  else return false;
+  return true;
+}
+function adapt(now, dt) {
+  if (state.settle > 0) { state.settle--; return; } // this interval paid for a rebuild, a reallocation or a tab switch
+  state.frame = state.frame ? lerp(state.frame, dt, 0.06) : dt;
+  const idle = now - state.tuned;
+  if (idle > 1500 && state.frame > 0.040) {          // 40 ms: clear of a display that refreshes at 30 Hz (33.3 ms)
+    if (!coarser()) return;
+    if (now - state.raised < 6000) state.hold = Math.min(state.hold * 2, 120000);   // the last step up did not hold: wait longer
+    state.tuned = now; state.frame = 0;
+  } else if (idle > state.hold && state.frame < 0.036 && finer()) {
+    state.tuned = state.raised = now; state.frame = 0;
+  }
+}
+document.addEventListener('visibilitychange', () => { state.settle = Math.max(state.settle, 3); invalidate(); });
+
 let last = performance.now(), first = true;
 function tick(now) {
   requestAnimationFrame(tick);
-  const dt = Math.min(0.1, (now - last) / 1000);
+  const dt = Math.min(0.1, (now - last) / 1000), measured = state.drew;   // dt spans the previous frame: a measurement only if that one was drawn
   last = now;
-  const steady = !geoDirty && !document.hidden;
-  if (geoDirty) { const level = geoDirty; geoDirty = null; rebuildGeometry(level); updateStage(); }
+  if (geoDirty) { const level = geoDirty; geoDirty = null; rebuildGeometry(level); updateStage(); state.settle = Math.max(state.settle, 2); }
+  resize();
   if (!state.framed && stageEl.clientWidth > 2) { frameCamera(); state.framed = true; }
-  vesselGroup.rotation.y += P.spin * TAU / 60 * dt;
+  if (P.spin) { vesselGroup.rotation.y += P.spin * TAU / 60 * dt; stale = true; }
   controls.update();
+  const fogNear = clamp(camera.position.distanceTo(controls.target) + 3, 13, 33);   // the fog stays behind the vessel at every zoom
+  scene.fog.near = fogNear; scene.fog.far = fogNear + 31;
   if (labelDirty) { labelDirty = false; updateLabel(); }
-  composer.render(dt);
-  if (first) { first = false; statusEl.remove(); }
-  // Hold a usable frame rate on slower GPUs by rendering fewer pixels (the film maths is per-pixel work).
-  if (P.adaptive && steady) {
-    state.frame = state.frame ? lerp(state.frame, dt, 0.06) : dt;
-    if (now - state.tuned > 1500 && state.frame > 0.034 && state.scale > 0.5) {
-      state.tuned = now; state.frame = 0;
-      state.scale = Math.max(0.5, state.scale * 0.82);
-      resize();
-    }
+  state.drew = stale;
+  if (stale) {                                       // nothing moved, nothing changed: the frame on screen is still right
+    stale = false;
+    composer.render(dt);
+    if (first) { first = false; statusEl.remove(); state.tuned = now; }
   }
+  if (P.adaptive && measured) adapt(now, dt);
 }
 requestAnimationFrame(tick);
 
-window.eozin = { P, applyParams, state, renderer, scene, camera, controls, gui };   // handle for the console
+window.eozin = { P, applyParams, state, renderer, scene, camera, controls, gui, invalidate };   // handle for the console
 </script>
 </body>
 </html>
