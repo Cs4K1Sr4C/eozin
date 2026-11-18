@@ -354,7 +354,7 @@ try {
     import('three/addons/libs/lil-gui.module.min.js'),
   ]);
 } catch (err) {
-  fail('three.js could not be loaded. This page needs a browser with import maps (Safari 16.4+, Firefox 108+, Chrome 89+) and access to cdn.jsdelivr.net.');
+  fail('three.js could not be loaded. This page needs a browser with import maps (Safari 16.4+, Firefox 108+, Chrome 93+) and access to cdn.jsdelivr.net.');
   throw err;
 }
 
@@ -379,7 +379,7 @@ const DEFAULTS = {
   // sculpting
   lobes: 0, lobeDepth: 0.06, lobeProfile: 'Gadroon', lobeStart: 0.08, lobeEnd: 0.72, twist: 0,
   relief: 'Leaves', reliefHeight: 0.24, reliefCount: 9, reliefRows: 1, reliefStart: 0.07, reliefEnd: 0.63,
-  rings: 2, ringHeight: 0.13, ringPos: 0.795, rimWaves: 0, rimDepth: 2.5, rimFrom: 0.72,
+  rings: 2, ringHeight: 0.13, ringPos: 0.795, rimWaves: 0, rimDepth: 0.6, rimFrom: 0.72,
   // handles
   handles: 0, handleLow: 0.62, handleHigh: 0.9, handleReach: 4.2, handleArch: 0.35, handleThick: 1.1, handleFlat: 0.78,
   // base glaze
@@ -408,7 +408,7 @@ const FORMS = {
   baluster: { name: 'Baluster', set: { height: 34, footRadius: 5.0, footHeight: 1.5, waistRadius: 4.2, bellyRadius: 9.4, bellyPos: 0.4, shoulderRadius: 6.0, shoulderPos: 0.66, neckRadius: 2.8, neckPos: 0.84, lipRadius: 4.2, lipBead: 0.12, squash: 0, lobes: 0, twist: 0, relief: 'Leaves', reliefHeight: 0.24, reliefCount: 9, reliefRows: 1, reliefStart: 0.07, reliefEnd: 0.63, rings: 2, ringHeight: 0.13, ringPos: 0.795, handles: 0 } },
   bottle: { name: 'Bottle', set: { height: 37, footRadius: 4.7, footHeight: 0.9, waistRadius: 4.5, bellyRadius: 8.3, bellyPos: 0.25, shoulderRadius: 3.4, shoulderPos: 0.52, neckRadius: 1.6, neckPos: 0.78, lipRadius: 2.3, lipBead: 0.16, squash: 0, lobes: 0, twist: 0, relief: 'Scales', reliefHeight: 0.14, reliefCount: 14, reliefRows: 7, reliefStart: 0.05, reliefEnd: 0.46, rings: 1, ringHeight: 0.16, ringPos: 0.55, handles: 0 } },
   gourd: { name: 'Double gourd', set: { height: 33, footRadius: 4.3, footHeight: 1.0, waistRadius: 4.3, bellyRadius: 9.2, bellyPos: 0.27, shoulderRadius: 3.5, shoulderPos: 0.57, neckRadius: 5.5, neckPos: 0.75, lipRadius: 1.9, lipBead: 0.1, squash: 0, lobes: 0, twist: 0, relief: 'Vines', reliefHeight: 0.2, reliefCount: 6, reliefRows: 3, reliefStart: 0.06, reliefEnd: 0.5, rings: 1, ringHeight: 0.12, ringPos: 0.57, handles: 0 } },
-  tulip: { name: 'Tulip', set: { height: 30, footRadius: 4.2, footHeight: 2.4, waistRadius: 2.9, bellyRadius: 6.4, bellyPos: 0.36, shoulderRadius: 5.3, shoulderPos: 0.6, neckRadius: 4.8, neckPos: 0.8, lipRadius: 7.6, lipBead: 0.05, squash: 0, lobes: 6, lobeDepth: 0.11, lobeProfile: 'Gadroon', lobeStart: 0.16, lobeEnd: 1, twist: 70, relief: 'None', rings: 1, ringHeight: 0.18, ringPos: 0.1, rimWaves: 6, rimDepth: 2.5, rimFrom: 0.72, handles: 0 } },
+  tulip: { name: 'Tulip', set: { height: 30, footRadius: 4.2, footHeight: 2.4, waistRadius: 2.9, bellyRadius: 6.4, bellyPos: 0.36, shoulderRadius: 5.3, shoulderPos: 0.6, neckRadius: 4.8, neckPos: 0.8, lipRadius: 7.6, lipBead: 0.05, squash: 0, lobes: 6, lobeDepth: 0.11, lobeProfile: 'Gadroon', lobeStart: 0.16, lobeEnd: 1, twist: 70, relief: 'None', rings: 1, ringHeight: 0.18, ringPos: 0.1, rimWaves: 6, rimDepth: 0.6, rimFrom: 0.72, handles: 0 } },
   amphora: { name: 'Amphora', set: { height: 36, footRadius: 4.4, footHeight: 2.0, waistRadius: 3.3, bellyRadius: 8.8, bellyPos: 0.5, shoulderRadius: 7.0, shoulderPos: 0.68, neckRadius: 2.5, neckPos: 0.86, lipRadius: 3.7, lipBead: 0.15, squash: 0, lobes: 0, twist: 0, relief: 'Spiral ribs', reliefHeight: 0.1, reliefCount: 18, reliefRows: 2, reliefStart: 0.1, reliefEnd: 0.5, rings: 3, ringHeight: 0.11, ringPos: 0.8, handles: 2, handleLow: 0.67, handleHigh: 0.905, handleReach: 4.4, handleArch: 0.4, handleThick: 1.1, handleFlat: 0.78 } },
   bowl: { name: 'Bowl', set: { height: 13, footRadius: 4.6, footHeight: 0.9, waistRadius: 4.2, bellyRadius: 10.6, bellyPos: 0.42, shoulderRadius: 12.6, shoulderPos: 0.72, neckRadius: 13.5, neckPos: 0.9, lipRadius: 14.2, lipBead: 0.06, squash: 0, lobes: 0, twist: 0, relief: 'Cabochons', reliefHeight: 0.22, reliefCount: 16, reliefRows: 1, reliefStart: 0.52, reliefEnd: 0.9, rings: 0, handles: 0 } },
 };
@@ -429,7 +429,8 @@ const LUSTRES = {
    Ion exchange carries Cu+/Ag+ into the softened glaze (Arrhenius diffusion);
    the reducing atmosphere converts them to metal colloids. Silver and gold
    reduce more readily than copper. The paste is the metal reservoir: a thicker
-   coat feeds more metal into the layer, it does not drive it deeper.
+   coat feeds more metal into the layer until it is full, it does not drive
+   it deeper.
    Re-oxidation on cooling clears the metal from a skin above the lustre layer
    (never deeper than the layer, and only where the firing reduced it), leaving
    a clear cover film; bismuth raises its index.
@@ -446,7 +447,8 @@ function deriveOptics(p) {
   const conv = [1 - Math.exp(-1.9 * drive * p.reduction), 1 - Math.exp(-3.6 * drive), 1 - Math.exp(-6 * drive)];
   let fill = [0.42 * p.cu * conv[0], 0.42 * p.ag * conv[1], 0.42 * p.au * conv[2]].map((v) => v * p.trimFill * supply);
   const total = fill[0] + fill[1] + fill[2];
-  if (total > 0.62) fill = fill.map((v) => v * 0.62 / total);
+  const saturated = total > 0.62;                                                // the layer holds no more metal: extra paste or fill is lost
+  if (saturated) fill = fill.map((v) => v * 0.62 / total);
   const grow = Math.min(1.6, drive) * Math.sqrt(arr);                            // ripening: more drive and heat, coarser colloids
   const strip = Math.min(p.reox * 90 * Math.sqrt(arr) * smooth(0, 0.3, drive), depth);
   return {
@@ -455,7 +457,7 @@ function deriveOptics(p) {
     nCover: p.glassIndex + p.bi * 0.72,
     dCover: (6 + strip + p.bi * 55) * p.trimCover,
     dMetal: Math.max(depth, 1),
-    fill,
+    fill, saturated,
     radius: Math.min(2 + 9 * grow, 0.5 * Math.max(depth, 1)),                    // nm; a colloid is never wider than its layer
     haze: clamp((26 * grow - 17) / 240, 0, 0.16),
   };
@@ -736,7 +738,8 @@ function buildVessel(p, level) {
   const sample = (arr, y) => { const t = clamp(y / dy, 0, M - 1e-6), i = Math.floor(t); return arr[i] + (arr[i + 1] - arr[i]) * (t - i); };
   const wallAt = (y) => p.wall * (1 + 0.35 * (1 - clamp(y / H, 0, 1)) ** 2);
   const normalAt = (y) => {                         // outward meridian normal of the undecorated wall
-    const i = clamp(Math.round(y / dy), 1, M - 1), tr = body[i + 1] - body[i - 1], l = Math.hypot(tr, 2 * dy);
+    const t = clamp(y / dy, 1, M - 1), i = Math.min(M - 2, Math.floor(t)), f = t - i,
+      tr = lerp(body[i + 1] - body[i - 1], body[i + 2] - body[i], f), l = Math.hypot(tr, 2 * dy);
     return [2 * dy / l, -tr / l];
   };
 
@@ -828,7 +831,7 @@ function buildVessel(p, level) {
   // the lobe crowns (theta = 0). The rise is held to the zone it grows over, to one wave width at the lip, and to what
   // a twisted wall can take before its columns fold over each other.
   const rimN = Math.round(p.rimWaves), rimFrom = Math.min(p.rimFrom, 0.95);
-  const rimRise = rimN > 0 ? Math.min(p.rimDepth, (1 - rimFrom) * H, TAU * dec[M] / rimN, H / (Math.abs(twist) * rimN + 1e-9)) : 0;
+  const rimRise = rimN > 0 ? clamp(p.rimDepth, 0, 1) * Math.min(5, (1 - rimFrom) * H, TAU * dec[M] / rimN, H / (Math.abs(twist) * rimN + 1e-9)) : 0;
   const rimEnv = (h) => rimRise * smooth(rimFrom, 1, h);
   const rimAt = (theta, h) => rimEnv(h) * (0.5 + 0.5 * Math.cos(theta * rimN));
   const cosT = new Float64Array(C1), sinT = new Float64Array(C1), lobeS = new Float64Array(C1), rimS = new Float64Array(C1), line = new Float64Array(C1);
@@ -918,7 +921,8 @@ function buildHandles(p, ctx, level) {
     // Seven control points: joint, joint tangent, knee tangent, knee, and back. `asked` is the ear the sliders describe.
     // `relaxed` is one that cannot double back: joint tangents that do not cross, the knee between and clear of their
     // ends, knee tangents sized for a minimum bend radius. The asked ear is used while its spine bends no more sharply
-    // than the strap can follow; otherwise it is blended toward the relaxed one, just far enough.
+    // than the strap can follow; otherwise the blend toward the relaxed one that is nearest the asked ear and bends
+    // cleanly is used, or the least tight blend when none does.
     const asked = [A, [A[0] + ja.n[0] * Rr * 0.9, A[1] + ja.n[1] * Rr * 0.9], [kx, ky - lm], [kx, ky], [kx, ky + lm], [B[0] + jb.n[0] * Rr * 0.9, B[1] + jb.n[1] * Rr * 0.9], B];
     const conv = ja.n[1] - jb.n[1], cj = conv > 1e-6 ? Math.min(Rr * 0.9, 0.6 * span / conv) : Rr * 0.9;
     const pa = [A[0] + ja.n[0] * cj, A[1] + ja.n[1] * cj], pb = [B[0] + jb.n[0] * cj, B[1] + jb.n[1] * cj], gap = pb[1] - pa[1];
@@ -932,29 +936,45 @@ function buildHandles(p, ctx, level) {
       const a = (1 - t) ** 3, b = 3 * t * (1 - t) ** 2, c = 3 * t * t * (1 - t), d = t ** 3;
       return [a * g[0][0] + b * g[1][0] + c * g[2][0] + d * g[3][0], a * g[0][1] + b * g[1][1] + c * g[2][1] + d * g[3][1]];
     };
+    const lift = (y) => ctx.rimAt(phi - ctx.twAt(y / H), y / H);
     const shape = (w) => {                           // w = 1: as asked, w = 0: relaxed
       const c = asked.map((q, i) => [lerp(relaxed[i][0], q[0], w), lerp(relaxed[i][1], q[1], w)]);
       segs = [c.slice(0, 4), c.slice(3)];
       // 'Reach' is measured from the wider joint. Where the wall bulges past the strap between the joints, the knee moves
       // out until the centre line clears it (by half a strap, away from the joints); x is linear in the knee radius.
       for (let q = 3; q <= 21; q++) {
-        const s = q / 24, at = bez(s), h = at[1] / H;
-        if (h <= 0 || h >= 1) continue;
+        const s = q / 24, at = bez(s);
+        if (at[1] <= 0 || at[1] >= H + lift(H)) continue;
+        // The rim waves shear the wall upward (joint() follows them): look the wall up at the height that is lifted to
+        // this one. Height plus lift is monotone (see rimRise), so bisection finds it.
+        let yw = at[1];
+        if (yw >= H || lift(yw) > 0) for (let lo = 0, hi = Math.min(yw, H), it = 0; it < 24; it++) { yw = 0.5 * (lo + hi); if (yw + lift(yw) < at[1]) lo = yw; else hi = yw; }
+        const h = yw / H;
         const t = s < 0.5 ? s * 2 : 2 - s * 2;       // 0 at a joint, 1 at the knee
-        const lack = ctx.sample(ctx.dec, at[1]) * ctx.lobeAt(phi - ctx.twAt(h), h) + 0.5 * p.handleThick * Math.min(1, (t - 0.2) / 0.4) - at[0];
+        const lack = ctx.sample(ctx.dec, yw) * ctx.lobeAt(phi - ctx.twAt(h), h) + 0.5 * p.handleThick * Math.min(1, (t - 0.2) / 0.4) - at[0];
         if (lack > 0) c[2][0] = c[4][0] = c[3][0] = c[3][0] + lack / (t * t * (3 - 2 * t));
       }
     };
-    const tight = (w) => {                           // does the spine turn on a radius below 0.65 x the strap thickness?
+    const bend = (w) => {                            // tightest turn of the spine, in strap thicknesses
       shape(w);
+      let m = Infinity;
       for (let i = 1, a = bez(0), b = bez(1 / 120); i < 120; i++) {
         const c = bez((i + 1) / 120), cr = Math.abs((b[0] - a[0]) * (c[1] - b[1]) - (b[1] - a[1]) * (c[0] - b[0]));
-        if (Math.hypot(b[0] - a[0], b[1] - a[1]) * Math.hypot(c[0] - b[0], c[1] - b[1]) * Math.hypot(c[0] - a[0], c[1] - a[1]) < 1.3 * p.handleThick * cr) return true;
+        m = Math.min(m, Math.hypot(b[0] - a[0], b[1] - a[1]) * Math.hypot(c[0] - b[0], c[1] - b[1]) * Math.hypot(c[0] - a[0], c[1] - a[1]) / Math.max(2 * cr, 1e-12));
         a = b; b = c;
       }
-      return false;
+      return m / p.handleThick;
     };
-    if (tight(1)) { let lo = 0, hi = 1; for (let q = 0; q < 8; q++) { const m = (lo + hi) / 2; if (tight(m)) hi = m; else lo = m; } shape(lo); }
+    const OK = 0.65;                                 // a strap follows a spine that turns on 0.65 of its thickness or more
+    if (bend(1) < OK) {
+      let pick = -1, best = 0, bestB = -1;
+      for (let i = 63; i >= 0 && pick < 0; i--) {    // the clean blend nearest the asked ear
+        const b = bend(i / 64);
+        if (b >= OK) { let lo = i / 64, hi = (i + 1) / 64; for (let q = 0; q < 6; q++) { const m = (lo + hi) / 2; if (bend(m) >= OK) lo = m; else hi = m; } pick = lo; }
+        else if (b > bestB) { bestB = b; best = i / 64; }
+      }
+      shape(pick < 0 ? best : pick);
+    } else shape(1);
     let len = 0;
     for (let i = 1, q = bez(0); i <= 40; i++) { const w = bez(i / 40); len += Math.hypot(w[0] - q[0], w[1] - q[1]); q = w; }
     const capS = clamp(0.3 * ctx.wallAt(A[1]) / len, 0.004, 0.1);   // the rounded tip stays buried inside the wall
@@ -1439,16 +1459,18 @@ composer.addPass(outputPass);
 
 const state = {
   maxR: 10, reach: 0, rise: 0, optics: null, basisN: 0, vertices: 0,
-  framed: false, posed: false, userMoved: false, usable: 1,           // camera fit
-  scale: 1, lod: 0, frame: 0, tuned: 0, settle: 8, raised: -Infinity, hold: 8000, drew: false, quality: '',   // adaptive quality
+  framed: false, posed: false, userMoved: false, usable: 1, span: 1,           // camera fit
+  scale: 1, lod: 0, frame: 0, n: 0, tuned: 0, settle: 8, raised: -Infinity, hold: 8000, drew: false, quality: '',   // adaptive quality
 };
 const LEVELS = Object.keys(DETAIL);                  // coarse to fine
 const meshLevel = () => LEVELS[Math.max(0, LEVELS.indexOf(P.detail) - state.lod)];   // the chosen detail, less what the adaptive logic has given up
 
 let stale = true;                                    // the picture on screen is out of date
 const invalidate = () => { stale = true; };
-controls.addEventListener('change', invalidate);
-controls.addEventListener('start', () => { state.userMoved = true; });
+let held = false;                                    // a gesture is in progress: only one that moves the camera takes it
+controls.addEventListener('change', () => { if (held) state.userMoved = true; invalidate(); });
+controls.addEventListener('start', () => { held = true; });
+controls.addEventListener('end', () => { held = false; });
 
 // --- layout: the vessel is drawn in the part of the stage that the page chrome leaves free
 const narrowLayout = window.matchMedia('(max-width: 1080px)'), sheetLayout = window.matchMedia('(max-width: 720px)');
@@ -1467,7 +1489,7 @@ function freeView(w, h) {
     const r = panel.getBoundingClientRect();
     if (sheetLayout.matches) y1 = Math.max(y0 + 40, r.top - st.top - 8); else x1 = Math.max(40, r.left - st.left - 8);
   }
-  const k = clamp(Math.min(x1 / w, (y1 - y0) / bh), 0.15, 1);              // the whole frame shrinks into what is left
+  const k = clamp(Math.min(x1 / (w * state.span), (y1 - y0) / bh), 0.15, 1);   // the frame shrinks until the fitted piece is inside what is left
   return { k, cx: x1 / 2, cy: (y0 + y1) / 2, usable: bh / h, fit: `${w}x${h}/${Math.round(y0)}/${Math.round(bh)}` };
 }
 
@@ -1484,6 +1506,7 @@ function resize() {
     composer.setSize(w, h);
     state.settle = Math.max(state.settle, 3); state.frame = 0;         // the frames around a reallocation are not steady-state samples
     layoutDirty = true;
+    invalidate();                                    // a reallocated canvas is empty until it is drawn again
   }
   if (!layoutDirty) return;
   layoutDirty = false;
@@ -1505,9 +1528,13 @@ function frameCamera() {
   const free = w > 1080 ? Math.max(w - 660, w * 0.34) : w;                 // width left between the side panels
   const up = (P.height * 0.5 + state.rise) * UNIT, rs = Math.max(state.maxR, state.reach) * UNIT;
   const tv = Math.tan(camera.fov * Math.PI / 360);
-  const dist = Math.max((up + 0.4) / (tv * state.usable), (rs + 0.35) / (tv * free / h)) * 1.08;
   // Look from where the user is looking; only the first fit and Reset choose the three-quarter view.
   const dir = state.posed ? camera.position.clone().sub(controls.target).normalize() : new THREE.Vector3(Math.sin(0.5), 0.2, Math.cos(0.5)).normalize();
+  const se = Math.abs(dir.y), ce = Math.sqrt(Math.max(0, 1 - se * se));
+  const tall = Math.max(up + 0.4, up * ce + rs * se + 0.25);                // half-height of the silhouette from that elevation
+  const dist = Math.max(tall / (tv * state.usable), (rs + 0.35) / (tv * free / h)) * 1.08 + up * Math.max(0, se - 0.2);   // the rim is nearer than the target when looking down
+  const span = Math.min(1, (rs + 0.35) * 1.08 * h / (dist * tv * w));       // share of the stage width the fit needs
+  if (span !== state.span) { state.span = span; layoutDirty = true; }
   state.posed = true;
   controls.target.set(0, targetY(), 0);
   camera.position.copy(controls.target).addScaledVector(dir, dist);
@@ -1622,7 +1649,7 @@ function updateLabel() {
     // under an opaque film neither the layer's thickness nor the glaze colour beneath can show
     ['Lustre layer', `${o.dMetal.toFixed(0)} nm · ${through < 0.005 ? 'opaque' : 'passes ' + pct(through)}`],
     ['Cover film', `${o.dCover.toFixed(0)} nm · n ${o.nCover.toFixed(2)}`],
-    ['Metal fill, vol %', `Cu ${vol(o.fill[0])} · Ag ${vol(o.fill[1])} · Au ${vol(o.fill[2])}`],
+    ['Metal fill, vol %', `Cu ${vol(o.fill[0])} · Ag ${vol(o.fill[1])} · Au ${vol(o.fill[2])}${o.saturated ? ' · saturated' : ''}`],
     ['Colloid radius', o.fill[0] + o.fill[1] + o.fill[2] > 0 ? `≈ ${o.radius.toFixed(0)} nm` : '–'],
     ['Peak, face-on', `${lams[peak]} nm · ${pct(curves[0][peak])}`],
   ];
@@ -1707,7 +1734,7 @@ const GUI_DEF = [
     opt('relief', 'Relief motif', Object.keys(RELIEFS)), num('reliefHeight', 'Relief height · cm', -0.3, 0.6, 0.01), num('reliefCount', 'Repeats around', 2, 40, 1),
     num('reliefRows', 'Rows', 1, 12, 1), num('reliefStart', 'Band from'), num('reliefEnd', 'Band to'),
     num('rings', 'Collar rings', 0, 5, 1), num('ringHeight', 'Ring height · cm', 0, 0.4, 0.01), num('ringPos', 'Ring position', 0.05, 0.97, 0.005),
-    num('rimWaves', 'Rim waves', 0, 12, 1), num('rimDepth', 'Rim wave height · cm', 0, 5, 0.05), num('rimFrom', 'Rim waves from', 0.4, 0.95, 0.005)] },
+    num('rimWaves', 'Rim waves', 0, 12, 1), num('rimDepth', 'Rim wave height', 0, 1, 0.01), num('rimFrom', 'Rim waves from', 0.4, 0.95, 0.005)] },
   { title: 'Handles', kind: 'geo', preset: 'form', items: [
     num('handles', 'Count', 0, 4, 1), num('handleLow', 'Lower joint', 0.1, 0.9, 0.005), num('handleHigh', 'Upper joint', 0.2, 0.98, 0.005), num('handleReach', 'Reach · cm', 1, 10, 0.1),
     num('handleArch', 'Arch', 0, 1.2), num('handleThick', 'Thickness · cm', 0.5, 2.4, 0.02), num('handleFlat', 'Strap flatness', 0.5, 1.8, 0.01)] },
@@ -1745,16 +1772,21 @@ const FORM_KEYS = presetKeys('form');
 const presetState = (keys, set) => ({ ...Object.fromEntries(keys.map((k) => [k, DEFAULTS[k]])), ...set });
 
 // Controls that can do nothing in the current state are greyed out, so a dead slider is not taken for a broken one.
+const reliefOn = () => P.relief !== 'None' && Math.abs(P.reliefHeight) > 1e-4;
 const DEPENDS = [
   [['lobeDepth', 'lobeProfile', 'lobeStart', 'lobeEnd'], () => P.lobes > 0],
-  [['reliefHeight', 'reliefCount', 'reliefRows', 'reliefStart', 'reliefEnd'], () => P.relief !== 'None'],
+  [['reliefHeight'], () => P.relief !== 'None'],
+  [['reliefCount', 'reliefRows', 'reliefStart', 'reliefEnd'], reliefOn],
   [['ringHeight', 'ringPos'], () => P.rings > 0],
   [['rimDepth', 'rimFrom'], () => P.rimWaves > 0],
   [['handleLow', 'handleHigh', 'handleReach', 'handleArch', 'handleThick', 'handleFlat'], () => P.handles > 0],
   [['crackleSize', 'crackleStain', 'mosaic'], () => P.crackle > 0],
   [['dripAmp'], () => P.dripCount > 0],
   [['flashScale', 'flashWarp', 'flashStretch'], () => P.flash > 0],
-  [['decoSoft', 'decoThick', 'decoFill', 'decoSilver', 'decoMatte'], () => P.deco !== 'None' && !(P.deco === 'Relief motif' && P.relief === 'None')],
+  [['flameDir'], () => P.flameBias > 0],
+  [['thickScale'], () => P.thickVar > 0],
+  [['runScale'], () => P.runs > 0 || P.thickVar > 0],
+  [['decoSoft', 'decoThick', 'decoFill', 'decoSilver', 'decoMatte'], () => P.deco !== 'None' && !(P.deco === 'Relief motif' && !reliefOn())],
   [['decoCount'], () => ['Scales', 'Marbled veins', 'Whiplash vines'].includes(P.deco)],
   [['decoRows'], () => ['Bands', 'Scales', 'Whiplash vines'].includes(P.deco)],
 ];
@@ -1781,7 +1813,7 @@ for (const group of GUI_DEF) {
     const kind = it.kind || group.kind;
     SCHEMA[it.key] = { ...it, kind };
     const c = it.color ? folder.addColor(P, it.key) : it.options ? folder.add(P, it.key, it.options) : it.min === undefined ? folder.add(P, it.key) : folder.add(P, it.key, it.min, it.max, it.step);
-    c.name(it.label).onChange(() => { changed(kind); markPreset(null, group.preset); });
+    c.name(it.label).onChange(() => { changed(kind); markPreset(null, it.key === 'spectral' ? null : group.preset); });
     ctl[it.key] = c;
   }
 }
@@ -1824,6 +1856,7 @@ const actions = {
       glazeColor: '#' + col.getHexString(), cu: r() < 0.2 ? 0 : r(), ag: r() < 0.25 ? 0 : r(), au: r() < 0.65 ? 0 : 0.8 * r(), bi: r(), coat: 0.5 + 1.2 * r(),
       kilnTemp: Math.round(550 + 150 * r()), soak: Math.round(12 + 60 * r()), reduction: 0.45 + 0.55 * r(), reox: r(), flash: 0.25 + 0.6 * r(),
       flashScale: 4 + 16 * r(), flashWarp: 0.4 + 1.4 * r(), seed: Math.floor(r() * 100), decoSilver: r() * 1.6 - 0.8, decoThick: 0.5 + r(),
+      trimThick: 0.77 + 1.85 * r(),
     });
     markPreset(null, 'lustre');
   },
@@ -1833,7 +1866,11 @@ const actions = {
     catch { toast('Copying is blocked here.'); }
   },
   'Save PNG': () => {
+    const v = camera.view && camera.view.enabled ? { ...camera.view } : null;
+    camera.clearViewOffset();                        // a picture of the piece, not of the page layout
     composer.render();
+    if (v) camera.setViewOffset(v.fullWidth, v.fullHeight, v.offsetX, v.offsetY, v.width, v.height);
+    invalidate();
     renderer.domElement.toBlob((blob) => {
       if (!blob) return;
       const a = document.createElement('a');
@@ -1854,10 +1891,11 @@ for (const name of Object.keys(actions)) if (!(embedded && name === 'Save PNG'))
 window.addEventListener('paste', (ev) => {
   if (/^(INPUT|TEXTAREA)$/.test(document.activeElement?.tagName || '')) return;
   try {
-    const data = JSON.parse(ev.clipboardData.getData('text')), was = FORM_KEYS.map((k) => P[k]).join();
+    const data = JSON.parse(ev.clipboardData.getData('text')), snap = (keys) => keys.map((k) => P[k]).join(), wasF = snap(FORM_KEYS), wasL = snap(LUSTRE_KEYS);
     if (data && typeof data === 'object' && applyParams(data)) {
-      markPreset(null, 'form'); markPreset(null, 'lustre'); toast('Parameters restored from the clipboard.');
-      if (FORM_KEYS.map((k) => P[k]).join() !== was) state.framed = false;   // another vessel: fit it, from the same side
+      toast('Parameters restored from the clipboard.');
+      if (snap(FORM_KEYS) !== wasF) { markPreset(null, 'form'); state.framed = false; }   // another vessel: fit it, from the same side
+      if (snap(LUSTRE_KEYS) !== wasL) markPreset(null, 'lustre');
     }
   } catch { /* not a parameter set */ }
 });
@@ -1939,7 +1977,9 @@ function finer() {
 }
 function adapt(now, dt) {
   if (state.settle > 0) { state.settle--; return; } // this interval paid for a rebuild, a reallocation or a tab switch
-  state.frame = state.frame ? lerp(state.frame, dt, 0.06) : dt;
+  state.n = state.frame ? state.n + 1 : 1;
+  state.frame += (dt - state.frame) / Math.min(state.n, 16);   // a plain mean until the window is full (1/16 ~ 0.06)
+  if (state.n < 8) return;                           // fewer samples are not a measurement
   const idle = now - state.tuned;
   if (idle > 1500 && state.frame > 0.040) {          // 40 ms: clear of a display that refreshes at 30 Hz (33.3 ms)
     if (!coarser()) return;

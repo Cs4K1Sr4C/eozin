@@ -4,7 +4,7 @@ A static, single-file THREE.js page that simulates **eozin** – the reduction-f
 metallic lustre glaze introduced by the Zsolnay manufactory in Pécs in 1893 – on a
 parametrically generated ceramic vessel.
 
-Open `index.html` in a browser with WebGL 2 and import maps (Chrome 89+, Firefox 108+,
+Open `index.html` in a browser with WebGL 2 and import maps (Chrome 93+, Firefox 108+,
 Safari 16.4+). There is no build step. three.js r180 is imported from jsDelivr through an
 import map, so the page needs a network connection on first load. The typefaces come from
 Google Fonts and are optional: the page falls back to system fonts without them.
