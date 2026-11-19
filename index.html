@@ -230,7 +230,7 @@ button { font: inherit; color: inherit; }
 .qmenu .qrow { display: flex; gap: 6px; justify-content: flex-end; }
 .help {
   flex: none; height: 80px; padding: 8px 14px; border-top: 1px solid var(--line);   /* fixed height: its text must not resize the card */
-  color: var(--ink-2); font-size: 11.5px; line-height: 1.4; overflow: hidden;
+  color: var(--ink-2); font-size: 11.5px; line-height: 1.4; overflow: hidden auto; scrollbar-width: thin;
 }
 .help b { color: var(--ink); font-weight: 500; }
 .help .link-btn { padding: 0; }
@@ -471,11 +471,16 @@ const DEFAULTS = {
   // decoration
   deco: 'Relief motif', decoCount: 12, decoRows: 8, decoSoft: 0.3, decoThick: 0.8, decoFill: 1, decoSilver: 0.6, decoMatte: 0,
   // stage
-  env: 'Atelier softboxes', envRot: 20, envInt: 1, keyInt: 2.2, keyAz: 38, keyEl: 46, exposure: 1, tone: 'ACES',
-  bloom: 0.22, occlusion: 0.9, spin: 1.2, plinth: true, detail: 'Standard', pixelRatio: 2, adaptive: true,
+  env: 'Atelier softboxes', envRot: 20, envInt: 1, keyInt: 2.6, keyLock: true, keyAz: 38, keyEl: 46, keySoft: 2, keySpec: 0,
+  roomRefl: true, reflDetail: 'High', plinthGloss: 0.35, floorGloss: 0, exposure: 1, tone: 'ACES', bloom: 0.22, vignette: 0.3,
+  occlusion: 0.9, spin: 1.2, plinth: true, detail: 'Standard', pixelRatio: 2, adaptive: true,
 };
-// The state the page opens in, and returns to on Reset: the defaults, with the turntable still if motion is unwelcome.
-const START = { ...DEFAULTS, spin: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : DEFAULTS.spin };
+// The state the page opens in, and returns to on Reset: the defaults, with the turntable still if motion is unwelcome
+// and the smaller studio capture on a phone-sized screen (the stage lowers it on a GPU with small textures, too).
+const START = {
+  ...DEFAULTS, spin: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : DEFAULTS.spin,
+  reflDetail: window.matchMedia('(max-width: 720px)').matches ? 'Standard' : DEFAULTS.reflDetail,
+};
 const P = { ...START };
 
 const FORMS = {
@@ -1096,8 +1101,9 @@ function buildVessel(p, level) {
         }
         glz = y - line[j];
         // the glaze ends in a fat bead, fattest at the tip of a drip: a steep lower lip and a long tail up the wall
-        const t = glz - 0.1;
-        d += bead * (0.045 + 0.075 * (p.glazeLine - line[j]) / Math.max(p.dripAmp, 0.05)) * Math.exp(-((t / (t < 0 ? 0.09 : 0.32)) ** 2));
+        // down the flank of a long drip the lip widens to what the columns can carry, and thins with it, or it would break into teeth
+        const t = glz - 0.1, lip = Math.max(0.09, 0.75 * Math.abs(line[j + 1 > C ? 1 : j + 1] - line[j ? j - 1 : C - 1]) / 2);
+        d += bead * (0.09 / lip) * (0.045 + 0.075 * (p.glazeLine - line[j]) / Math.max(p.dripAmp, 0.05)) * Math.exp(-((t / (t < 0 ? lip : Math.max(0.32, lip))) ** 2));
         fld[o] = d;
       }
       const rr = r * (1 + env * lobeS[j]) + d * nr;
@@ -1315,6 +1321,7 @@ varying float vAO;
 varying vec3 vObjPos;
 varying vec3 vObjNormal;
 varying vec2 vEzUv;
+varying vec3 vEzWorld;
 `;
 const GLSL_VERT_MAIN = /* glsl */`
 vSurf = aSurf;
@@ -1322,6 +1329,7 @@ vAO = aAO;
 vObjPos = position;
 vObjNormal = normal;
 vEzUv = uv;
+vEzWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;
 `;
 
 const GLSL_FRAG_PARS = /* glsl */`
@@ -1331,8 +1339,9 @@ varying vec3 vObjPos;        // cm
 varying vec3 vObjNormal;
 varying vec2 vEzUv;
 varying float vAO;          // ambient occlusion from the meridian: 1 open, 0 enclosed
+varying vec3 vEzWorld;
 
-uniform float uUnit, uHeight, uAO, uHand;
+uniform float uUnit, uHeight, uAO, uHand, uKeySpec;
 uniform int uSpecN;
 uniform float uSpecBW;       // half the spacing of the spectral samples, nm
 uniform float uLam[EZ_MAX];
@@ -1351,6 +1360,30 @@ uniform vec2 uFlameDir;
 uniform float uThickVar, uThickScale, uLustrePool, uMosaic;
 uniform int uDeco;
 uniform float uDecoCount, uDecoRows, uDecoSoft, uDecoThick, uDecoFill, uDecoSilver, uDecoMatte;
+
+uniform vec3 uEzEnvC;        // where the room was captured from
+uniform vec4 uEzGround;      // plinth top y and radius, floor y, room radius
+uniform float uEzPar;
+
+// ---- room reflections: the environment was captured at uEzEnvC. Follow the reflected ray to the room it was captured
+// in (plinth top, floor, a sphere for the walls) and look up the direction from the capture point to that hit.
+vec3 ezParallax(vec3 r) {
+  if (uEzPar < 0.5) return r;
+  vec3 p = vEzWorld, h = p;
+  bool hit = false;
+  if (r.y < -1e-3) {
+    float t = max(p.y - uEzGround.x, 0.0) / -r.y;
+    h = p + t * r;
+    if (dot(h.xz, h.xz) < uEzGround.y * uEzGround.y) hit = true;
+    else { t = max(p.y - uEzGround.z, 0.0) / -r.y; h = p + t * r; vec3 q = h - uEzEnvC; hit = dot(q, q) < uEzGround.w * uEzGround.w; }
+  }
+  if (!hit) {
+    vec3 o = p - uEzEnvC;
+    float b = dot(o, r), c = dot(o, o) - uEzGround.w * uEzGround.w;
+    h = p + (-b + sqrt(max(b * b - c, 0.0))) * r;
+  }
+  return normalize(h - uEzEnvC);
+}
 
 // ---- noise
 float ezHash(vec3 p) { p = fract(p * 0.1031); p += dot(p, p.zyx + 31.32); return fract((p.x + p.y) * p.z); }
@@ -1596,8 +1629,11 @@ function makeGlazeMaterial(U) {
     fs = swap(fs, '#include <lights_fragment_begin>', lights.replace(call, 'material.iridescenceFresnel = ezR;'));
     // ezR is already the film reflectance at the view angle, so under image-based light it scales the whole GGX lobe
     // (fab.x + fab.y). three treats it as a Schlick F0 and would add a white grazing lobe on top.
-    fs = swap(fs, '#include <lights_physical_pars_fragment>', swap(THREE.ShaderChunk.lights_physical_pars_fragment,
-      'vec3 FssEss = Fr * fab.x + specularF90 * fab.y;', 'vec3 FssEss = Fr * fab.x + mix( vec3( specularF90 ), iridescenceF0, iridescence ) * fab.y;'));
+    // The key light's own mirror image would be a point glint; the softbox it stands for is in the environment, so the
+    // glaze takes its highlight from there and uKeySpec scales what is left of the point.
+    fs = swap(fs, '#include <lights_physical_pars_fragment>', swap(swap(THREE.ShaderChunk.lights_physical_pars_fragment,
+      'vec3 FssEss = Fr * fab.x + specularF90 * fab.y;', 'vec3 FssEss = Fr * fab.x + mix( vec3( specularF90 ), iridescenceF0, iridescence ) * fab.y;'),
+      'reflectedLight.directSpecular += irradiance * BRDF_GGX(', 'reflectedLight.directSpecular += uKeySpec * irradiance * BRDF_GGX('));
     // Occlusion of the image-based light by the pot's own profile; glaze pooled in a hollow darkens it further. The chunk
     // is empty without an AO map and sits after the light loops.
     fs = swap(fs, '#include <aomap_fragment>', `{
@@ -1606,6 +1642,9 @@ function makeGlazeMaterial(U) {
   reflectedLight.indirectDiffuse *= ezAO;
   reflectedLight.indirectSpecular *= clamp(pow(ezNVo + ezAO, exp2(-16.0 * material.roughness - 1.0)) - 1.0 + ezAO, 0.0, 1.0);
 }`);
+    // Reflections are looked up where the reflected ray meets the room, not at infinity (ezParallax).
+    fs = swap(fs, '#include <envmap_physical_pars_fragment>', swap(THREE.ShaderChunk.envmap_physical_pars_fragment,
+      'reflectVec = inverseTransformDirection( reflectVec, viewMatrix );', 'reflectVec = ezParallax( inverseTransformDirection( reflectVec, viewMatrix ) );'));
     shader.fragmentShader = fs;
   };
   return mat;
@@ -1625,6 +1664,46 @@ try {
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.shadowMap.autoUpdate = false;               // the shadow map is drawn again only when a caster or the light moves
+const shadowDirty = () => { renderer.shadowMap.needsUpdate = true; };
+if (renderer.capabilities.maxTextureSize < 4096) START.reflDetail = P.reflDetail = 'Standard';
+// Percentage-closer soft shadows: a blocker search, then a filter whose width grows with the gap between occluder and
+// receiver. The sample disc is turned per pixel by a noise that is fixed on screen, so a still scene stays still.
+{
+  const pcss = /* glsl */`
+	#define EZ_PCSS_BLOCKER 16
+	#define EZ_PCSS_TAPS 32
+	float ezIGN( vec2 p ) { return fract( 52.9829189 * fract( dot( p, vec2( 0.06711056, 0.00583715 ) ) ) ); }
+	vec2 ezVogel( int i, float n, float phi ) { float r = sqrt( ( float( i ) + 0.5 ) / n ), a = float( i ) * 2.39996323 + phi; return r * vec2( cos( a ), sin( a ) ); }
+	float ezPCSS( sampler2D map, vec2 mapSize, float k, vec3 sc ) {
+		float phi = ezIGN( gl_FragCoord.xy ) * 6.2831853, zr = sc.z;
+		vec3 dx = dFdx( sc ), dy = dFdy( sc );             // receiver-plane depth bias
+		float det = dx.x * dy.y - dx.y * dy.x;
+		vec2 grad = abs( det ) > 1e-12 ? vec2( dy.y * dx.z - dx.y * dy.z, dx.x * dy.z - dy.x * dx.z ) / det : vec2( 0.0 );
+		grad = clamp( grad, vec2( -0.6 ), vec2( 0.6 ) );
+		float search = clamp( k * 0.10, 2.0 / mapSize.x, 0.05 ), zb = 0.0, nb = 0.0;
+		for ( int i = 0; i < EZ_PCSS_BLOCKER; i ++ ) {
+			vec2 o = ezVogel( i, float( EZ_PCSS_BLOCKER ), phi ) * search;
+			float d = unpackRGBAToDepth( texture2D( map, sc.xy + o ) );
+			if ( d < zr + min( dot( o, grad ), 0.0 ) ) { zb += d; nb += 1.0; }
+		}
+		if ( nb < 0.5 ) return 1.0;
+		zb /= nb;
+		float w = clamp( k * ( zr - zb ), 1.5 / mapSize.x, 0.05 ), s = 0.0;
+		for ( int i = 0; i < EZ_PCSS_TAPS; i ++ ) {
+			vec2 o = ezVogel( i, float( EZ_PCSS_TAPS ), phi + 1.7 ) * w;
+			s += step( zr + min( dot( o, grad ), 0.0 ), unpackRGBAToDepth( texture2D( map, sc.xy + o ) ) );
+		}
+		return s / float( EZ_PCSS_TAPS );
+	}
+`;
+  let chunk = THREE.ShaderChunk.shadowmap_pars_fragment;
+  const a = 'float getShadow( sampler2D shadowMap', b = '#if defined( SHADOWMAP_TYPE_PCF )';
+  if (!chunk.includes(a) || !chunk.includes(b)) console.warn('Eozin shader hook not found: getShadow');
+  chunk = chunk.replace(a, pcss + a);
+  chunk = chunk.replace(b, '#if defined( SHADOWMAP_TYPE_PCF_SOFT )\n\t\t\tshadow = ezPCSS( shadowMap, shadowMapSize, shadowRadius, shadowCoord.xyz );\n\t\t#elif defined( SHADOWMAP_TYPE_PCF )');
+  THREE.ShaderChunk.shadowmap_pars_fragment = chunk;
+}
 stageEl.append(renderer.domElement);
 
 const UNIT = 0.1;                                    // scene units per centimetre
@@ -1642,7 +1721,7 @@ controls.maxPolarAngle = Math.PI * 0.5;
 controls.zoomSpeed = 0.7;
 
 const PLINTH_H = 0.24;
-const floor = new THREE.Mesh(new THREE.CircleGeometry(70, 64), new THREE.MeshStandardMaterial({ color: '#17131a', roughness: 0.96 }));
+const floor = new THREE.Mesh(new THREE.CircleGeometry(70, 64), new THREE.MeshStandardMaterial({ color: '#1c181e', roughness: 0.96 }));
 floor.rotation.x = -Math.PI / 2;
 floor.receiveShadow = true;
 scene.add(floor);
@@ -1657,12 +1736,12 @@ scene.add(plinth);
 const keyLight = new THREE.DirectionalLight(0xffffff, 2);
 keyLight.castShadow = true;
 keyLight.shadow.mapSize.set(2048, 2048);
-keyLight.shadow.bias = -0.0004;
-keyLight.shadow.normalBias = 0.02;
+keyLight.shadow.bias = -0.0002;
+keyLight.shadow.normalBias = 0.006;
 scene.add(keyLight, keyLight.target);
 
 const U = {
-  uUnit: { value: UNIT }, uHeight: { value: 30 }, uAO: { value: 0.9 }, uHand: { value: 0.3 }, uSpecN: { value: 16 }, uSpecBW: { value: 0 },
+  uUnit: { value: UNIT }, uHeight: { value: 30 }, uAO: { value: 0.9 }, uHand: { value: 0.3 }, uKeySpec: { value: 0 }, uSpecN: { value: 16 }, uSpecBW: { value: 0 },
   uLam: { value: new Float32Array(MAX_SPECTRAL).fill(550) }, uCMF: { value: new Float32Array(MAX_SPECTRAL * 3) },
   uEpsCu: { value: new Float32Array(MAX_SPECTRAL * 2) }, uEpsAg: { value: new Float32Array(MAX_SPECTRAL * 2) }, uEpsAu: { value: new Float32Array(MAX_SPECTRAL * 2) },
   uNGlass: { value: 1.56 }, uDisp: { value: 9000 }, uNCover: { value: 1.56 }, uDCover: { value: 30 }, uDMetal: { value: 150 }, uHaze: { value: 0 },
@@ -1674,6 +1753,7 @@ const U = {
   uFlameDir: { value: new THREE.Vector2(1, 0) },
   uThickVar: { value: 0 }, uThickScale: { value: 0.2 }, uLustrePool: { value: 0 }, uMosaic: { value: 0 },
   uDeco: { value: 0 }, uDecoCount: { value: 12 }, uDecoRows: { value: 6 }, uDecoSoft: { value: 0.3 }, uDecoThick: { value: 1 }, uDecoFill: { value: 1 }, uDecoSilver: { value: 0 }, uDecoMatte: { value: 0 },
+  uEzEnvC: { value: new THREE.Vector3(0, 1.5, 0) }, uEzGround: { value: new THREE.Vector4(PLINTH_H, 1, 0, 12) }, uEzPar: { value: 0 },
 };
 const glaze = makeGlazeMaterial(U);
 
@@ -1708,31 +1788,36 @@ function buildContact(Rg, groundAO) {
 
 // --- image-based light: a small studio rendered once into a PMREM
 const ENVS = {
-  // dome: linear RGB at zenith, horizon and nadir. Panels: position, size, colour, radiance; soft = feathered edge.
+  // dome: linear RGB at zenith, horizon and nadir. Panels: position, size, colour, radiance; soft = feathered edge;
+  // core = how much hotter the middle of the diffuser is than its edge. panels[0] is the key softbox: the light that
+  // casts the shadow stands there while 'keyLock' is on.
   'Atelier softboxes': { dome: [[0.42, 0.42, 0.45], [0.2, 0.2, 0.22], [0.03, 0.03, 0.03]], key: '#fff3e2', panels: [
-    { at: [7, 6.5, 5], size: [8, 8], color: '#fff2e2', power: 5, soft: 0.5 },
+    { at: [7, 6.5, 5], size: [8, 8], color: '#fff2e2', power: 5, soft: 0.5, core: 5.5 },
     { at: [-8.5, 3.5, 2.5], size: [6, 10], color: '#cfdfff', power: 2.6, soft: 0.5 },
     { at: [-1, 4.5, -9.5], size: [2.6, 11], color: '#ffffff', power: 5, soft: 0.35 },
     { at: [0, 11, 0.5], size: [8, 8], color: '#fff9f0', power: 2.2, soft: 0.6 },
     { at: [2, 0.4, 9], size: [12, 2], color: '#ffd7ad', power: 0.9, soft: 0.6 }] },
   'North window': { dome: [[0.1, 0.11, 0.13], [0.07, 0.075, 0.09], [0.02, 0.02, 0.02]], key: '#e6efff', panels: [
-    { at: [-9, 5, 3], size: [8, 9], color: '#dfeaff', power: 8, grid: [3, 4] },
+    { at: [-9, 5, 3], size: [8, 9], color: '#dfeaff', power: 11, grid: [3, 4] },
     { at: [8, 2.5, -4], size: [4, 4], color: '#ffc98a', power: 2.2, soft: 0.6 },
     { at: [3, 9, 5], size: [9, 6], color: '#c9d6ea', power: 0.7, soft: 0.6 }] },
-  'Vitrine spots': { dome: [[0.05, 0.045, 0.05], [0.035, 0.03, 0.035], [0.01, 0.01, 0.01]], key: '#ffe9c8', panels: [
-    { at: [3.5, 9.5, 3], size: [2.4, 2.4], color: '#fff0d6', power: 34, soft: 0.7 },
+  'Vitrine spots': { dome: [[0.09, 0.081, 0.09], [0.063, 0.054, 0.063], [0.018, 0.018, 0.018]], key: '#ffe9c8', panels: [
+    { at: [3.5, 9.5, 3], size: [2.4, 2.4], color: '#fff0d6', power: 34, soft: 0.7, core: 5 },
     { at: [-4, 9, 1.5], size: [2.2, 2.2], color: '#fff0d6', power: 28, soft: 0.7 },
     { at: [0.5, 8.5, -5], size: [2.2, 2.2], color: '#ffe6c2', power: 26, soft: 0.7 },
     { at: [-7, 2, 6], size: [1.6, 8], color: '#b9c9ff', power: 3.5, soft: 0.4 },
     { at: [8, 2, 5], size: [1.6, 8], color: '#ffd9b0', power: 3.5, soft: 0.4 }] },
   'Kiln glow': { dome: [[0.05, 0.07, 0.13], [0.07, 0.045, 0.035], [0.1, 0.035, 0.012]], key: '#ffb469', panels: [
-    { at: [6, 1.5, 6], size: [9, 5], color: '#ff7a2a', power: 5, soft: 0.6 },
+    { at: [6, 1.5, 6], size: [9, 5], color: '#ff7a2a', power: 5, soft: 0.6, core: 4.5 },
     { at: [-7, 2.5, -3], size: [7, 6], color: '#ff9a4a', power: 2.2, soft: 0.6 },
     { at: [0, 11, 0], size: [9, 9], color: '#7f9cff', power: 1.3, soft: 0.6 },
     { at: [-5, 6, 7], size: [3.5, 3.5], color: '#ffe0b0', power: 6, soft: 0.6 }] },
 };
-const pmrem = new THREE.PMREMGenerator(renderer);
-let envTarget = null;
+// Practicals: small, very bright lamps that put pin highlights on the lustre ([x, y, z, radius, colour, radiance]),
+// and a black flag that gives the reflections one dark edge.
+const BULBS = [[5.5, 9.5, -3, 0.22, '#fff1dc', 260], [-3.5, 10, 4, 0.2, '#fff6ea', 220], [-9, 7.5, -4, 0.18, '#dfe9ff', 180], [9.5, 3.2, -1, 0.16, '#ffd9a8', 140]];
+const pmrem = new THREE.PMREMGenerator(renderer), pmremLocal = new THREE.PMREMGenerator(renderer);   // one per capture size: a generator keeps its working targets
+let envTarget = null, localTarget = null, localDirty = true, lastCapture = -Infinity;
 function setEnvironment(name) {
   const cfg = ENVS[name] || ENVS['Atelier softboxes'], s = new THREE.Scene(), trash = [];
   const dome = new THREE.Mesh(new THREE.SphereGeometry(50, 32, 16), new THREE.ShaderMaterial({
@@ -1745,9 +1830,9 @@ function setEnvironment(name) {
   for (const pnl of cfg.panels) {
     const mat = new THREE.ShaderMaterial({
       side: THREE.DoubleSide, blending: THREE.AdditiveBlending, transparent: true, depthWrite: false,
-      uniforms: { tint: { value: new THREE.Color(pnl.color).multiplyScalar(pnl.power) }, soft: { value: pnl.soft || 0 } },
+      uniforms: { tint: { value: new THREE.Color(pnl.color).multiplyScalar(pnl.power) }, soft: { value: pnl.soft || 0 }, core: { value: pnl.grid ? 0 : pnl.core ?? 2.2 } },
       vertexShader: 'varying vec2 vU; void main() { vU = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
-      fragmentShader: 'varying vec2 vU; uniform vec3 tint; uniform float soft; void main() { vec2 d = abs(vU - 0.5) * 2.0; float f = (1.0 - smoothstep(1.0 - soft, 1.0, d.x)) * (1.0 - smoothstep(1.0 - soft, 1.0, d.y)); gl_FragColor = vec4(tint * (soft > 0.0 ? f : 1.0), 1.0); }',
+      fragmentShader: 'varying vec2 vU; uniform vec3 tint; uniform float soft, core; void main() { vec2 d = abs(vU - 0.5) * 2.0; float f = (1.0 - smoothstep(1.0 - soft, 1.0, d.x)) * (1.0 - smoothstep(1.0 - soft, 1.0, d.y)); float hot = core > 0.0 ? 0.72 + core * exp(-5.0 * dot(d, d)) : 1.0; gl_FragColor = vec4(tint * hot * (soft > 0.0 ? f : 1.0), 1.0); }',
     });
     const group = new THREE.Group(), [gx, gy] = pnl.grid || [1, 1];
     for (let i = 0; i < gx; i++) for (let j = 0; j < gy; j++) {
@@ -1760,27 +1845,155 @@ function setEnvironment(name) {
     group.lookAt(0, 1.5, 0);
     s.add(group);
   }
-  const next = pmrem.fromScene(s, 0.02);
+  for (const [x, y, z, r, color, power] of BULBS) {
+    const bulb = new THREE.Mesh(new THREE.SphereGeometry(r, 16, 8), new THREE.MeshBasicMaterial({ color: new THREE.Color(color).multiplyScalar(power) }));
+    bulb.position.set(x, y, z);
+    s.add(bulb); trash.push(bulb);
+  }
+  const flag = new THREE.Mesh(new THREE.PlaneGeometry(3.2, 12), new THREE.MeshBasicMaterial({ color: 0x000000, side: THREE.DoubleSide }));
+  flag.position.set(9.5, 4, -6.5);
+  flag.lookAt(0, 1.5, 0);
+  s.add(flag); trash.push(flag);
+  const hi = P.reflDetail === 'High' && !state.envLod;
+  const next = pmrem.fromScene(s, hi ? 0.008 : 0.02, 0.1, 100, { size: hi ? 512 : 256 });
   scene.environment = next.texture;
   if (envTarget) envTarget.dispose();
   envTarget = next;
   for (const m of trash) { m.geometry.dispose(); m.material.dispose(); }
   keyLight.color.set(cfg.key);
+  localDirty = true;
+  state.settle = Math.max(state.settle, 2);
 }
 
-// --- post: MSAA, highlight bloom, tone curve
+// --- the vessel's own environment: the studio plus the real plinth and floor, with the key light and the vessel's
+// shadow on them, seen from the middle of the vessel. The glaze looks it up with a parallax correction (ezParallax),
+// so the foot mirrors the plinth it stands on and the lower belly the floor.
+const hiddenMat = new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false });   // unseen, but still a shadow caster
+function captureLocal(now) {
+  localDirty = false; lastCapture = now;
+  if (!P.roomRefl) {
+    if (glaze.envMap) { glaze.envMap = null; glaze.needsUpdate = true; }
+    if (localTarget) { localTarget.dispose(); localTarget = null; }
+    U.uEzPar.value = 0;
+    return;
+  }
+  const C = U.uEzEnvC.value.set(0, vesselGroup.position.y + P.height * UNIT * 0.5, 0);
+  const fog = scene.fog, bg = scene.background, rp = plinth.material.roughness, rf = floor.material.roughness, mp = reflOnPlinth.value, mf = reflOnFloor.value;
+  scene.background = envTarget.texture; scene.backgroundRotation.copy(scene.environmentRotation); scene.backgroundIntensity = P.envInt; scene.fog = null;
+  contactMesh.visible = false;
+  vesselMesh.material = handleMesh.material = hiddenMat;
+  plinth.material.roughness = 0.7; floor.material.roughness = 0.96;        // the capture serves every view direction
+  reflOnPlinth.value = reflOnFloor.value = 0;
+  const next = pmremLocal.fromScene(scene, 0, 0.05, 100, { size: sheetLayout.matches ? 128 : 256, position: C });
+  scene.background = bg; scene.backgroundIntensity = 1; scene.fog = fog;
+  contactMesh.visible = true;
+  vesselMesh.material = handleMesh.material = glaze;
+  plinth.material.roughness = rp; floor.material.roughness = rf;
+  reflOnPlinth.value = mp; reflOnFloor.value = mf;
+  if (localTarget) localTarget.dispose();
+  localTarget = next;
+  if (!glaze.envMap) glaze.needsUpdate = true;
+  glaze.envMap = next.texture; glaze.envMapIntensity = 1;                   // already in world space, at the room's level
+  U.uEzGround.value.set(P.plinth ? PLINTH_H : 0, P.plinth ? plinth.scale.x * 0.955 : 0, 0, 12);
+  U.uEzPar.value = 1;
+  state.settle = Math.max(state.settle, 2);
+}
+
+// --- the surface the vessel stands on mirrors it: the scene is drawn once more from the camera's mirror image below
+// that surface, and plinth or floor read the picture back, blurred by their roughness and by how far the mirrored ray
+// travels before it meets the piece, so the reflection is crisp at the foot and dissolves away from it.
+const mirrorRT = new THREE.WebGLRenderTarget(4, 4, { type: THREE.HalfFloatType, generateMipmaps: true, minFilter: THREE.LinearMipmapLinearFilter, magFilter: THREE.LinearFilter });
+const mirrorCam = new THREE.PerspectiveCamera();
+const UR = { uReflTex: { value: mirrorRT.texture }, uReflMat: { value: new THREE.Matrix4() }, uReflP: { value: new THREE.Vector2(1, 100) } };   // uReflP: foot radius, pixels per unit slope
+const reflOnPlinth = { value: 0 }, reflOnFloor = { value: 0 };
+function reflective(mat, on) {
+  mat.onBeforeCompile = (shader) => {
+    Object.assign(shader.uniforms, UR, { uReflOn: on });
+    const swap = (src, find, replacement) => {
+      if (!src.includes(find)) console.warn('Eozin shader hook not found:', find);
+      return src.replace(find, replacement);
+    };
+    shader.vertexShader = swap(shader.vertexShader, '#include <common>', '#include <common>\nuniform mat4 uReflMat;\nvarying vec4 vEzRefl;\nvarying vec3 vEzWp;');
+    shader.vertexShader = swap(shader.vertexShader, '#include <begin_vertex>', '#include <begin_vertex>\nvEzWp = (modelMatrix * vec4(transformed, 1.0)).xyz;\nvEzRefl = uReflMat * vec4(vEzWp, 1.0);');
+    let fs = swap(shader.fragmentShader, '#include <common>', '#include <common>\nuniform sampler2D uReflTex;\nuniform float uReflOn;\nuniform vec2 uReflP;\nvarying vec4 vEzRefl;\nvarying vec3 vEzWp;');
+    fs = swap(fs, '#include <lights_fragment_end>', /* glsl */`#include <lights_fragment_end>
+if (uReflOn > 0.0) {
+  float ezUp = smoothstep(0.96, 0.999, inverseTransformDirection(normal, viewMatrix).y) * uReflOn;
+  float ezMax = log2(float(textureSize(uReflTex, 0).y));
+  vec3 ezRd = reflect(normalize(vEzWp - cameraPosition), vec3(0.0, 1.0, 0.0));
+  float ezL = max(length(ezRd.xz), 1e-3);
+  vec2 ezD = ezRd.xz / ezL;
+  float ezB = dot(vEzWp.xz, ezD), ezQ = ezB * ezB - dot(vEzWp.xz, vEzWp.xz) + uReflP.x * uReflP.x;
+  float ezT = max(-ezB - sqrt(max(ezQ, 0.0)), 0.0) / ezL;                 // how far the mirrored ray travels before it meets the piece
+  float ezPx = (0.02 + ezT) * 1.6 * material.roughness * uReflP.y * gl_FragCoord.w;
+  vec4 ezRf = textureLod(uReflTex, vEzRefl.xy / vEzRefl.w, clamp(log2(max(ezPx, 1.0)), 0.0, ezMax - 2.0));
+  vec3 ezF = EnvironmentBRDF(geometryNormal, geometryViewDir, material.specularColor, material.specularF90, material.roughness);
+  reflectedLight.indirectSpecular = reflectedLight.indirectSpecular * (1.0 - ezRf.a * ezUp) + ezRf.rgb * ezF * ezUp;   // alpha: where the piece hides the studio
+}`);
+    shader.fragmentShader = fs;
+  };
+}
+reflective(plinth.material, reflOnPlinth);
+reflective(floor.material, reflOnFloor);
+const mirrorV = [new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector2()], mirrorClear = new THREE.Color();
+function renderMirror() {
+  const on = (P.plinth ? P.plinthGloss : P.floorGloss) >= 0.05 && state.fx < 2;   // a matte surface shows no image; the adaptive ladder can drop it
+  reflOnPlinth.value = on && P.plinth ? 1 : 0; reflOnFloor.value = on && !P.plinth ? 1 : 0;
+  if (!on) return;
+  const [eye, aim, up, size] = mirrorV, Y = vesselGroup.position.y, div = state.fx || sheetLayout.matches ? 2 : 1;
+  renderer.getDrawingBufferSize(size);
+  const w = Math.max(2, size.x >> div), h = Math.max(2, size.y >> div);
+  if (mirrorRT.width !== w || mirrorRT.height !== h) mirrorRT.setSize(w, h);
+  UR.uReflP.value.set(P.footRadius * UNIT, h * camera.projectionMatrix.elements[5] / 2);
+  camera.updateMatrixWorld();
+  eye.copy(camera.position); eye.y = 2 * Y - eye.y;
+  aim.set(0, 0, -1).applyQuaternion(camera.quaternion).add(camera.position); aim.y = 2 * Y - aim.y;
+  up.set(0, 1, 0).applyQuaternion(camera.quaternion); up.y = -up.y;
+  mirrorCam.position.copy(eye); mirrorCam.up.copy(up); mirrorCam.lookAt(aim); mirrorCam.updateMatrixWorld();
+  mirrorCam.projectionMatrix.copy(camera.projectionMatrix);
+  mirrorCam.projectionMatrix.elements[8] *= -1;      // the mirror image is turned left to right, and with it the view offset of the layout
+  mirrorCam.projectionMatrixInverse.copy(mirrorCam.projectionMatrix).invert();
+  UR.uReflMat.value.set(0.5, 0, 0, 0.5, 0, 0.5, 0, 0.5, 0, 0, 0.5, 0.5, 0, 0, 0, 1).multiply(mirrorCam.projectionMatrix).multiply(mirrorCam.matrixWorldInverse);
+  const bg = scene.background, pm = plinth.material, target = renderer.getRenderTarget(), alpha = renderer.getClearAlpha();
+  renderer.getClearColor(mirrorClear);
+  scene.background = null; floor.visible = contactMesh.visible = false;
+  plinth.material = hiddenMat;                       // unseen, yet still in the shadow map this pass may be the one to draw; the fog stays, or the glaze would compile twice
+  renderer.setClearColor(0x000000, 0);               // alpha stays the vessel's coverage
+  renderer.setRenderTarget(mirrorRT);
+  renderer.clear();
+  renderer.render(scene, mirrorCam);
+  renderer.setRenderTarget(target);
+  renderer.setClearColor(mirrorClear, alpha);
+  scene.background = bg; plinth.material = pm; floor.visible = contactMesh.visible = true;
+}
+
+// --- post: MSAA, bloom on speculars only, then in the output pass a lens vignette before the tone curve and a dither
+// after the encoding, so the dark floor gradient does not band. The dither noise is fixed on screen.
 const composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(4, 4, { type: THREE.HalfFloatType, samples: 4 }));
 composer.addPass(new RenderPass(scene, camera));
-const bloomPass = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.2, 0.55, 0.92);
+const bloomPass = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.2, 0.4, 1.4);
 composer.addPass(bloomPass);
 const outputPass = new OutputPass();
+const post = Object.assign(outputPass.uniforms, { uVig: { value: 0.3 }, uDither: { value: 1 }, uAspect: { value: 1 } });
+{
+  let fs = outputPass.material.fragmentShader;
+  const texel = 'gl_FragColor = texture2D( tDiffuse, vUv );', srgb = /(#ifdef SRGB_TRANSFER[\s\S]*?#endif)/;
+  if (!fs.includes('varying vec2 vUv;') || !fs.includes(texel) || !srgb.test(fs)) console.warn('Eozin shader hook not found: output pass');
+  fs = fs.replace('varying vec2 vUv;', 'varying vec2 vUv;\nuniform float uVig, uDither, uAspect;');
+  fs = fs.replace(texel, texel + '\n{ vec2 q = (vUv - 0.5) * vec2(uAspect, 1.0); float c = 1.0 / (1.0 + dot(q, q) * 1.6 * uVig); gl_FragColor.rgb *= c * c; }');
+  fs = fs.replace(srgb, `$1
+{ vec2 p = gl_FragCoord.xy;
+  float n1 = fract(52.9829189 * fract(dot(p, vec2(0.06711056, 0.00583715)))), n2 = fract(52.9829189 * fract(dot(p + 47.0, vec2(0.06711056, 0.00583715))));
+  gl_FragColor.rgb += (n1 + n2 - 1.0) / 255.0 * uDither; }`);
+  outputPass.material.fragmentShader = fs;
+}
 outputPass.needsSwap = false;                        // it draws to the canvas; a swap here would make the scene alternate between two MSAA targets
 composer.addPass(outputPass);
 
 const state = {
-  maxR: 10, reach: 0, rise: 0, optics: null, basisN: 0, vertices: 0,
+  maxR: 10, reach: 0, rise: 0, keyEl: 0.8, optics: null, basisN: 0, vertices: 0,
   framed: false, posed: false, userMoved: false, usable: 1, span: Infinity,           // camera fit
-  scale: 1, lod: 0, frame: 0, n: 0, tuned: 0, settle: 8, raised: -Infinity, hold: 8000, drew: false, quality: '',   // adaptive quality
+  scale: 1, fx: 0, envLod: 0, lod: 0, frame: 0, n: 0, tuned: 0, settle: 8, raised: -Infinity, hold: 8000, drew: false, quality: '',   // adaptive quality
 };
 const LEVELS = Object.keys(DETAIL);                  // coarse to fine
 const meshLevel = () => LEVELS[Math.max(0, LEVELS.indexOf(P.detail) - state.lod)];   // the chosen detail, less what the adaptive logic has given up
@@ -1824,6 +2037,7 @@ function resize() {
     renderer.setSize(w, h, false);
     composer.setPixelRatio(pr);
     composer.setSize(w, h);
+    post.uAspect.value = w / h;
     state.settle = Math.max(state.settle, 3); state.frame = 0;         // the frames around a reallocation are not steady-state samples
     layoutDirty = true;
     invalidate();                                    // a reallocated canvas is empty until it is drawn again
@@ -1862,6 +2076,18 @@ function frameCamera() {
   invalidate();
 }
 
+// The shadow frustum is fitted to the casters (an orthographic shadow lies straight behind them), so every texel is
+// spent on the piece. The filter radius is the key light's angular size, in the units the shadow shader works in.
+function fitShadow() {
+  const cam = keyLight.shadow.camera, ty = targetY() - (P.plinth ? 0 : PLINTH_H);
+  const rv = Math.hypot((P.height * 0.5 + state.rise) * UNIT, Math.max(state.maxR, state.reach) * UNIT);
+  const rp = P.plinth ? Math.hypot(ty, plinth.scale.x * 1.012) : 0;
+  const ext = Math.max(rv, rp) * 1.12 + 0.05 + (P.plinth ? 0 : PLINTH_H);
+  cam.left = -ext; cam.right = ext; cam.top = ext; cam.bottom = -ext;
+  cam.near = Math.max(0.5, 14 - ext - 0.5); cam.far = 14 + (ty + ext) / Math.sin(state.keyEl) + 1;
+  cam.updateProjectionMatrix();
+  keyLight.shadow.radius = Math.tan(P.keySoft * Math.PI / 180) * (cam.far - cam.near) / (2 * ext);
+}
 function rebuildGeometry(level) {
   const v = buildVessel(P, level);
   vesselMesh.geometry.dispose();
@@ -1878,9 +2104,8 @@ function rebuildGeometry(level) {
   contactMesh.geometry.dispose();
   contactMesh.geometry = buildContact(Math.min(1.6 * state.maxR, 0.95 * ps / UNIT) / Math.max(v.ctx.sx, v.ctx.sz), v.ctx.groundAO);
   contactMesh.scale.set(v.ctx.sx, 1, v.ctx.sz);
-  const ext = Math.max(P.height * UNIT, state.maxR * UNIT * 2) * 0.8 + 1.2, cam = keyLight.shadow.camera;
-  cam.left = -ext; cam.right = ext; cam.top = ext; cam.bottom = -ext; cam.near = 0.5; cam.far = 40;
-  cam.updateProjectionMatrix();
+  fitShadow();
+  shadowDirty();
   invalidate();
 }
 
@@ -1922,33 +2147,60 @@ function updateMaterial() {
 
 const TONES = { ACES: THREE.ACESFilmicToneMapping, AgX: THREE.AgXToneMapping, Neutral: THREE.NeutralToneMapping };
 let envName = '';
+// What the adaptive logic gives up between pixels and mesh, one rung at a time: 1 the mirror at quarter resolution,
+// 2 no mirror, 3 a 1024 shadow map, 4 the studio at 256. No rung switches a shader variant: that would recompile the glaze.
+function setFx(n) {
+  state.fx = n;
+  const size = n >= 3 ? 1024 : 2048, shadow = keyLight.shadow;
+  if (shadow.mapSize.x !== size) { shadow.mapSize.set(size, size); shadow.map?.dispose(); shadow.map = null; shadowDirty(); }
+  state.envLod = n >= 4 ? 1 : 0;
+  state.settle = Math.max(state.settle, 2);
+}
 function updateStage() {
-  if (envName !== P.env) { envName = P.env; setEnvironment(P.env); }
+  const quality = `${P.pixelRatio}/${P.adaptive}/${P.detail}/${P.reflDetail}`;
+  if (state.quality !== quality) {                   // a quality choice by the user hands the picture back at full quality
+    state.quality = quality; state.scale = 1; state.frame = 0; state.hold = 8000; state.raised = -Infinity;
+    setFx(0);
+    if (state.lod) { state.lod = 0; if (!geoTimer) geoDirty = P.detail; }
+  }
+  const env = `${P.env}/${P.reflDetail}/${state.envLod}`;
+  if (envName !== env) { envName = env; setEnvironment(P.env); }
   scene.environmentRotation.y = P.envRot * Math.PI / 180;
   scene.environmentIntensity = P.envInt;
   renderer.toneMapping = TONES[P.tone] || THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = P.exposure;
   bloomPass.enabled = P.bloom > 0.005;
   bloomPass.strength = P.bloom * 0.9;
-  const az = P.keyAz * Math.PI / 180, el = P.keyEl * Math.PI / 180;
+  let az = P.keyAz * Math.PI / 180, el = P.keyEl * Math.PI / 180;
+  if (P.keyLock) {                                   // the light that casts the shadow stands where the key softbox is reflected
+    const kp = (ENVS[P.env] || ENVS['Atelier softboxes']).panels[0].at;
+    az = Math.atan2(kp[0], kp[2]) + P.envRot * Math.PI / 180;
+    el = Math.atan2(kp[1], Math.hypot(kp[0], kp[2]));
+  }
+  state.keyEl = el;
+  U.uKeySpec.value = P.keySpec;
   keyLight.target.position.set(0, targetY(), 0);
   keyLight.position.set(Math.sin(az) * Math.cos(el), Math.sin(el), Math.cos(az) * Math.cos(el)).multiplyScalar(14).add(keyLight.target.position);
   keyLight.intensity = P.keyInt;
-  const quality = `${P.pixelRatio}/${P.adaptive}/${P.detail}`;
-  if (state.quality !== quality) {                   // a quality choice by the user hands the picture back at full quality
-    state.quality = quality; state.scale = 1; state.frame = 0; state.hold = 8000; state.raised = -Infinity;
-    if (state.lod) { state.lod = 0; if (!geoTimer) geoDirty = P.detail; }
-  }
+  fitShadow();
   plinth.visible = P.plinth;
   vesselGroup.position.y = P.plinth ? PLINTH_H : 0;
+  plinth.material.roughness = 0.91 - 0.6 * P.plinthGloss;
+  floor.material.roughness = 0.96 - 0.8 * P.floorGloss;
+  post.uVig.value = P.vignette;
+  const room = [P.env, P.envRot, P.envInt, P.keyInt, P.keySoft, el, az, P.plinth, plinth.scale.x, P.height, P.footRadius, state.maxR, P.roomRefl, P.reflDetail, state.envLod].join();
+  if (state.room !== room) { state.room = room; localDirty = true; }   // the turntable does not ask for a new capture
   resize();
+  shadowDirty();
   invalidate();
 }
 // A restored WebGL context comes back empty. three.js re-creates programs, buffers and the targets it draws into every
-// frame, but the PMREM environment is a render-target texture with no CPU copy: render it again.
+// frame (the mirror among them), but the PMREM environments are render-target textures with no CPU copy and the shadow
+// map is drawn on request only: render them again.
 renderer.domElement.addEventListener('webglcontextrestored', () => {
-  envTarget = null;                                  // its GL objects went with the old context; nothing to dispose
-  envName = '';
+  envTarget = localTarget = null;                    // their GL objects went with the old context; nothing to dispose
+  envName = ''; localDirty = true;
+  shadowDirty();
   updateStage();
 });
 
@@ -2085,8 +2337,10 @@ const GUI_DEF = [
     num('decoThick', 'Film thickness ×', 0.2, 3), num('decoFill', 'Metal fill ×', 0, 2.5), num('decoSilver', 'Copper ↔ silver', -1, 1), num('decoMatte', 'Etched matte')] },
   { title: 'Light & view', kind: 'stage', items: [
     opt('env', 'Lighting', Object.keys(ENVS)), num('envRot', 'Light rotation · °', 0, 360, 1), num('envInt', 'Ambient level', 0, 2.5), num('keyInt', 'Key light', 0, 6, 0.05),
-    num('keyAz', 'Key azimuth · °', 0, 360, 1), num('keyEl', 'Key elevation · °', 5, 85, 1), num('exposure', 'Exposure', 0.3, 2.5), opt('tone', 'Tone curve', Object.keys(TONES)),
-    num('bloom', 'Highlight bloom'), num('occlusion', 'Contact shading', 0, 1, 0.01, 'mat'), num('spin', 'Turntable · rpm', -6, 6, 0.1), { key: 'plinth', label: 'Plinth' }, opt('detail', 'Mesh detail', Object.keys(DETAIL), 'geo'),
+    { key: 'keyLock', label: 'Key follows softbox' }, num('keyAz', 'Key azimuth · °', 0, 360, 1), num('keyEl', 'Key elevation · °', 5, 85, 1),
+    num('keySoft', 'Key softness · °', 0.3, 4, 0.1), num('keySpec', 'Key glint'), { key: 'roomRefl', label: 'Room reflections' }, opt('reflDetail', 'Reflection detail', ['Standard', 'High']),
+    num('plinthGloss', 'Plinth polish'), num('floorGloss', 'Floor polish'), num('exposure', 'Exposure', 0.3, 2.5), opt('tone', 'Tone curve', Object.keys(TONES)),
+    num('bloom', 'Highlight bloom'), num('vignette', 'Vignette'), num('occlusion', 'Contact shading', 0, 1, 0.01, 'mat'), num('spin', 'Turntable · rpm', -6, 6, 0.1), { key: 'plinth', label: 'Plinth' }, opt('detail', 'Mesh detail', Object.keys(DETAIL), 'geo'),
     num('pixelRatio', 'Max pixel ratio', 1, 3, 0.25), { key: 'adaptive', label: 'Adaptive quality' }] },
 ];
 
@@ -2196,11 +2450,19 @@ const META = {
   envRot: { basic: true, help: 'Turns the room lighting around the piece.' },
   envInt: { label: 'Room light', help: 'Brightness of the room and its reflections.' },
   keyInt: { label: 'Spotlight', help: 'Brightness of the single spotlight that casts the shadow.' },
+  keyLock: { label: 'Spotlight at main lamp', help: 'Keeps the spotlight where the main lamp of the room is, so the shadow falls away from the brightest reflection. Off lets you aim it yourself.' },
   keyAz: { label: 'Spotlight turn · °', help: 'Moves the spotlight around the piece.' },
   keyEl: { label: 'Spotlight height · °', help: 'Raises or lowers the spotlight.' },
+  keySoft: { basic: true, label: 'Shadow softness · °', help: 'Size of the spotlight. A larger one gives a shadow that is crisp at the foot and blurs as it falls away.' },
+  keySpec: { label: 'Spotlight glint', help: 'A sharp point of light on the glaze from the spotlight itself, on top of the lamps reflected from the room.' },
+  roomRefl: { help: 'The glaze mirrors the plinth, the floor and the shadow it stands in, not only the lamps.' },
+  reflDetail: { help: 'Sharpness of the lamps mirrored in the glaze. The page may lower it by itself to stay smooth.' },
+  plinthGloss: { basic: true, help: 'How polished the stand is. A polished stand mirrors the foot of the piece.' },
+  floorGloss: { help: 'How polished the floor is. Without the plinth, a polished floor mirrors the piece.' },
   exposure: { basic: true, help: 'Overall brightness of the picture.' },
   tone: { help: 'How bright highlights are rolled off into the picture.' },
   bloom: { help: 'Glow around the brightest highlights.' },
+  vignette: { help: 'Darkens the corners of the picture, as a camera lens does.' },
   occlusion: { help: 'Soft shade in hollows, inside the piece and under handles, and the shadow where the foot meets the plinth.' },
   spin: { basic: true, help: 'Turntable speed. 0 stops it.' },
   plinth: { help: 'Shows or hides the stand under the piece.' },
@@ -2234,6 +2496,8 @@ const DEPENDS = [
   [['decoSoft', 'decoThick', 'decoFill', 'decoSilver', 'decoMatte'], () => P.deco !== 'None' && !(P.deco === 'Relief motif' && !reliefOn()), 'Choose a Painted pattern first.'],
   [['decoCount'], () => ['Scales', 'Marbled veins', 'Whiplash vines'].includes(P.deco), 'This pattern has no repeat count.'],
   [['decoRows'], () => ['Bands', 'Scales', 'Whiplash vines'].includes(P.deco), 'This pattern has no rows.'],
+  [['keyAz', 'keyEl'], () => !P.keyLock, 'Switch Spotlight at main lamp off first.'],
+  [['plinthGloss'], () => P.plinth, 'Switch the Plinth on first.'],
 ];
 
 // Panel preferences outlive the visit where the browser lets them; where storage is blocked they last for the session.
@@ -2271,6 +2535,7 @@ function changed(kind) {
     geoTimer = setTimeout(() => { geoTimer = 0; geoDirty = meshLevel(); }, 240);
   }
   if (kind === 'stage') updateStage(); else updateMaterial();
+  shadowDirty();
   syncControls();
   clearTimeout(histTimer);                           // an edit that reports no end (the colour picker) becomes an undo step once it rests
   histTimer = setTimeout(commit, 1200);
@@ -2329,6 +2594,8 @@ function applyParams(values, { silent } = {}) {
   let n = 0, geo = false;
   // rimDepth was this height in centimetres (0..5) before it became the 0..1 fraction rimHeight
   if (values && typeof values.rimDepth === 'number' && !('rimHeight' in values)) values = { ...values, rimHeight: values.rimDepth / 5 };
+  // a set saved before the spotlight could follow the main lamp: one that was aimed by hand stays where it was put
+  if (values && !('keyLock' in values) && ['keyAz', 'keyEl'].some((k) => typeof values[k] === 'number' && values[k] !== DEFAULTS[k])) values = { ...values, keyLock: false };
   for (const [key, value] of Object.entries(values || {})) {
     const it = SCHEMA[key];
     if (!it) continue;
@@ -2342,6 +2609,7 @@ function applyParams(values, { silent } = {}) {
   if (n && !silent) {
     gui.controllersRecursive().forEach((c) => c.updateDisplay());
     updateStage(); updateMaterial(); syncControls();
+    shadowDirty();
     if (geo) geoDirty = meshLevel();                 // uniforms alone need no new mesh
   }
   return n;
@@ -2373,26 +2641,30 @@ function rematch(group) {                            // no group: both; returns 
 const adoptBase = () => { for (const k of FORM_KEYS) BASE[k] = P[k]; for (const k of LUSTRE_KEYS) BASE[k] = P[k]; };   // a pasted or random piece is its own starting point
 
 // --- undo history: whole parameter states as JSON; the camera is not part of it
-const hist = { past: [], future: [], now: JSON.stringify(P) };
+// and the baseline of the 'changed' marks travels with each state, so undoing a random or pasted piece brings its presets back too
+const hist = { past: [], future: [], now: JSON.stringify(P), base: JSON.stringify(BASE) };
 function syncHist() { $('#undo').disabled = !hist.past.length; $('#redo').disabled = !hist.future.length; }
 function commit() {
   clearTimeout(histTimer);
   const s = JSON.stringify(P);
   if (s === hist.now) return;
-  hist.past.push(hist.now);
+  hist.past.push({ s: hist.now, b: hist.base });
   if (hist.past.length > 60) hist.past.shift();
-  hist.now = s; hist.future.length = 0;
+  hist.now = s; hist.base = JSON.stringify(BASE); hist.future.length = 0;
   syncHist();
 }
 function step(from, to) {
   commit();                                          // an edit still waiting for its timer is a step of its own
   if (!from.length) return;
   const snap = () => FORM_KEYS.map((k) => P[k]).join(), before = snap();
-  to.push(hist.now); hist.now = from.pop();
-  applyParams(JSON.parse(hist.now));
+  to.push({ s: hist.now, b: JSON.stringify(BASE) });
+  const e = from.pop();
+  hist.now = e.s; hist.base = e.b;
+  applyParams(JSON.parse(e.s));
+  Object.assign(BASE, JSON.parse(e.b));
   if (snap() !== before) state.framed = false;       // another vessel: fit it, from the same side
-  const match = rematch();
-  for (const g in match) if (match[g]) Object.assign(BASE, PRESET[g].table[match[g]]);
+  rematch();
+  markDirty = true;
   syncHist();
 }
 const undo = () => step(hist.past, hist.future), redo = () => step(hist.future, hist.past);
@@ -2570,6 +2842,7 @@ const actions = {
   'Save PNG': () => {
     const v = camera.view && camera.view.enabled ? { ...camera.view } : null;
     camera.clearViewOffset();                        // a picture of the piece, not of the page layout
+    renderMirror();
     composer.render();
     if (v) camera.setViewOffset(v.fullWidth, v.fullHeight, v.offsetX, v.offsetY, v.width, v.height);
     invalidate();
@@ -2688,7 +2961,7 @@ if (fromHash) {
   applyParams(fromHash.set, { silent: true }); markPreset(location.hash.slice(1), 'lustre'); gui.controllersRecursive().forEach((c) => c.updateDisplay());
   Object.assign(BASE, PRESET.lustre.table[location.hash.slice(1)]);
 }
-hist.now = JSON.stringify(P);                        // the piece the page opens with is the first undo state
+hist.now = JSON.stringify(P); hist.base = JSON.stringify(BASE);                        // the piece the page opens with is the first undo state
 window.addEventListener('hashchange', () => {        // a link to another lustre, followed while the page is open
   const id = location.hash.slice(1);
   if (Object.hasOwn(LUSTRES, id) && chipEls.lustre[id].getAttribute('aria-pressed') !== 'true') chipEls.lustre[id].click();
@@ -2717,17 +2990,19 @@ updateStage();
 updateMaterial();
 rebuildGeometry(P.detail);
 
-// Adaptive quality: hold a usable frame rate on slower GPUs. Pixels go first, which keeps the piece as designed. At
-// their floor the triangles are far below a pixel and shading follows their count, so mesh levels go next. Now and
-// then the finer step is tried again; if it does not hold, the wait before the next try doubles.
+// Adaptive quality: hold a usable frame rate on slower GPUs. Pixels go first, which keeps the piece as designed, then
+// the costly extras of the stage (setFx). By then the triangles are far below a pixel and shading follows their count,
+// so mesh levels go last. Now and then the finer step is tried again; if it does not hold, the wait before the next try doubles.
 function coarser() {
   if (state.scale > 0.5) state.scale = Math.max(0.5, state.scale * 0.82);
+  else if (state.fx < 4) { setFx(state.fx + 1); updateStage(); }
   else if (meshLevel() !== LEVELS[0]) { state.lod++; geoDirty = meshLevel(); }
   else return false;
   return true;
 }
 function finer() {
   if (state.lod > 0) { state.lod--; geoDirty = meshLevel(); }
+  else if (state.fx > 0) { setFx(state.fx - 1); updateStage(); }
   else if (state.scale < 1) state.scale = Math.min(1, state.scale / 0.82);
   else return false;
   return true;
@@ -2756,7 +3031,7 @@ function tick(now) {
   if (geoDirty) { const level = geoDirty; geoDirty = null; rebuildGeometry(level); updateStage(); state.settle = Math.max(state.settle, 2); }
   resize();
   if (!state.framed && stageEl.clientWidth > 2) { frameCamera(); state.framed = true; resize(); }   // the fit may change the view offset: apply it before this frame is drawn
-  if (P.spin) { vesselGroup.rotation.y += P.spin * TAU / 60 * dt; stale = true; }
+  if (P.spin) { vesselGroup.rotation.y += P.spin * TAU / 60 * dt; shadowDirty(); stale = true; }
   controls.update();
   const fogNear = clamp(camera.position.distanceTo(controls.target) + 3, 13, 33);   // the fog stays behind the vessel at every zoom
   scene.fog.near = fogNear; scene.fog.far = fogNear + 31;
@@ -2766,6 +3041,8 @@ function tick(now) {
   state.drew = stale;
   if (stale) {                                       // nothing moved, nothing changed: the frame on screen is still right
     stale = false;
+    if (localDirty && Math.abs(now - lastCapture) > 100) captureLocal(now); else if (localDirty) stale = true;   // a drag asks for many captures: a few a second, and one when it rests
+    renderMirror();
     composer.render(dt);
     if (first) { first = false; statusEl.remove(); state.tuned = now; }
   }

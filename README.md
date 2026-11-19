@@ -37,6 +37,27 @@ turned collar rings with coved roots, a waved petal rim, six relief motifs (leav
 vines, spiral ribs, hammered, cabochons), up to four pulled handles that flare into the
 wall, and an unglazed foot with a dripped glaze line that ends in a bead.
 
+**Light, shadow and reflections.** The piece stands in a small procedural studio:
+softboxes with a hot centre, a few bare bulbs for pin highlights and a black flag, rendered
+into a prefiltered environment.
+
+- *One key light.* The spotlight that casts the shadow stands where the main softbox of
+  the room is, so shadow and brightest reflection agree and turn together with *Light
+  rotation*. The glaze takes its highlight from the reflected softbox, not from a point
+  glint (*Spotlight glint* brings one back; *Spotlight at main lamp* off frees the aim).
+- *Soft shadow.* The key shadow hardens towards contact: crisp at the foot and the plinth
+  edge, wider and softer as it falls across the floor (*Shadow softness* is the angular
+  size of the light). The shadow map is fitted to the piece and redrawn only when the
+  piece or the light moves.
+- *Room reflections.* The studio is captured again from the middle of the vessel, with the
+  lit plinth, the floor and the shadow in it, and looked up with a parallax correction: the
+  foot mirrors the plinth it stands on, the lower belly the floor, the shoulders the lamps.
+- *Polished stand.* The plinth (or, without it, the floor) mirrors the vessel: sharp at the
+  contact line and dissolving with distance. *Plinth polish* and *Floor polish* set how
+  much.
+- *Lens.* Bloom only on speculars, a light vignette, and a dither against banding in the
+  dark floor gradient.
+
 **Mesh realism.** Everything below is computed from the profile; there are no textures.
 
 - *Contact shading.* Ambient occlusion is traced in the meridian plane and stored per
@@ -61,7 +82,7 @@ wall, and an unglazed foot with a dripped glaze line that ends in a bead.
 | Firing | temperature, soak, smoke (reduction), air on cooling (re-oxidation), glaze resistance (diffusion barrier), flame marks |
 | Film optics | refractive index, dispersion, thickness variation, direct trims (layer depth, metal amount, clear skin), colour sample count |
 | Painted decoration | second-lustre pattern and how its film differs |
-| Light & view | lighting rig, room light, spotlight, exposure, tone curve, bloom, *Contact shading* (ambient occlusion and the contact shadow), turntable, mesh detail, pixel ratio, adaptive quality |
+| Light & view | lighting rig, room light, spotlight (aim, shadow softness, glint), room reflections and their detail, plinth and floor polish, exposure, tone curve, bloom, vignette, *Contact shading* (ambient occlusion and the contact shadow), turntable, mesh detail, pixel ratio, adaptive quality |
 
 Positions along the piece are *levels*: a share of the height, 0 at the foot and 1 at the
 rim. Sizes of surface patterns (flame size, run width, variation scale, crackle cell) are
@@ -103,7 +124,9 @@ linked directly with its hash, for example `index.html#labrador`; the hash is dr
 soon as the glaze is edited and comes back when the edit is undone.
 
 **Adaptive quality** keeps the frame rate usable on slower GPUs: it first renders fewer
-pixels, then falls back to a lighter mesh, and tries the finer setting again from time to
+pixels, then gives up stage extras one at a time (the plinth mirror at lower resolution, the
+mirror, a smaller shadow map, a smaller studio capture), then falls back to a lighter mesh,
+and tries the finer setting again from time to
 time. A scene in which nothing moves is not redrawn at all.
 
 ## Limits of the model
