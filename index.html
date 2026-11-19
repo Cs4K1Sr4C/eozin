@@ -375,13 +375,13 @@ const DEFAULTS = {
   // vessel form (cm)
   height: 34, footRadius: 5.0, footHeight: 1.5, waistRadius: 4.2, bellyRadius: 9.4, bellyPos: 0.4,
   shoulderRadius: 6.0, shoulderPos: 0.66, neckRadius: 2.8, neckPos: 0.84, lipRadius: 4.2,
-  lipBead: 0.12, wall: 0.45, softness: 0.5, squash: 0,
+  lipBead: 0.12, wall: 0.45, softness: 0.5, handmade: 0.3, squash: 0,
   // sculpting
   lobes: 0, lobeDepth: 0.06, lobeProfile: 'Gadroon', lobeStart: 0.08, lobeEnd: 0.72, twist: 0,
   relief: 'Leaves', reliefHeight: 0.24, reliefCount: 9, reliefRows: 1, reliefStart: 0.07, reliefEnd: 0.63,
   rings: 2, ringHeight: 0.13, ringPos: 0.795, rimWaves: 0, rimHeight: 0.6, rimFrom: 0.72,
   // handles
-  handles: 0, handleLow: 0.62, handleHigh: 0.9, handleReach: 4.2, handleArch: 0.35, handleThick: 1.1, handleFlat: 0.78,
+  handles: 0, handleLow: 0.62, handleHigh: 0.9, handleReach: 4.2, handleArch: 0.35, handleThick: 1.1, handleFlat: 0.78, handleBlend: 0.6,
   // base glaze
   glazeColor: '#16382a', bodyColor: '#d8c6a6', glazeThick: 1, pooling: 0.7, breaking: 0.45, runs: 0.4, runScale: 0.55, sag: 0.3,
   gloss: 0.9, peel: 0.3, crackle: 0, crackleSize: 0.9, crackleStain: 0.5, pinholes: 0.12,
@@ -398,7 +398,7 @@ const DEFAULTS = {
   deco: 'Relief motif', decoCount: 12, decoRows: 8, decoSoft: 0.3, decoThick: 0.8, decoFill: 1, decoSilver: 0.6, decoMatte: 0,
   // stage
   env: 'Atelier softboxes', envRot: 20, envInt: 1, keyInt: 2.2, keyAz: 38, keyEl: 46, exposure: 1, tone: 'ACES',
-  bloom: 0.22, spin: 1.2, plinth: true, detail: 'Standard', pixelRatio: 2, adaptive: true,
+  bloom: 0.22, occlusion: 0.9, spin: 1.2, plinth: true, detail: 'Standard', pixelRatio: 2, adaptive: true,
 };
 // The state the page opens in, and returns to on Reset: the defaults, with the turntable still if motion is unwelcome.
 const START = { ...DEFAULTS, spin: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : DEFAULTS.spin };
@@ -600,14 +600,18 @@ function gaussSmooth(r, sigma) {
 
 // Relief motifs. u: 0..1 around, b: 0..1 up the band, n: repeats, rows, asp: cell height / cell width.
 // Return a height in [-1, 1].
+let leafY = NaN, leafSway = 0, leafW = 0;
 const RELIEFS = {
   'None': null,
   'Leaves': (u, b, n, rows) => {
     const by = b * rows, row = Math.min(rows - 1, Math.floor(by)), y = by - row;
     const ax = u * n + (row & 1 ? 0.5 : 0);
-    let x = ax - Math.floor(ax) - 0.5;
-    x -= 0.09 * Math.sin(y * TAU) * (1 - y);                               // whiplash sway
-    const w = 0.47 * Math.pow(Math.sin(Math.PI * Math.pow(y, 0.6)), 1.1) + 1e-5;
+    if (y !== leafY) {                                                     // sway and width belong to the height: one mesh row shares them
+      leafY = y;
+      leafSway = 0.09 * Math.sin(y * TAU) * (1 - y);                       // whiplash sway
+      leafW = 0.47 * Math.pow(Math.sin(Math.PI * Math.pow(y, 0.6)), 1.1) + 1e-5;
+    }
+    const x = ax - Math.floor(ax) - 0.5 - leafSway, w = leafW;
     const ins = 1 - Math.abs(x) / w;
     if (ins <= 0) return 0;
     const dome = smooth(0, 0.5, ins) * (0.6 + 0.4 * Math.sqrt(ins));
@@ -624,7 +628,7 @@ const RELIEFS = {
       if (t < 0) { if (Math.abs(dx) < 1) return 0.22 * smooth(-0.7, 0, t) * smooth(1, 0.8, Math.abs(dx)); continue; }
       const d2 = dx * dx + t * t;
       if (d2 >= 1) continue;
-      return smooth(1, 0.82, Math.sqrt(d2)) * (0.22 + 0.78 * Math.pow(t, 0.75)) + 0.12 * Math.exp(-dx * dx / 0.012) * t;
+      return smooth(1, 0.74, Math.sqrt(d2)) * (0.22 + 0.78 * Math.pow(t, 0.75)) + 0.12 * Math.exp(-dx * dx / 0.012) * t;
     }
     return 0;
   },
@@ -638,7 +642,7 @@ const RELIEFS = {
     v = Math.max(v, 0.45 * Math.exp(-dt * dt / 0.0012));                   // tendril
     const phc = (Math.round(ph / Math.PI - 0.5) + 0.5) * Math.PI;          // bud at each crest
     const rr = Math.hypot((x - dir * A * 1.28 * Math.sin(phc)) / 0.11, (ph - phc) / Math.PI * asp / Math.min(0.2, 0.42 * asp));   // squat rows: the bud stays inside its own
-    if (rr < 1) v = Math.max(v, Math.sqrt(1 - rr * rr));
+    if (rr < 1) v = Math.max(v, smooth(0, 0.25, 1 - rr) * Math.sqrt(1 - 0.81 * rr * rr));    // a dome that meets the ground at a slope, not a wall
     return v;
   },
   'Spiral ribs': (u, b, n, rows) => Math.pow(0.5 + 0.5 * Math.cos(TAU * (u * n + b * rows * 0.5)), 1.5),
@@ -659,7 +663,7 @@ const RELIEFS = {
     for (let row = Math.max(0, r0 - 1); row <= Math.min(rows - 1, r0 + 1); row++) {   // a collar reaches into the rows above and below
       const ax = u * n + (row & 1 ? 0.5 : 0), x = ax - Math.floor(ax) - 0.5, yy = (by - row - 0.5) * asp / sy;
       const rr = Math.hypot(x / (0.34 * (1 - 0.3 * clamp(yy, -1, 1))), yy);           // teardrop, narrower at the top
-      v = Math.max(v, rr < 1 ? Math.sqrt(1 - rr * rr) : 0, 0.24 * Math.exp(-((rr - 1.3) ** 2) / 0.05));
+      v = Math.max(v, rr < 1 ? smooth(0, 0.22, 1 - rr) * Math.sqrt(1 - 0.81 * rr * rr) : 0, 0.24 * Math.exp(-((rr - 1.3) ** 2) / 0.05));
     }
     return v;
   },
@@ -703,15 +707,79 @@ function finishGrid(pos, R, C1, opts = {}) {
   }
   return { nrm, curv };
 }
-function gridIndex(R, C1, base = 0) {
+// fld: a height per vertex. Each quad is split along the diagonal whose ends differ least in it, so the edges of a
+// relief run along its contours instead of stepping across them.
+function gridIndex(R, C1, base = 0, fld) {
   const C = C1 - 1, idx = new Uint32Array((R - 1) * C * 6);
   let q = 0;
   for (let k = 0; k < R - 1; k++) for (let j = 0; j < C; j++) {
     const a = base + k * C1 + j, b = a + C1;
-    idx[q++] = a; idx[q++] = b; idx[q++] = a + 1;
-    idx[q++] = b; idx[q++] = b + 1; idx[q++] = a + 1;
+    if (fld && Math.abs(fld[a] - fld[b + 1]) < Math.abs(fld[b] - fld[a + 1])) {
+      idx[q++] = a; idx[q++] = b; idx[q++] = b + 1;
+      idx[q++] = a; idx[q++] = b + 1; idx[q++] = a + 1;
+    } else {
+      idx[q++] = a; idx[q++] = b; idx[q++] = a + 1;
+      idx[q++] = b; idx[q++] = b + 1; idx[q++] = a + 1;
+    }
   }
   return idx;
+}
+// Ambient occlusion of the turned profile, in the meridian plane: how much of the hemisphere above each row is clear
+// of the pot's own section and its mirror image across the axis. Light that would arrive from below the horizon has
+// bounced off the ground and counts for 0.35. Returns one value per row and a sampler for the ground around the foot.
+function profileAO(rows, level) {
+  const R = rows.length, K = level === 'Draft' ? 110 : 200, NR = level === 'Draft' ? 16 : 32, step = Math.ceil(R / K), at = [];
+  for (let k = 0; k < R - 1; k += step) at.push(k);
+  at.push(R - 1);
+  const n = at.length, S = n - 1, sr = new Float64Array(S * 2), sy = new Float64Array(S * 2), er = new Float64Array(S * 2), ey = new Float64Array(S * 2);
+  for (let i = 0; i < S; i++) {                      // segments, then their mirror images
+    const a = rows[at[i]], b = rows[at[i + 1]];
+    sr[i] = a[0]; sy[i] = a[1]; er[i] = b[0] - a[0]; ey[i] = b[1] - a[1];
+    sr[S + i] = -a[0]; sy[S + i] = a[1]; er[S + i] = -er[i]; ey[S + i] = ey[i];
+  }
+  const blocked = (ox, oy, dx, dy, skipA, skipB) => {
+    for (let q = 0; q < 2 * S; q++) {
+      if (q === skipA || q === skipB) continue;
+      const wx = sr[q] - ox, wy = sy[q] - oy, side = dx * wy - dy * wx, den = dx * ey[q] - dy * er[q];
+      if (side * (side + den) > 0 || Math.abs(den) < 1e-12) continue;   // both ends on one side of the ray
+      if ((wx * ey[q] - wy * er[q]) / den > 1e-4) return true;
+    }
+    return false;
+  };
+  const sky = (ox, oy, nx, ny, rays, bounce, skipA, skipB) => {
+    let sum = 0, tot = 0;
+    for (let q = 0; q < rays; q++) {
+      const a = ((q + 0.5) / rays - 0.5) * Math.PI, c = Math.cos(a), sn = Math.sin(a), dx = nx * c - ny * sn, dy = ny * c + nx * sn;
+      tot += c;
+      if (!blocked(ox, oy, dx, dy, skipA, skipB)) sum += c * (dy < 0 ? bounce : 1);
+    }
+    return sum / tot;
+  };
+  let ao = new Float64Array(n);
+  for (let i = 0; i < n; i++) {
+    let nx = 0, ny = 0;
+    for (const q of [i - 1, i]) if (q >= 0 && q < S) { const l = Math.hypot(er[q], ey[q]) || 1; nx += ey[q] / l; ny -= er[q] / l; }
+    const l = Math.hypot(nx, ny) || 1, k = at[i];
+    nx /= l; ny /= l;
+    ao[i] = sky(rows[k][0] + 0.02 * nx, rows[k][1] + 0.02 * ny, nx, ny, NR, 0.35, i - 1, i);
+    if (rows[k][2] === 3) ao[i] = Math.pow(ao[i], 1.5);   // light that enters the mouth has already lost some on the way
+  }
+  for (let pass = 0; pass < 2; pass++) {
+    const next = new Float64Array(n);
+    for (let i = 0; i < n; i++) next[i] = 0.25 * ao[Math.max(0, i - 1)] + 0.5 * ao[i] + 0.25 * ao[Math.min(n - 1, i + 1)];
+    ao = next;
+  }
+  const rowAO = new Float32Array(R);
+  for (let k = 0, i = 0; k < R; k++) {
+    while (i < n - 2 && at[i + 1] < k) i++;
+    rowAO[k] = Math.max(0.05, lerp(ao[i], ao[i + 1], clamp((k - at[i]) / (at[i + 1] - at[i]), 0, 1)));
+  }
+  const groundAO = (Rg, m = 32) => {                 // m samples from the axis out to radius Rg
+    const g = new Float32Array(m);
+    for (let i = 0; i < m; i++) g[i] = sky((i + 0.5) / m * Rg, 0.01, 0, 1, 24, 1, -1, -1);
+    return g;
+  };
+  return { rowAO, groundAO };
 }
 
 function buildVessel(p, level) {
@@ -732,7 +800,10 @@ function buildVessel(p, level) {
   for (let i = 0; i <= M; i++) {
     const y = i * dy;
     let bump = p.lipBead * Math.exp(-0.5 * ((y - (H - 0.3)) / 0.3) ** 2);
-    for (let q = 0; q < p.rings; q++) bump += p.ringHeight * Math.exp(-0.5 * ((y - (p.ringPos * H + (q - (p.rings - 1) / 2) * 0.85)) / 0.22) ** 2);
+    for (let q = 0; q < p.rings; q++) {              // a flat-crowned bead with a cove cut at each root
+      const x = Math.abs(y - (p.ringPos * H + (q - (p.rings - 1) / 2) * 0.85));
+      bump += p.ringHeight * (Math.exp(-0.5 * (x / 0.25) ** 3.4) - 0.18 * Math.exp(-0.5 * ((x - 0.46) / 0.1) ** 2));
+    }
     dec[i] = body[i] + bump;
   }
   const sample = (arr, y) => { const t = clamp(y / dy, 0, M - 1e-6), i = Math.floor(t); return arr[i] + (arr[i + 1] - arr[i]) * (t - i); };
@@ -742,27 +813,32 @@ function buildVessel(p, level) {
       tr = lerp(body[i + 1] - body[i - 1], body[i + 2] - body[i], f), l = Math.hypot(tr, 2 * dy);
     return [2 * dy / l, -tr / l];
   };
+  const relief = RELIEFS[p.relief], bandA = Math.min(p.reliefStart, p.reliefEnd), bandB = Math.max(p.reliefStart, p.reliefEnd);
+  const bandH = Math.max(0.02, bandB - bandA) * H;
+  const asp = (bandH / p.reliefRows) / (TAU * sample(dec, (bandA + bandB) / 2 * H) / p.reliefCount);
+  const useRelief = relief && Math.abs(p.reliefHeight) > 1e-4 && bandB - bandA > 0.02;
 
   const rows = [];                                   // [r, y, region]  0 foot/underside, 1 outer wall, 2 lip, 3 interior
   const push = (r, y, reg) => rows.push([Math.max(r, 0), y, reg]);
 
   // --- underside: recessed base, foot ring, bevel
-  const bev = 0.12, rStart = sample(dec, bev), Rf = dec[0];
+  const bev = 0.18, rStart = sample(dec, bev), Rf = dec[0];
   const ringW = Math.min(0.75, Rf * 0.22), rec = Math.min(0.35, Rf * 0.1);
   const rb = rStart - bev, r2 = rb - ringW, r1 = Math.max(0.2, r2 - rec * 1.3);
   for (let i = 0; i <= 7; i++) push(r1 * i / 7, rec, 0);
   push(lerp(r1, r2, 0.5), rec * 0.5, 0); push(r2, 0, 0);
   push(lerp(r2, rb, 1 / 3), 0, 0); push(lerp(r2, rb, 2 / 3), 0, 0); push(rb, 0, 0);
-  for (const a of [0.25, 0.5, 0.75]) push(rb + bev * Math.sin(a * Math.PI / 2), bev - bev * Math.cos(a * Math.PI / 2), 0);
+  for (let a = 1 / 6; a < 0.9; a += 1 / 6) push(rb + bev * Math.sin(a * Math.PI / 2), bev - bev * Math.cos(a * Math.PI / 2), 0);
 
-  // --- outer wall: rows spaced by arc length, denser on rings, bead and the glaze line
+  // --- outer wall: rows spaced by arc length, denser on rings, bead, the glaze line and the relief band
   const pts = [[rStart, bev]];
   for (let i = Math.ceil(bev / dy); i <= M; i++) if (i * dy > bev + 1e-6) pts.push([dec[i], i * dy]);
   const cum = [0], glTop = p.glazeLine + 0.9, glBot = p.glazeLine - p.dripAmp - 0.3;
   for (let i = 1; i < pts.length; i++) {
     let w = 1;
-    if (i < pts.length - 1) w += Math.min(2.5, 0.5 * Math.abs(pts[i + 1][0] - 2 * pts[i][0] + pts[i - 1][0]) / (dy * dy));
-    if (pts[i][1] > glBot && pts[i][1] < glTop) w += 1.5;
+    if (i < pts.length - 1) w += Math.min(4, 0.5 * Math.abs(pts[i + 1][0] - 2 * pts[i][0] + pts[i - 1][0]) / (dy * dy));
+    if (pts[i][1] > glBot && pts[i][1] < glTop) w += 2.5;
+    if (useRelief && pts[i][1] > bandA * H && pts[i][1] < bandB * H) w += 0.6;
     cum.push(cum[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]) * w);
   }
   const nO = D.outer;
@@ -784,13 +860,16 @@ function buildVessel(p, level) {
   }
   const top = rows[outerEnd - 1], Q = [qr[M], qy[M]];
 
-  // --- lip: a half-round over the wall
-  const nL = Math.max(6, Math.round(nO * 0.03));
+  // --- lip: a half-round over the wall, a little flattened on top and rolled outward
+  const nL = Math.max(10, Math.round(nO * 0.04));
   {
     const cx = (top[0] + Q[0]) / 2, cy = (top[1] + Q[1]) / 2, hx = (top[0] - Q[0]) / 2, hy = (top[1] - Q[1]) / 2;
     let ux = -hy, uy = hx;
     if (uy < 0) { ux = -ux; uy = -uy; }
-    for (let k = 1; k <= nL; k++) { const a = Math.PI * k / (nL + 1); push(cx + hx * Math.cos(a) + ux * Math.sin(a), cy + hy * Math.cos(a) + uy * Math.sin(a), 2); }
+    for (let k = 1; k <= nL; k++) {
+      const a = Math.PI * k / (nL + 1), ca = Math.cos(a), sa = Math.sin(a), up = sa * (0.82 + 0.18 * sa);
+      push(cx + hx * ca + ux * up + 0.12 * p.wall * sa * sa, cy + hy * ca + uy * up, 2);
+    }
   }
 
   const yF = rec + p.wall * 1.4, poly = [Q];
@@ -798,14 +877,23 @@ function buildVessel(p, level) {
     if (qy[i] <= yF + Math.min(0.9, 0.4 * qr[i])) break;
     if (qy[i] < poly[poly.length - 1][1]) poly.push([qr[i], qy[i]]);
   }
+  let floorR;                                        // where the wall has turned into the flat of the floor
   {
     const E = poly[poly.length - 1], Ep = poly[Math.max(0, poly.length - 5)];
     let tx = E[0] - Ep[0], ty = E[1] - Ep[1];
     if (ty > -1e-4) { tx = 0; ty = -1; }
     const cxr = Math.max(0.05, E[0] + tx * (yF - E[1]) / ty);
-    const fx = Math.max(0, cxr - Math.hypot(cxr - E[0], yF - E[1]));
-    for (let s = 1; s <= 12; s++) { const u = s / 12; poly.push([(1 - u) * (1 - u) * E[0] + 2 * u * (1 - u) * cxr + u * u * fx, (1 - u) * (1 - u) * E[1] + (2 * u * (1 - u) + u * u) * yF]); }
-    for (let s = 1; s <= 8 && fx > 1e-3; s++) poly.push([fx * (1 - s / 8), yF]);
+    floorR = 0.5 * Math.max(0, cxr - Math.hypot(cxr - E[0], yF - E[1]));
+    // Wall to floor on a quintic with no curvature at either end: the reflection has no ring where a fillet would stop.
+    const L = Math.hypot(E[0] - floorR, E[1] - yF), tl = Math.hypot(tx, ty);
+    tx *= L / tl; ty *= L / tl;
+    for (let s = 1, rMin = E[0]; s <= 16; s++) {
+      const t = s / 16, t3 = t * t * t, t4 = t3 * t, t5 = t4 * t;
+      const a = 1 - 10 * t3 + 15 * t4 - 6 * t5, b = t - 6 * t3 + 8 * t4 - 3 * t5, c = 1 - a, d = -4 * t3 + 7 * t4 - 3 * t5;
+      rMin = Math.min(rMin, a * E[0] + b * tx + c * floorR - d * L);
+      poly.push([rMin, Math.max(yF, a * E[1] + b * ty + c * yF)]);
+    }
+    for (let s = 1; s <= 10 && floorR > 1e-3; s++) poly.push([floorR * (1 - s / 10), yF]);
     poly[poly.length - 1][0] = 0;
   }
   // A plain normal offset can cross the outer wall where the profile turns sharply: hold the interior half a wall inside it.
@@ -853,12 +941,45 @@ function buildVessel(p, level) {
   const twAt = (h) => twist * h;
   const sx = 1 + p.squash, sz = 1 - p.squash;
 
-  const relief = RELIEFS[p.relief], bandA = Math.min(p.reliefStart, p.reliefEnd), bandB = Math.max(p.reliefStart, p.reliefEnd);
-  const bandH = Math.max(0.02, bandB - bandA) * H;
-  const asp = (bandH / p.reliefRows) / (TAU * sample(dec, (bandA + bandB) / 2 * H) / p.reliefCount);
-  const useRelief = relief && Math.abs(p.reliefHeight) > 1e-4 && bandB - bandA > 0.02;
+  // The hand of the maker: no thrown pot is a perfect solid of revolution. A smooth warp of space (so walls keep their
+  // section and joints stay closed) makes the piece a little oval, leaning and uneven at the rim; the foot stays flat.
+  // The motifs wander and swell slowly around the pot. All of it is seeded, periodic in angle, and absent at 0.
+  const hm = p.handmade, ph = [0, 1, 2, 3, 4, 5, 6, 7].map((i) => TAU * hash2(i, 11, p.seed));
+  const warp = hm > 0 ? (a) => {
+    const lx = 0.005 * hm * H * Math.cos(ph[2]), lz = 0.005 * hm * H * Math.sin(ph[2]), tx = 0.01 * hm * Math.cos(ph[3]), tz = 0.01 * hm * Math.sin(ph[3]);
+    const c1 = 0.004 * Math.cos(ph[1]), s1 = 0.004 * Math.sin(ph[1]);
+    let y0 = NaN, h = 0, g = 0, c0 = 0, s0 = 0;
+    for (let i = 0; i < a.length; i += 3) {
+      if (a[i + 1] !== y0) { y0 = a[i + 1]; h = clamp(y0 / H, 0, 1); g = smooth(0.03, 0.25, h); c0 = 0.01 * Math.cos(2 * ph[0] + 1.2 * h); s0 = 0.01 * Math.sin(2 * ph[0] + 1.2 * h); }
+      if (g <= 0) continue;
+      // ovality: a 2-lobed swell that turns slowly with height, plus a fainter 3-lobed one (angle sums, no atan)
+      const l = Math.sqrt(a[i] * a[i] + a[i + 2] * a[i + 2]) || 1, c = a[i] / l, sn = a[i + 2] / l, c2 = c * c - sn * sn, s2 = 2 * c * sn;
+      const s = 1 + hm * g * (c2 * c0 + s2 * s0 + c * (4 * c * c - 3) * c1 - sn * (3 - 4 * sn * sn) * s1);
+      a[i] = a[i] * s + lx * g * h * h; a[i + 2] = a[i + 2] * s + lz * g * h * h;
+      a[i + 1] += g * h * h * h * (a[i] * tx + a[i + 2] * tz);
+    }
+  } : null;
 
-  const N = R * C1, pos = new Float32Array(N * 3), uv = new Float32Array(N * 2), surf = new Float32Array(N * 4);
+  const drift = [0, 1, 2, 3, 4, 5].map(() => new Float64Array(C1));
+  for (let j = 0; j < C1; j++) {
+    const tU = TAU * (j % C) / C;
+    drift[0][j] = Math.cos(3 * tU + ph[4]); drift[1][j] = Math.cos(7 * tU + ph[5]); drift[2][j] = Math.sin(7 * tU + ph[5]);
+    drift[3][j] = Math.cos(5 * tU + ph[7]); drift[4][j] = Math.cos(2 * tU + ph[6]); drift[5][j] = Math.sin(2 * tU + ph[6]);
+  }
+  const shift = (j, c4, s4) => 0.004 * hm * (drift[0][j] + 0.5 * (drift[1][j] * c4 - drift[2][j] * s4));   // sideways wander of the motif
+  // Motifs with a hard outline are averaged over each vertex's own patch of wall, so an edge that falls between
+  // vertices becomes a slope rather than a staircase: nine taps where the patch's corners differ, their mean elsewhere.
+  const prefilter = level !== 'Draft' && ['Leaves', 'Scales', 'Vines', 'Cabochons'].includes(p.relief);
+  const motif = (u, b) => relief(u - Math.floor(u), b, p.reliefCount, p.reliefRows, asp);
+  const corners = (k) => {                           // the motif midway between rows k and k + 1, and between columns
+    const h = clamp(0.5 * (rows[k][1] + rows[k + 1][1]) / H, 0, 1), b = clamp((h - bandA) / (bandB - bandA), 1e-4, 1 - 1e-4), c4 = Math.cos(4 * h), s4 = Math.sin(4 * h), out = new Float64Array(C1);
+    for (let j = 0; j < C; j++) out[j] = motif((j + 0.5) / C + 0.5 * (shift(j, c4, s4) + shift(j + 1, c4, s4)), b);
+    out[C] = out[0];
+    return out;
+  };
+  let below = null, above = null, aboveK = -1;
+  const { rowAO, groundAO } = profileAO(rows, level);
+  const N = R * C1, pos = new Float32Array(N * 3), uv = new Float32Array(N * 2), surf = new Float32Array(N * 4), ao = new Float32Array(N), fld = new Float32Array(N);
   let maxR = 0;
   for (let k = 0; k < R; k++) {
     const [r, y, reg] = rows[k], h = clamp(y / H, 0, 1);
@@ -868,27 +989,66 @@ function buildVessel(p, level) {
       [nr, ny] = normalAt(y);                        // of the wall under the rings: their grooves would make the relief fold over
       if (useRelief) { b = (h - bandA) / (bandB - bandA); fade = smooth(0, 0.05, b) * smooth(1, 0.95, b); }
     }
+    const du = 1 / C / 3, db = (rows[Math.min(R - 1, k + 1)][1] - rows[Math.max(0, k - 1)][1]) / 2 / bandH / 3;
+    const c4 = Math.cos(4 * h), s4 = Math.sin(4 * h), c3 = Math.cos(3 * h), s3 = Math.sin(3 * h);
+    if (prefilter && b > 0 && b < 1) { below = aboveK === k - 1 ? above : corners(k - 1); above = corners(k); aboveK = k; }
     for (let j = 0; j < C1; j++) {
       const o = k * C1 + j, u = (j % C) / C;
       let d = 0, rel = 0, glz = reg === 0 ? -1 : 10;
       if (reg === 1) {
-        if (b > 0 && b < 1) { rel = relief(u, b, p.reliefCount, p.reliefRows, asp) * fade; d = rel * p.reliefHeight; }
+        if (b > 0 && b < 1) {
+          const u2 = u + shift(j, c4, s4);
+          if (prefilter) {
+            const jl = (j + C - 1) % C, jr = j % C, q0 = below[jl], q1 = below[jr], q2 = above[jl], q3 = above[jr];
+            if (Math.max(q0, q1, q2, q3) - Math.min(q0, q1, q2, q3) < 0.08) rel = 0.25 * (q0 + q1 + q2 + q3);
+            else {
+              for (let a2 = -1; a2 <= 1; a2++) for (let a1 = -1; a1 <= 1; a1++) rel += motif(u2 + a1 * du, clamp(b + a2 * db, 1e-4, 1 - 1e-4));
+              rel /= 9;
+            }
+          } else rel = motif(u2, b);
+          rel *= fade * (1 + 0.16 * hm * (0.6 * (drift[4][j] * c3 - drift[5][j] * s3) + 0.4 * drift[3][j]));   // and a slow swell in its height
+          d = rel * p.reliefHeight;
+        }
         glz = y - line[j];
-        d += 0.03 * p.glazeThick * (1 + 1.6 * (p.glazeLine - line[j]) / Math.max(p.dripAmp, 0.05)) * Math.exp(-(((y - line[j] - 0.14) / 0.17) ** 2));
+        // the glaze ends in a fat bead, fattest at the tip of a drip: a steep lower lip and a long tail up the wall
+        const t = glz - 0.1;
+        d += p.glazeThick * (0.045 + 0.075 * (p.glazeLine - line[j]) / Math.max(p.dripAmp, 0.05)) * Math.exp(-((t / (t < 0 ? 0.09 : 0.32)) ** 2));
+        fld[o] = d;
       }
       const rr = r * (1 + env * lobeS[j]) + d * nr;
       const cp = cosT[j] * ct - sinT[j] * st, sp = sinT[j] * ct + cosT[j] * st;
       pos[o * 3] = rr * cp * sx; pos[o * 3 + 1] = y + d * ny + lift * rimS[j]; pos[o * 3 + 2] = rr * sp * sz;
       uv[o * 2] = j / C; uv[o * 2 + 1] = h;
       surf[o * 4 + 1] = Math.abs(rel); surf[o * 4 + 2] = glz; surf[o * 4 + 3] = reg;
+      ao[o] = rowAO[k];
       if (rr > maxR) maxR = rr;
     }
   }
+  if (warp) warp(pos);
   const { nrm, curv } = finishGrid(pos, R, C1, { poles: true });
   for (let k = 1; k < R - 1; k++) for (let j = 0; j < C1; j++) {   // hollows collect glaze, ridges shed it
     let s = 0;
     for (let dk = -1; dk <= 1; dk++) for (let dj = -1; dj <= 1; dj++) s += curv[(k + dk) * C1 + ((j + dj + C) % C)];
     surf[(k * C1 + j) * 4] = clamp(-s / 9 * 1.6, -1, 1);
+  }
+  for (let k = outerEnd; k < R; k++) {               // and the glaze runs to the middle of the floor
+    if (rows[k][2] !== 3 || rows[k][1] > yF + 0.05) continue;
+    const pool = 0.7 * (1 - smooth(0.35, 1, rows[k][0] / Math.max(floorR * 2, 0.5)));
+    for (let j = 0; j < C1; j++) surf[(k * C1 + j) * 4] = Math.min(1, surf[(k * C1 + j) * 4] + pool);
+  }
+  // Where a handle is luted on, slip and glaze gather in the crotch of the joint (see buildHandles).
+  const nh = p.handles | 0, T = p.handleThick;
+  if (nh > 0 && p.handleBlend > 0) for (const hj of handleJoints(p)) for (let k = 0; k < outerEnd; k++) {
+    const [r, y, reg] = rows[k], dyj = y - hj * H;
+    if (reg !== 1 || Math.abs(dyj) >= 3 * T) continue;
+    const tw = twAt(clamp(y / H, 0, 1));
+    for (let j = 0; j < C1; j++) for (let q = 0; q < nh; q++) {
+      let da = TAU * (j % C) / C + tw - TAU * q / nh;
+      da = r * (da - TAU * Math.round(da / TAU));
+      if (Math.abs(da) >= 3 * T) continue;
+      const G = Math.exp(-(da * da + dyj * dyj) / ((1.3 * T) ** 2)), o = k * C1 + j;
+      surf[o * 4] = Math.min(1, surf[o * 4] + 0.45 * p.handleBlend * G); ao[o] *= 1 - 0.4 * p.handleBlend * G;
+    }
   }
 
   const geometry = new THREE.BufferGeometry();
@@ -896,19 +1056,22 @@ function buildVessel(p, level) {
   geometry.setAttribute('normal', new THREE.BufferAttribute(nrm, 3));
   geometry.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
   geometry.setAttribute('aSurf', new THREE.BufferAttribute(surf, 4));
-  geometry.setIndex(new THREE.BufferAttribute(gridIndex(R, C1), 1));
+  geometry.setAttribute('aAO', new THREE.BufferAttribute(ao, 1));
+  geometry.setIndex(new THREE.BufferAttribute(gridIndex(R, C1, 0, fld), 1));
   geometry.computeBoundingSphere();
-  return { geometry, maxR: maxR * Math.max(sx, sz), rise: rimRise, ctx: { H, dec, sample, wallAt, lobeAt, twAt, rimAt, normalAt, sx, sz }, vertices: N };
+  return { geometry, maxR: (maxR * (1 + 0.014 * hm) + 0.005 * hm * H) * Math.max(sx, sz), rise: rimRise, ctx: { H, dec, sample, wallAt, lobeAt, twAt, rimAt, normalAt, sx, sz, warp, groundAO }, vertices: N };
 }
+const handleJoints = (p) => { const lo = clamp(p.handleLow, 0.08, 0.9); return [lo, clamp(p.handleHigh, lo + 0.08, 0.985)]; };   // heights, as fractions
 
-// Pulled handles: an elliptical strap swept along a Bézier ear, thickened at both joints.
+// Pulled handles: an elliptical strap swept along a Bézier ear. It is a little heavier at the top, has a thumb groove
+// down its back, and at both joints flares and spreads into the wall ('Joint blend').
 function buildHandles(p, ctx, level) {
   const n = p.handles | 0;
   if (!n) return null;
-  const NS = level === 'Draft' ? 40 : 96, NA = level === 'Draft' ? 14 : 28, A1 = NA + 1, per = (NS + 1) * A1;
-  const pos = new Float32Array(n * per * 3), nrm = new Float32Array(n * per * 3), uv = new Float32Array(n * per * 2), surf = new Float32Array(n * per * 4);
+  const NS = level === 'Draft' ? 40 : 96, NA = level === 'Draft' ? 16 : 32, A1 = NA + 1, per = (NS + 1) * A1;
+  const pos = new Float32Array(n * per * 3), nrm = new Float32Array(n * per * 3), uv = new Float32Array(n * per * 2), surf = new Float32Array(n * per * 4), ao = new Float32Array(n * per);
   const idx = new Uint32Array(n * NS * NA * 6);
-  const H = ctx.H, ha = clamp(p.handleLow, 0.08, 0.9), hb = clamp(p.handleHigh, ha + 0.08, 0.985);
+  const H = ctx.H, [ha, hb] = handleJoints(p), T = p.handleThick, bl = p.handleBlend;
   let reach = 0;
   for (let k = 0; k < n; k++) {
     const phi = TAU * k / n, cp = Math.cos(phi), sp = Math.sin(phi);
@@ -978,31 +1141,50 @@ function buildHandles(p, ctx, level) {
     let len = 0;
     for (let i = 1, q = bez(0); i <= 40; i++) { const w = bez(i / 40); len += Math.hypot(w[0] - q[0], w[1] - q[1]); q = w; }
     const capS = clamp(0.3 * ctx.wallAt(A[1]) / len, 0.004, 0.1);   // the rounded tip stays buried inside the wall
-    const part = new Float32Array(per * 3);
+    const part = new Float32Array(per * 3), sdAt = new Float32Array(NS + 1);
     for (let i = 0; i <= NS; i++) {
       const s = 0.5 - 0.5 * Math.cos(Math.PI * i / NS);                    // rows gather at the joints
       const c = bez(s), e = bez(Math.min(1, s + 1e-3)), b0 = bez(Math.max(0, s - 1e-3));
       const tr = e[0] - b0[0], ty = e[1] - b0[1], l = Math.hypot(tr, ty) || 1, nr = ty / l, ny = -tr / l;
       const end = Math.min(s, 1 - s) / capS, cap = end >= 1 ? 1 : Math.sqrt(Math.max(0, 1 - (1 - end) * (1 - end)));
-      const rad = 0.5 * p.handleThick * (1 + 0.3 * (Math.exp(-((s / 0.2) ** 2)) + Math.exp(-(((1 - s) / 0.2) ** 2)))) * (0.9 + 0.1 * Math.cos(TAU * s)) * cap;
+      const sd = sdAt[i] = Math.min(s, 1 - s) * len;                       // along the strap to the nearer joint, cm
+      const flare = lerp(0.3 * (Math.exp(-((s / 0.2) ** 2)) + Math.exp(-(((1 - s) / 0.2) ** 2))), 0.8 * (1 - smooth(0, 1.2 * T, sd)) ** 2, bl);
+      const rad = 0.5 * T * (1 + flare) * (0.9 + 0.1 * Math.cos(TAU * s)) * lerp(0.92, 1.06, s) * cap;
       reach = Math.max(reach, c[0] + rad);
-      // towards a joint the strap is no wider than the wall it meets can take (0.9 of its radius across)
-      const flat = Math.min(p.handleFlat, lerp(0.45 * (s < 0.5 ? A[0] : B[0]) / Math.max(rad, 1e-6), p.handleFlat, smooth(0.02, 0.22, Math.min(s, 1 - s))));
+      // the clay is smeared sideways onto the wall, most at the lower joint; but towards a joint the strap is no wider
+      // than the wall it meets can take (0.9 of its radius across)
+      const fl = p.handleFlat * (1 + bl * (s < 0.5 ? 0.6 : 0.3) * Math.exp(-((sd / (0.8 * T)) ** 2)));
+      const flat = Math.min(fl, lerp(0.45 * (s < 0.5 ? A[0] : B[0]) / Math.max(rad, 1e-6), fl, smooth(0.02, 0.22, Math.min(s, 1 - s))));
+      const groove = 0.1 * smooth(0.08, 0.3, Math.min(s, 1 - s)), shade = bl * Math.exp(-((sd / (0.6 * T)) ** 2));
       for (let j = 0; j < A1; j++) {
-        const al = TAU * (j % NA) / NA, a = rad * Math.cos(al), bt = rad * flat * Math.sin(al);
+        const al = TAU * (j % NA) / NA, ca = Math.cos(al), sa = Math.sin(al);   // ca > 0: the back of the strap, facing away from the pot
+        const a = rad * ca * (1 - groove * Math.exp(-((sa / 0.38) ** 2)) * Math.max(ca, 0)), bt = rad * flat * sa;
         const rho = c[0] + a * nr, o = (i * A1 + j) * 3, g = k * per + i * A1 + j;
         part[o] = (rho * cp - bt * sp) * ctx.sx; part[o + 1] = c[1] + a * ny; part[o + 2] = (rho * sp + bt * cp) * ctx.sz;
         uv[g * 2] = -1; uv[g * 2 + 1] = clamp(c[1] / H, 0, 1);   // u < 0: a strap has no angle around the pot
         surf[g * 4 + 2] = 10; surf[g * 4 + 3] = 1;
+        surf[g * 4] = 0.5 * shade; ao[g] = 1 - 0.5 * shade;                // the crotch of the joint: shaded, and full of glaze
       }
     }
+    if (ctx.warp) ctx.warp(part);
     const fin = finishGrid(part, NS + 1, A1);
     // orient outward: compare one mid-handle normal with the offset from the strap's centre line
     const mid = (Math.floor(NS / 2) * A1) * 3, cm = bez(0.5);
     const flip = fin.nrm[mid] * (part[mid] - cm[0] * cp * ctx.sx) + fin.nrm[mid + 1] * (part[mid + 1] - cm[1]) + fin.nrm[mid + 2] * (part[mid + 2] - cm[0] * sp * ctx.sz) < 0 ? -1 : 1;
     pos.set(part, k * per * 3);
-    for (let q = 0; q < per * 3; q++) nrm[k * per * 3 + q] = fin.nrm[q] * flip;
-    for (let q = 0; q < per; q++) surf[(k * per + q) * 4] = clamp(-fin.curv[q] * flip * 0.35, -0.6, 0.6);
+    for (let q = 0; q < per; q++) {
+      // Near a joint the shading normal leans to the wall's, so a highlight runs from strap to wall without a crease.
+      // Faces that look into the wall are buried and keep their own.
+      const o = q * 3, y = part[o + 1], wn = ctx.normalAt(clamp(y, 0, H)), g = (k * per + q) * 3;
+      let nx = fin.nrm[o] * flip, ny = fin.nrm[o + 1] * flip, nz = fin.nrm[o + 2] * flip, wx = wn[0] * cp / ctx.sx, wy = wn[1], wz = wn[0] * sp / ctx.sz;
+      const wl = Math.hypot(wx, wy, wz) || 1;
+      wx /= wl; wy /= wl; wz /= wl;
+      const w = 0.8 * bl * (1 - smooth(0, 0.9 * T, sdAt[Math.floor(q / A1)])) * smooth(-0.3, 0.1, nx * wx + ny * wy + nz * wz);
+      nx = lerp(nx, wx, w); ny = lerp(ny, wy, w); nz = lerp(nz, wz, w);
+      const l = Math.hypot(nx, ny, nz) || 1;
+      nrm[g] = nx / l; nrm[g + 1] = ny / l; nrm[g + 2] = nz / l;
+      surf[(k * per + q) * 4] = clamp(surf[(k * per + q) * 4] - fin.curv[q] * flip * 0.35, -0.6, 1);
+    }
     const gi = gridIndex(NS + 1, A1, k * per);
     if (flip < 0) for (let q = 0; q < gi.length; q += 3) { const t = gi[q + 1]; gi[q + 1] = gi[q + 2]; gi[q + 2] = t; }
     idx.set(gi, k * NS * NA * 6);
@@ -1012,9 +1194,10 @@ function buildHandles(p, ctx, level) {
   geometry.setAttribute('normal', new THREE.BufferAttribute(nrm, 3));
   geometry.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
   geometry.setAttribute('aSurf', new THREE.BufferAttribute(surf, 4));
+  geometry.setAttribute('aAO', new THREE.BufferAttribute(ao, 1));
   geometry.setIndex(new THREE.BufferAttribute(idx, 1));
   geometry.computeBoundingSphere();
-  return { geometry, reach: reach * Math.max(ctx.sx, ctx.sz) };
+  return { geometry, reach: (reach * (1 + 0.014 * p.handmade) + 0.005 * p.handmade * H) * Math.max(ctx.sx, ctx.sz) };
 }
 
 /* --------------------------------------------------------------------------
@@ -1025,13 +1208,16 @@ const DECOS = ['None', 'Relief motif', 'Bands', 'Scales', 'Marbled veins', 'Whip
 
 const GLSL_VERT_PARS = /* glsl */`
 attribute vec4 aSurf;
+attribute float aAO;
 varying vec4 vSurf;
+varying float vAO;
 varying vec3 vObjPos;
 varying vec3 vObjNormal;
 varying vec2 vEzUv;
 `;
 const GLSL_VERT_MAIN = /* glsl */`
 vSurf = aSurf;
+vAO = aAO;
 vObjPos = position;
 vObjNormal = normal;
 vEzUv = uv;
@@ -1043,8 +1229,9 @@ varying vec4 vSurf;          // x cavity (+ hollow, - ridge), y relief height, z
 varying vec3 vObjPos;        // cm
 varying vec3 vObjNormal;
 varying vec2 vEzUv;
+varying float vAO;          // ambient occlusion from the meridian: 1 open, 0 enclosed
 
-uniform float uUnit, uHeight;
+uniform float uUnit, uHeight, uAO, uHand;
 uniform int uSpecN;
 uniform float uSpecBW;       // half the spacing of the spectral samples, nm
 uniform float uLam[EZ_MAX];
@@ -1098,6 +1285,8 @@ vec3 ezVoronoi(vec3 x) {                       // F1, F2, cell id
 float ezMicro(vec3 p, float fw, out float crack, out float cell, out float pit) {
   float h = uPeel * (0.011 * (ezNoise(p * 9.0) - 0.5) * (1.0 - smoothstep(0.028, 0.067, fw))
                    + 0.020 * (ezNoise(p * 2.7 + 5.0) - 0.5) * (1.0 - smoothstep(0.09, 0.22, fw)));
+  // throwing rings: one fine spiral left by the fingers, stronger inside where no rib smoothed it; straps have none
+  h += uHand * 0.0035 * (vSurf.w > 2.5 ? 3.0 : 1.0) * sin(6.2831853 * p.y / 0.32 + atan(p.z, p.x)) * (1.0 - smoothstep(0.06, 0.16, fw)) * smoothstep(0.2, 1.0, length(p.xz)) * step(-0.5, vEzUv.x);
   crack = 0.0; cell = 0.5; pit = 0.0;
   if (uCrackle > 0.001) {
     vec3 v = ezVoronoi(p / uCrackleSize + (ezNoise(p * 1.3) - 0.5) * 0.35);
@@ -1235,6 +1424,7 @@ if (ezGlaze < 0.998) {
   ezDHc = (vec2(ezClayRelief(ezP + ezDx, ezUnder), ezClayRelief(ezP + ezDy, ezUnder)) - ezC0) * (1.0 - smoothstep(0.03, 0.09, ezFw));
   float ezSpeck = smoothstep(0.70, 0.76, ezNoise(ezP * 12.0)) * (1.0 - smoothstep(0.03, 0.08, ezFw));   // iron specks; gone before they alias
   ezClay *= (0.7 + 0.42 * ezFbm(ezP * 6.0)) * (1.0 - 0.3 * ezSpeck);
+  ezClay *= mix(vec3(0.58, 0.50, 0.44), vec3(1.0), smoothstep(0.0, 0.35, -vSurf.z));   // toasted by flux and smoke beside the glaze edge
 }
 ezDH = mix(ezDHc, ezDH, ezGlaze) * uUnit;
 
@@ -1265,7 +1455,7 @@ float ezDM = uDMetal * max(0.1, 1.0 + uThickVar * 1.6 * (ezLow - 0.5) + uLustreP
            * mix(0.75, 1.15, clamp(ezRed * 0.5, 0.0, 1.0)) * mix(1.0, uDecoThick, ezDeco);
 float ezDC = uDCover * max(0.1, 1.0 + uThickVar * 1.2 * (ezRunN - 0.5) + uMosaic * 0.35 * (ezCell - 0.5)) * mix(1.0, uDecoThick, ezDeco);
 
-float ezRough = mix(0.86, uRough + uHaze + 0.22 * ezBreak + 0.5 * uDecoMatte * ezDeco + 0.25 * ezCrack + 0.3 * ezPit, ezGlaze);
+float ezRough = mix(0.93, uRough + uHaze + 0.22 * ezBreak + 0.5 * uDecoMatte * ezDeco + 0.25 * ezCrack + 0.3 * ezPit, ezGlaze);
 diffuseColor.rgb = mix(ezClay, ezCol, ezGlaze);
 vec3 ezR = vec3(0.04), ezT = vec3(1.0);
 `;
@@ -1307,6 +1497,14 @@ function makeGlazeMaterial(U) {
     // (fab.x + fab.y). three treats it as a Schlick F0 and would add a white grazing lobe on top.
     fs = swap(fs, '#include <lights_physical_pars_fragment>', swap(THREE.ShaderChunk.lights_physical_pars_fragment,
       'vec3 FssEss = Fr * fab.x + specularF90 * fab.y;', 'vec3 FssEss = Fr * fab.x + mix( vec3( specularF90 ), iridescenceF0, iridescence ) * fab.y;'));
+    // Occlusion of the image-based light by the pot's own profile; glaze pooled in a hollow darkens it further. The chunk
+    // is empty without an AO map and sits after the light loops.
+    fs = swap(fs, '#include <aomap_fragment>', `{
+  float ezAO = mix(1.0, clamp(vAO * (1.0 - 0.45 * max(vSurf.x, 0.0)), 0.0, 1.0), uAO);
+  float ezNVo = clamp(dot(normal, normalize(vViewPosition)), 0.0, 1.0);
+  reflectedLight.indirectDiffuse *= ezAO;
+  reflectedLight.indirectSpecular *= clamp(pow(ezNVo + ezAO, exp2(-16.0 * material.roughness - 1.0)) - 1.0 + ezAO, 0.0, 1.0);
+}`);
     shader.fragmentShader = fs;
   };
   return mat;
@@ -1348,8 +1546,8 @@ floor.rotation.x = -Math.PI / 2;
 floor.receiveShadow = true;
 scene.add(floor);
 const plinth = new THREE.Mesh(
-  new THREE.LatheGeometry([[1.012, 0], [1, 0.02], [1, PLINTH_H - 0.04], [0.985, PLINTH_H - 0.012], [0.955, PLINTH_H], [0, PLINTH_H]].map(([x, y]) => new THREE.Vector2(x, y)), 128),
-  new THREE.MeshStandardMaterial({ color: '#1a151d', roughness: 0.86 }),
+  new THREE.LatheGeometry([[1.012, 0], [1, 0.02], [1, PLINTH_H - 0.05], [0.992, PLINTH_H - 0.022], [0.972, PLINTH_H - 0.006], [0.95, PLINTH_H], [0, PLINTH_H]].map(([x, y]) => new THREE.Vector2(x, y)), 128),
+  new THREE.MeshStandardMaterial({ color: '#2a242b', roughness: 0.7 }),
 );
 plinth.receiveShadow = true;
 plinth.castShadow = true;
@@ -1363,7 +1561,7 @@ keyLight.shadow.normalBias = 0.02;
 scene.add(keyLight, keyLight.target);
 
 const U = {
-  uUnit: { value: UNIT }, uHeight: { value: 30 }, uSpecN: { value: 16 }, uSpecBW: { value: 0 },
+  uUnit: { value: UNIT }, uHeight: { value: 30 }, uAO: { value: 0.9 }, uHand: { value: 0.3 }, uSpecN: { value: 16 }, uSpecBW: { value: 0 },
   uLam: { value: new Float32Array(MAX_SPECTRAL).fill(550) }, uCMF: { value: new Float32Array(MAX_SPECTRAL * 3) },
   uEpsCu: { value: new Float32Array(MAX_SPECTRAL * 2) }, uEpsAg: { value: new Float32Array(MAX_SPECTRAL * 2) }, uEpsAu: { value: new Float32Array(MAX_SPECTRAL * 2) },
   uNGlass: { value: 1.56 }, uDisp: { value: 9000 }, uNCover: { value: 1.56 }, uDCover: { value: 30 }, uDMetal: { value: 150 }, uHaze: { value: 0 },
@@ -1385,6 +1583,27 @@ scene.add(vesselGroup);
 const vesselMesh = new THREE.Mesh(new THREE.BufferGeometry(), glaze);
 const handleMesh = new THREE.Mesh(new THREE.BufferGeometry(), glaze);
 for (const m of [vesselMesh, handleMesh]) { m.castShadow = true; m.receiveShadow = true; vesselGroup.add(m); }
+// Contact shadow: a disc just above the ground, darkened where the pot hides the sky from it (see profileAO).
+const contactMesh = new THREE.Mesh(new THREE.BufferGeometry(), new THREE.MeshBasicMaterial({ color: 0x000000, vertexColors: true, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1, fog: false }));
+contactMesh.renderOrder = 1;
+vesselGroup.add(contactMesh);
+function buildContact(Rg, groundAO) {
+  const NR = 32, NC = 64, C1 = NC + 1, g = groundAO(Rg, NR), pos = new Float32Array((NR + 1) * C1 * 3), col = new Float32Array((NR + 1) * C1 * 4);
+  for (let i = 0; i <= NR; i++) {
+    const t = clamp(i - 0.5, 0, NR - 1), q = Math.min(NR - 2, Math.floor(t));   // g holds ring-centre samples
+    const alpha = (1 - lerp(g[q], g[q + 1], t - q)) * 0.85 * (1 - smooth(0.7, 1, i / NR));
+    for (let j = 0; j < C1; j++) {
+      const o = i * C1 + j, a = TAU * (j % NC) / NC;
+      pos[o * 3] = i / NR * Rg * Math.cos(a); pos[o * 3 + 1] = 0.012; pos[o * 3 + 2] = -i / NR * Rg * Math.sin(a);
+      col[o * 4 + 3] = alpha;
+    }
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  geometry.setAttribute('color', new THREE.BufferAttribute(col, 4));
+  geometry.setIndex(new THREE.BufferAttribute(gridIndex(NR + 1, C1), 1));
+  return geometry;
+}
 
 // --- image-based light: a small studio rendered once into a PMREM
 const ENVS = {
@@ -1554,6 +1773,10 @@ function rebuildGeometry(level) {
   state.aimY = targetY();
   const ps = Math.max(P.footRadius * UNIT * 1.9, Math.max(state.maxR, state.reach) * UNIT * 0.9, 0.7);
   plinth.scale.set(ps, 1, ps);
+  // the shadow disc stays on the flat of the plinth, whatever the oval squash stretches it to
+  contactMesh.geometry.dispose();
+  contactMesh.geometry = buildContact(Math.min(1.6 * state.maxR, 0.95 * ps / UNIT) / Math.max(v.ctx.sx, v.ctx.sz), v.ctx.groundAO);
+  contactMesh.scale.set(v.ctx.sx, 1, v.ctx.sz);
   const ext = Math.max(P.height * UNIT, state.maxR * UNIT * 2) * 0.8 + 1.2, cam = keyLight.shadow.camera;
   cam.left = -ext; cam.right = ext; cam.top = ext; cam.bottom = -ext; cam.near = 0.5; cam.far = 40;
   cam.updateProjectionMatrix();
@@ -1578,7 +1801,8 @@ function updateMaterial() {
   const o = deriveOptics(P);
   state.optics = o;
   setBasis(clamp(P.spectral | 0, 4, MAX_SPECTRAL));
-  U.uHeight.value = P.height;
+  U.uHeight.value = P.height; U.uAO.value = P.occlusion; U.uHand.value = P.handmade;
+  contactMesh.material.opacity = P.occlusion;
   U.uNGlass.value = o.nGlass; U.uDisp.value = o.disp; U.uNCover.value = o.nCover; U.uDCover.value = o.dCover; U.uDMetal.value = o.dMetal; U.uHaze.value = o.haze;
   U.uFill.value.set(o.fill[0], o.fill[1], o.fill[2]);
   U.uCoverage.value = P.coverage; U.uInnerLustre.value = P.innerLustre;
@@ -1727,7 +1951,7 @@ const GUI_DEF = [
     num('waistRadius', 'Waist radius', 1.5, 12, 0.1), num('bellyRadius', 'Belly radius', 2.5, 16, 0.1), num('bellyPos', 'Belly position', 0.12, 0.8, 0.005),
     num('shoulderRadius', 'Shoulder radius', 1.2, 15, 0.1), num('shoulderPos', 'Shoulder position', 0.3, 0.92, 0.005), num('neckRadius', 'Neck radius', 0.8, 15, 0.1),
     num('neckPos', 'Neck position', 0.45, 0.98, 0.005), num('lipRadius', 'Lip radius', 1, 16, 0.1), num('lipBead', 'Rim bead', 0, 0.5, 0.01),
-    num('wall', 'Wall thickness', 0.25, 0.9, 0.01), num('softness', 'Profile softness'), num('squash', 'Oval squash', -0.35, 0.35, 0.01)] },
+    num('wall', 'Wall thickness', 0.25, 0.9, 0.01), num('softness', 'Profile softness'), num('handmade', 'Hand of the maker'), num('squash', 'Oval squash', -0.35, 0.35, 0.01)] },
   { title: 'Sculpting', kind: 'geo', preset: 'form', items: [
     num('lobes', 'Lobes', 0, 24, 1), num('lobeDepth', 'Lobe depth', 0, 0.25, 0.005), opt('lobeProfile', 'Lobe profile', ['Sine', 'Gadroon', 'Flute']),
     num('lobeStart', 'Lobes from'), num('lobeEnd', 'Lobes to'), num('twist', 'Spiral twist · °', -360, 360, 1),
@@ -1737,7 +1961,7 @@ const GUI_DEF = [
     num('rimWaves', 'Rim waves', 0, 12, 1), num('rimHeight', 'Rim wave height', 0, 1, 0.01), num('rimFrom', 'Rim waves from', 0.4, 0.95, 0.005)] },
   { title: 'Handles', kind: 'geo', preset: 'form', items: [
     num('handles', 'Count', 0, 4, 1), num('handleLow', 'Lower joint', 0.1, 0.9, 0.005), num('handleHigh', 'Upper joint', 0.2, 0.98, 0.005), num('handleReach', 'Reach · cm', 1, 10, 0.1),
-    num('handleArch', 'Arch', 0, 1.2), num('handleThick', 'Thickness · cm', 0.5, 2.4, 0.02), num('handleFlat', 'Strap flatness', 0.5, 1.8, 0.01)] },
+    num('handleArch', 'Arch', 0, 1.2), num('handleThick', 'Thickness · cm', 0.5, 2.4, 0.02), num('handleFlat', 'Strap flatness', 0.5, 1.8, 0.01), num('handleBlend', 'Joint blend')] },
   { title: 'Base glaze', kind: 'mat', preset: 'lustre', items: [
     { key: 'glazeColor', label: 'Glaze colour', color: true }, { key: 'bodyColor', label: 'Clay body', color: true },
     num('glazeThick', 'Glaze thickness', 0.3, 2, 0.01, 'geo'), num('pooling', 'Pooling in hollows', 0, 1.5), num('breaking', 'Breaking on edges', 0, 1.2), num('runs', 'Runs'),
@@ -1761,7 +1985,7 @@ const GUI_DEF = [
   { title: 'Stage & light', kind: 'stage', items: [
     opt('env', 'Lighting', Object.keys(ENVS)), num('envRot', 'Light rotation · °', 0, 360, 1), num('envInt', 'Ambient level', 0, 2.5), num('keyInt', 'Key light', 0, 6, 0.05),
     num('keyAz', 'Key azimuth · °', 0, 360, 1), num('keyEl', 'Key elevation · °', 5, 85, 1), num('exposure', 'Exposure', 0.3, 2.5), opt('tone', 'Tone curve', Object.keys(TONES)),
-    num('bloom', 'Highlight bloom'), num('spin', 'Turntable · rpm', -6, 6, 0.1), { key: 'plinth', label: 'Plinth' }, opt('detail', 'Mesh detail', Object.keys(DETAIL), 'geo'),
+    num('bloom', 'Highlight bloom'), num('occlusion', 'Contact shading', 0, 1, 0.01, 'mat'), num('spin', 'Turntable · rpm', -6, 6, 0.1), { key: 'plinth', label: 'Plinth' }, opt('detail', 'Mesh detail', Object.keys(DETAIL), 'geo'),
     num('pixelRatio', 'Max pixel ratio', 1, 3, 0.25), { key: 'adaptive', label: 'Adaptive quality' }] },
 ];
 
@@ -1779,7 +2003,7 @@ const DEPENDS = [
   [['reliefCount', 'reliefRows', 'reliefStart', 'reliefEnd'], reliefOn],
   [['ringHeight', 'ringPos'], () => P.rings > 0],
   [['rimHeight', 'rimFrom'], () => P.rimWaves > 0],
-  [['handleLow', 'handleHigh', 'handleReach', 'handleArch', 'handleThick', 'handleFlat'], () => P.handles > 0],
+  [['handleLow', 'handleHigh', 'handleReach', 'handleArch', 'handleThick', 'handleFlat', 'handleBlend'], () => P.handles > 0],
   [['crackleSize', 'crackleStain', 'mosaic'], () => P.crackle > 0],
   [['dripAmp'], () => P.dripCount > 0],
   [['flashScale', 'flashWarp', 'flashStretch'], () => P.flash > 0],
