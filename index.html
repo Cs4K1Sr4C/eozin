@@ -135,6 +135,7 @@ button { font: inherit; color: inherit; }
 
 /* ---------- instrument panel (lil-gui, re-skinned) ---------- */
 .controls {
+  position: relative;
   grid-column: 3; grid-row: 1 / 4;
   align-self: start;
   max-height: 100%;
@@ -164,22 +165,85 @@ button { font: inherit; color: inherit; }
   --folder-indent: 8px;
   --widget-border-radius: 2px;
 }
-.controls .lil-gui.root > .title {
-  font: 500 10.5px/1.3 var(--font-ui); letter-spacing: 0.14em; text-transform: uppercase;
-  color: var(--ink-3); padding: 12px 14px 10px; height: auto;
-}
+.controls .lil-gui.root > .title { display: none; }   /* the tool bar heads the panel */
 .controls .lil-gui.root { min-height: 0; }
 .controls .lil-gui.root > .children { padding-bottom: 6px; scrollbar-width: thin; scrollbar-color: var(--well-hi) transparent; overscroll-behavior: contain; }
-.controls .lil-gui .lil-gui > .title { font-weight: 500; border-top: 1px solid var(--line); height: 32px; line-height: 32px; padding-left: 14px; }
+.controls .lil-gui .lil-gui > .title {
+  font-weight: 500; border-top: 1px solid var(--line); height: 32px; line-height: 32px; padding-left: 14px;
+  position: sticky; top: 0; z-index: 1; background: var(--panel-solid);   /* stays in sight while its rows scroll */
+}
+.controls .lil-gui .lil-gui > .title[data-changed]:not([data-changed=""])::after {
+  content: attr(data-changed) ' changed'; float: right; padding-right: 12px; font-weight: 400; font-size: 11px; color: var(--gilt);
+}
 .controls .lil-gui .lil-gui > .children { border-left: 0; margin-left: 0; padding: 2px 8px 8px 14px; }
-.controls .lil-gui .controller { min-height: 24px; }
-.controls .lil-gui .controller .name { overflow-wrap: anywhere; line-height: 1.25; padding-right: 6px; }
+.controls .lil-gui .controller { min-height: 24px; position: relative; }
+.controls .lil-gui .controller.changed::before {     /* differs from the preset it started from */
+  content: ''; position: absolute; left: -9px; top: 50%; width: 5px; height: 5px; margin-top: -2.5px; border-radius: 50%; background: var(--gilt);
+}
+/* A row that can do nothing stays readable and still answers hover and tap (the help strip says what it waits for); its widget stays inert. */
+.controls .lil-gui .controller.disabled { opacity: 1; pointer-events: auto !important; }
+.controls .lil-gui .controller.disabled .name { color: var(--ink-3); }
+.controls .lil-gui .controller.disabled .widget { opacity: 0.35; pointer-events: none; }
+.controls .lil-gui .controller .name { width: var(--name-width); white-space: normal; overflow-wrap: anywhere; line-height: 1.25; padding-right: 6px; }
 .controls .lil-gui .controller.function .name { text-align: left; padding: 0 8px; }
 .controls .lil-gui .slider { --slider-color: var(--gilt); }
 .controls .lil-gui .controller.number .fill { background: var(--gilt); opacity: 0.55; border-right-color: var(--gilt); }
+/* A tinted track is a ramp of the lustre colour each value would give; the fill shrinks to a thumb line. */
+.controls .lil-gui .controller.number.tint .fill { background: transparent; opacity: 1; border-right: 2px solid var(--ink); box-shadow: 1px 0 0 rgba(0, 0, 0, 0.7); }
+.controls .lil-gui .controller.tint .slider { box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.35); }
+.controls .lil-gui input:focus-visible, .controls .lil-gui button:focus-visible, .controls .lil-gui .title:focus-visible,
+.qbar button:focus-visible, .qmenu button:focus-visible { outline: 2px solid var(--gilt); outline-offset: -1px; }
+.controls .lil-gui .title:focus-visible { text-decoration: none; }
+.controls .lil-gui .option:focus-within .display, .controls .lil-gui .controller.color .display:focus-within { outline: 2px solid var(--gilt); outline-offset: 1px; }
+.controls .lil-gui .more-link {
+  height: auto; padding: 10px 14px; text-align: left; background: none; color: var(--ink-3);
+  border-top: 1px solid var(--line); border-radius: 0;
+}
+.controls .lil-gui .more-link:hover { color: var(--ink); background: none; }
+
+.qbar { flex: none; display: flex; gap: 6px; padding: 8px 10px; border-bottom: 1px solid var(--line); min-width: 0; }
+.qbar button, .qmenu button {
+  height: 28px; padding: 0 8px; background: var(--well); border: 1px solid var(--line); border-radius: 2px;
+  color: var(--ink-2); cursor: pointer; font: 12px var(--font-ui);
+}
+.qbar button:hover, .qmenu button:hover { color: var(--ink); }
+.qbar button[disabled], .qmenu button[disabled] { opacity: 0.4; cursor: default; }
+.seg { display: flex; flex: none; }
+.seg button:first-child { border-radius: 2px 0 0 2px; }
+.seg button + button { border-radius: 0 2px 2px 0; margin-left: -1px; }
+.seg button[aria-pressed="true"] { color: var(--ink); border-color: var(--gilt); position: relative; }
+#surprise { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.qbar .ico { flex: none; width: 30px; padding: 0; font-size: 15px; }
+.qmenu {
+  position: absolute; z-index: 3; right: 10px; top: 45px; min-width: 190px; display: grid;
+  background: var(--panel-solid); border: 1px solid var(--line); border-radius: 3px; padding: 4px;
+}
+.qmenu[hidden], .qmenu [hidden] { display: none; }
+.qmenu > div { display: grid; gap: 4px; }
+.qmenu .qitems { gap: 0; }
+.qmenu .qitems button { text-align: left; height: 30px; background: transparent; border-color: transparent; }
+.qmenu .qitems button:not([disabled]):hover { background: var(--well-hi); }
+.qmenu textarea {
+  width: 236px; max-width: 100%; resize: vertical; padding: 6px; background: var(--well); color: var(--ink);
+  border: 1px solid var(--line); border-radius: 2px; font: 11px/1.4 var(--font-data);
+}
+.qmenu .qrow { display: flex; gap: 6px; justify-content: flex-end; }
+.help {
+  flex: none; height: 80px; padding: 8px 14px; border-top: 1px solid var(--line);   /* fixed height: its text must not resize the card */
+  color: var(--ink-2); font-size: 11.5px; line-height: 1.4; overflow: hidden;
+}
+.help b { color: var(--ink); font-weight: 500; }
+.help .link-btn { padding: 0; }
+.help .rng { color: var(--ink-3); font-family: var(--font-data); font-size: 10.5px; }
 @media (pointer: coarse) {                 /* finger-sized rows; 16 px inputs keep iOS from zooming in on focus */
   .controls .lil-gui { --widget-height: 30px; --font-size: 13px; --input-font-size: 16px; }
   .controls .lil-gui .controller { min-height: 32px; }
+  .controls .lil-gui .lil-gui > .title { height: 40px; line-height: 40px; }
+  .qbar button, .qmenu .qitems button, .qmenu .qrow button { height: 40px; }
+  .qbar .ico { width: 38px; }
+  .qmenu { top: 53px; }
+  .qmenu textarea { font-size: 16px; }
+  .chip, .tab { min-height: 40px; }
 }
 
 /* ---------- preset shelf ---------- */
@@ -200,10 +264,11 @@ button { font: inherit; color: inherit; }
   -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
 }
 .chip:hover { color: var(--ink); border-color: rgba(239, 230, 216, 0.3); }
-.chip[aria-pressed="true"] { color: var(--ink); border-color: var(--gilt); }
+.chip[aria-pressed="true"] { color: var(--ink); border-color: var(--gilt); box-shadow: inset 0 -2px 0 var(--gilt); }
 .chip .sw { width: 14px; height: 14px; border-radius: 50%; border: 1px solid rgba(0, 0, 0, 0.5); background: var(--well); }
 .chip small { color: var(--ink-3); font-size: 11px; }
-.chip.plain { padding-left: 10px; }
+.chip .sil { flex: none; }
+.chip.plain { padding-left: 6px; }
 
 /* ---------- small-screen chrome ---------- */
 .mast { display: none; grid-column: 1; grid-row: 1; z-index: 2; align-items: center; justify-content: space-between; gap: 12px; min-width: 0; }
@@ -226,9 +291,10 @@ button { font: inherit; color: inherit; }
   position: absolute; z-index: 6; left: 50%; bottom: 96px; transform: translateX(-50%);
   padding: 8px 12px; background: var(--panel-solid); border: 1px solid var(--line); border-radius: 3px;
   color: var(--ink); max-width: min(90%, 420px); text-align: center;
-  transition: opacity 0.25s; opacity: 0; pointer-events: none;
+  transition: opacity 0.25s, visibility 0s 0.25s; opacity: 0; visibility: hidden; pointer-events: none;
 }
-.toast.show { opacity: 1; }
+.toast.show { opacity: 1; visibility: visible; transition-delay: 0s; pointer-events: auto; }
+.toast .link-btn { margin-left: 8px; color: var(--gilt); }
 
 @media (max-width: 1280px) { .chip small { display: none; } }
 @media (max-width: 1080px) {
@@ -242,15 +308,23 @@ button { font: inherit; color: inherit; }
   .label .eyebrow, .label .wordmark { display: none; }
   .dock { grid-column: 1; grid-row: 3; justify-self: stretch; }
   .dock-name { flex-basis: 40px; text-align: left; }
+  .toast { bottom: 110px; }
+}
+@media (max-width: 720px), (max-height: 480px) {   /* phones, upright or on their side: each shelf is one strip that scrolls sideways */
   .chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; padding-right: 28px;
     -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 28px), transparent); }
   .chips::-webkit-scrollbar { display: none; }
-  .toast { bottom: 110px; }
 }
 @media (max-width: 720px) {                /* phones: an open panel is a sheet over the lower stage; the vessel is drawn above it */
-  .label, .controls { width: 100%; align-self: end; max-height: 56%; }
+  .label, .controls { width: 100%; align-self: end; max-height: 63%; }
+  .help { height: 62px; padding: 6px 14px; }
+  .help .lvl { display: none; }
 }
-@media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
+@media (max-height: 480px) { .help { height: 44px; padding: 5px 14px; } }   /* a phone on its side: two lines, the list needs the room */
+@media (prefers-reduced-motion: reduce) {
+  .toast { transition: none; }
+  .controls .lil-gui.transition > .children { transition-duration: 0s !important; }
+}
 </style>
 </head>
 <body>
@@ -261,7 +335,7 @@ button { font: inherit; color: inherit; }
     <p class="wordmark">Eozin</p>
     <div class="tabs">
       <button class="tab" type="button" id="tab-label" aria-controls="label" aria-expanded="false">Film data</button>
-      <button class="tab" type="button" id="tab-controls" aria-controls="controls" aria-expanded="false">Parameters</button>
+      <button class="tab" type="button" id="tab-controls" aria-controls="controls" aria-expanded="false">Customise</button>
     </div>
   </header>
 
@@ -299,8 +373,8 @@ button { font: inherit; color: inherit; }
   <aside class="card controls" id="controls" aria-label="Simulation parameters"></aside>
 
   <nav class="dock" aria-label="Presets">
+    <div class="dock-row"><span class="dock-name">Shape</span><div class="chips" id="form-chips"></div></div>
     <div class="dock-row"><span class="dock-name">Lustre</span><div class="chips" id="lustre-chips"></div></div>
-    <div class="dock-row"><span class="dock-name">Form</span><div class="chips" id="form-chips"></div></div>
   </nav>
 
   <div class="status" id="status"><p>Lighting the kiln…</p></div>
@@ -725,8 +799,9 @@ function gridIndex(R, C1, base = 0, fld) {
   return idx;
 }
 // Ambient occlusion of the turned profile, in the meridian plane: how much of the hemisphere above each row is clear
-// of the pot's own section and its mirror image across the axis. Light that would arrive from below the horizon has
-// bounced off the ground and counts for 0.35. Returns one value per row and a sampler for the ground around the foot.
+// of the pot's own section and its mirror image across the axis. Light from below the horizon has bounced off the
+// ground: it counts for 0.35 where the ground is close (it lies in the pot's shadow there), rising to 0.85 a pot's
+// width away. Returns one value per row and a sampler for the ground around the foot.
 function profileAO(rows, level) {
   const R = rows.length, K = level === 'Draft' ? 110 : 200, NR = level === 'Draft' ? 16 : 32, step = Math.ceil(R / K), at = [];
   for (let k = 0; k < R - 1; k += step) at.push(k);
@@ -746,12 +821,14 @@ function profileAO(rows, level) {
     }
     return false;
   };
-  const sky = (ox, oy, nx, ny, rays, bounce, skipA, skipB) => {
+  let far = 1;
+  for (const r of rows) far = Math.max(far, 1.2 * r[0]);
+  const sky = (ox, oy, nx, ny, rays, skipA, skipB) => {
     let sum = 0, tot = 0;
     for (let q = 0; q < rays; q++) {
       const a = ((q + 0.5) / rays - 0.5) * Math.PI, c = Math.cos(a), sn = Math.sin(a), dx = nx * c - ny * sn, dy = ny * c + nx * sn;
       tot += c;
-      if (!blocked(ox, oy, dx, dy, skipA, skipB)) sum += c * (dy < 0 ? bounce : 1);
+      if (!blocked(ox, oy, dx, dy, skipA, skipB)) sum += c * (dy < 0 ? 0.35 + 0.5 * smooth(0, far, -oy / dy) : 1);
     }
     return sum / tot;
   };
@@ -761,7 +838,7 @@ function profileAO(rows, level) {
     for (const q of [i - 1, i]) if (q >= 0 && q < S) { const l = Math.hypot(er[q], ey[q]) || 1; nx += ey[q] / l; ny -= er[q] / l; }
     const l = Math.hypot(nx, ny) || 1, k = at[i];
     nx /= l; ny /= l;
-    ao[i] = sky(rows[k][0] + 0.02 * nx, rows[k][1] + 0.02 * ny, nx, ny, NR, 0.35, i - 1, i);
+    ao[i] = sky(rows[k][0] + 0.02 * nx, rows[k][1] + 0.02 * ny, nx, ny, NR, i - 1, i);
     if (rows[k][2] === 3) ao[i] = Math.pow(ao[i], 1.5);   // light that enters the mouth has already lost some on the way
   }
   for (let pass = 0; pass < 2; pass++) {
@@ -776,10 +853,21 @@ function profileAO(rows, level) {
   }
   const groundAO = (Rg, m = 32) => {                 // m samples from the axis out to radius Rg
     const g = new Float32Array(m);
-    for (let i = 0; i < m; i++) g[i] = sky((i + 0.5) / m * Rg, 0.01, 0, 1, 24, 1, -1, -1);
+    for (let i = 0; i < m; i++) g[i] = sky((i + 0.5) / m * Rg, 0.01, 0, 1, 24, -1, -1);
     return g;
   };
   return { rowAO, groundAO };
+}
+
+// The smooth meridian of the body: radius against height through the six profile knots.
+function bodyProfile(p) {
+  const H = p.height;
+  const y1 = clamp(p.footHeight, 0.2, H * 0.22);
+  const yb = clamp(p.bellyPos * H, y1 + 0.04 * H, H * 0.86);
+  const ys = clamp(p.shoulderPos * H, yb + 0.04 * H, H * 0.93);
+  const yn = clamp(p.neckPos * H, ys + 0.03 * H, H * 0.985);
+  const f = pchip([0, y1, yb, ys, yn, H], [p.footRadius, p.waistRadius, p.bellyRadius, p.shoulderRadius, p.neckRadius, p.lipRadius]);
+  return { H, f };
 }
 
 function buildVessel(p, level) {
@@ -788,11 +876,7 @@ function buildVessel(p, level) {
   const C = p.lobes > 0 ? Math.max(2 * p.lobes, Math.round(D.cols / (2 * p.lobes)) * 2 * p.lobes) : D.cols, C1 = C + 1;
 
   // --- meridian: smooth body, then turned decoration (collar rings, rim bead)
-  const y1 = clamp(p.footHeight, 0.2, H * 0.22);
-  const yb = clamp(p.bellyPos * H, y1 + 0.04 * H, H * 0.86);
-  const ys = clamp(p.shoulderPos * H, yb + 0.04 * H, H * 0.93);
-  const yn = clamp(p.neckPos * H, ys + 0.03 * H, H * 0.985);
-  const f = pchip([0, y1, yb, ys, yn, H], [p.footRadius, p.waistRadius, p.bellyRadius, p.shoulderRadius, p.neckRadius, p.lipRadius]);
+  const { f } = bodyProfile(p);
   let body = new Float64Array(M + 1);
   for (let i = 0; i <= M; i++) body[i] = Math.max(0.6, f(i * dy));
   body = gaussSmooth(body, p.softness * 0.04 * M);
@@ -947,7 +1031,7 @@ function buildVessel(p, level) {
   const hm = p.handmade, ph = [0, 1, 2, 3, 4, 5, 6, 7].map((i) => TAU * hash2(i, 11, p.seed));
   const warp = hm > 0 ? (a) => {
     const lx = 0.005 * hm * H * Math.cos(ph[2]), lz = 0.005 * hm * H * Math.sin(ph[2]), tx = 0.01 * hm * Math.cos(ph[3]), tz = 0.01 * hm * Math.sin(ph[3]);
-    const c1 = 0.004 * Math.cos(ph[1]), s1 = 0.004 * Math.sin(ph[1]);
+    const c1 = 0.003 * Math.cos(ph[1]), s1 = 0.003 * Math.sin(ph[1]);
     let y0 = NaN, h = 0, g = 0, c0 = 0, s0 = 0;
     for (let i = 0; i < a.length; i += 3) {
       if (a[i + 1] !== y0) { y0 = a[i + 1]; h = clamp(y0 / H, 0, 1); g = smooth(0.03, 0.25, h); c0 = 0.01 * Math.cos(2 * ph[0] + 1.2 * h); s0 = 0.01 * Math.sin(2 * ph[0] + 1.2 * h); }
@@ -991,6 +1075,7 @@ function buildVessel(p, level) {
     }
     const du = 1 / C / 3, db = (rows[Math.min(R - 1, k + 1)][1] - rows[Math.max(0, k - 1)][1]) / 2 / bandH / 3;
     const c4 = Math.cos(4 * h), s4 = Math.sin(4 * h), c3 = Math.cos(3 * h), s3 = Math.sin(3 * h);
+    const bead = p.glazeThick * smooth(bev, bev + 0.2, y);                // no bead on the foot's arris, however low a drip runs
     if (prefilter && b > 0 && b < 1) { below = aboveK === k - 1 ? above : corners(k - 1); above = corners(k); aboveK = k; }
     for (let j = 0; j < C1; j++) {
       const o = k * C1 + j, u = (j % C) / C;
@@ -1012,7 +1097,7 @@ function buildVessel(p, level) {
         glz = y - line[j];
         // the glaze ends in a fat bead, fattest at the tip of a drip: a steep lower lip and a long tail up the wall
         const t = glz - 0.1;
-        d += p.glazeThick * (0.045 + 0.075 * (p.glazeLine - line[j]) / Math.max(p.dripAmp, 0.05)) * Math.exp(-((t / (t < 0 ? 0.09 : 0.32)) ** 2));
+        d += bead * (0.045 + 0.075 * (p.glazeLine - line[j]) / Math.max(p.dripAmp, 0.05)) * Math.exp(-((t / (t < 0 ? 0.09 : 0.32)) ** 2));
         fld[o] = d;
       }
       const rr = r * (1 + env * lobeS[j]) + d * nr;
@@ -1051,6 +1136,8 @@ function buildVessel(p, level) {
     }
   }
 
+  const sunk = useRelief ? Math.max(0, p.relief === 'Hammered' ? p.reliefHeight : -p.reliefHeight) : 0;   // how far a relief cuts into the wall, cm
+
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute('position', new THREE.BufferAttribute(pos, 3));
   geometry.setAttribute('normal', new THREE.BufferAttribute(nrm, 3));
@@ -1059,7 +1146,7 @@ function buildVessel(p, level) {
   geometry.setAttribute('aAO', new THREE.BufferAttribute(ao, 1));
   geometry.setIndex(new THREE.BufferAttribute(gridIndex(R, C1, 0, fld), 1));
   geometry.computeBoundingSphere();
-  return { geometry, maxR: (maxR * (1 + 0.014 * hm) + 0.005 * hm * H) * Math.max(sx, sz), rise: rimRise, ctx: { H, dec, sample, wallAt, lobeAt, twAt, rimAt, normalAt, sx, sz, warp, groundAO }, vertices: N };
+  return { geometry, maxR: (maxR * (1 + 0.014 * hm) + 0.005 * hm * H) * Math.max(sx, sz), rise: rimRise, ctx: { H, dec, sample, wallAt, lobeAt, twAt, rimAt, normalAt, sx, sz, warp, groundAO, sunk }, vertices: N };
 }
 const handleJoints = (p) => { const lo = clamp(p.handleLow, 0.08, 0.9); return [lo, clamp(p.handleHigh, lo + 0.08, 0.985)]; };   // heights, as fractions
 
@@ -1148,8 +1235,10 @@ function buildHandles(p, ctx, level) {
       const tr = e[0] - b0[0], ty = e[1] - b0[1], l = Math.hypot(tr, ty) || 1, nr = ty / l, ny = -tr / l;
       const end = Math.min(s, 1 - s) / capS, cap = end >= 1 ? 1 : Math.sqrt(Math.max(0, 1 - (1 - end) * (1 - end)));
       const sd = sdAt[i] = Math.min(s, 1 - s) * len;                       // along the strap to the nearer joint, cm
-      const flare = lerp(0.3 * (Math.exp(-((s / 0.2) ** 2)) + Math.exp(-(((1 - s) / 0.2) ** 2))), 0.8 * (1 - smooth(0, 1.2 * T, sd)) ** 2, bl);
-      const rad = 0.5 * T * (1 + flare) * (0.9 + 0.1 * Math.cos(TAU * s)) * lerp(0.92, 1.06, s) * cap;
+      const flare = lerp(0.3 * (Math.exp(-((s / 0.2) ** 2)) + Math.exp(-(((1 - s) / 0.2) ** 2))), 0.8 * (1 - Math.min(1, sd / (1.2 * T))) ** 3, bl);   // 'Joint blend': a fillet that meets the wall at a slope
+      // the flare takes no more room than the wall has between the joint and its end
+      const plain = 0.5 * T * (0.9 + 0.1 * Math.cos(TAU * s)) * lerp(0.92, 1.06, s);
+      const rad = Math.max(plain, Math.min(plain * (1 + flare), s < 0.5 ? A[1] : H - B[1])) * cap;
       reach = Math.max(reach, c[0] + rad);
       // the clay is smeared sideways onto the wall, most at the lower joint; but towards a joint the strap is no wider
       // than the wall it meets can take (0.9 of its radius across)
@@ -1159,8 +1248,20 @@ function buildHandles(p, ctx, level) {
       for (let j = 0; j < A1; j++) {
         const al = TAU * (j % NA) / NA, ca = Math.cos(al), sa = Math.sin(al);   // ca > 0: the back of the strap, facing away from the pot
         const a = rad * ca * (1 - groove * Math.exp(-((sa / 0.38) ** 2)) * Math.max(ca, 0)), bt = rad * flat * sa;
-        const rho = c[0] + a * nr, o = (i * A1 + j) * 3, g = k * per + i * A1 + j;
-        part[o] = (rho * cp - bt * sp) * ctx.sx; part[o + 1] = c[1] + a * ny; part[o + 2] = (rho * sp + bt * cp) * ctx.sz;
+        const o = (i * A1 + j) * 3, g = k * per + i * A1 + j;
+        let rho = c[0] + a * nr, yv = c[1] + a * ny;
+        if (sd < 2 * T) {
+          // The root stays in the clay, never through the wall into the pot: a soft floor 0.7 of the wall down (under any
+          // sunk relief). What lies deeper is pressed against it in order, along the wall's normal, so nothing folds.
+          const yw = yv - lift(yv - lift(yv)), hv = clamp(yw / H, 0, 1), wn = ctx.normalAt(clamp(yw, 0, H)), rv = Math.sqrt(rho * rho + bt * bt);
+          const depth = (ctx.sample(ctx.dec, yw) * ctx.lobeAt(phi + Math.atan2(bt, rho) - ctx.twAt(hv), hv) - ctx.sunk - rv) * wn[0];
+          const soft = 0.1 * ctx.wallAt(yw), e = (depth - 0.7 * ctx.wallAt(yw)) / soft;
+          if (e > -6) {
+            const push = soft * (e > 30 ? e : Math.log1p(Math.exp(e)));
+            rho = Math.sqrt(Math.max(0, (rv + push * wn[0]) ** 2 - bt * bt)); yv += push * wn[1];
+          }
+        }
+        part[o] = (rho * cp - bt * sp) * ctx.sx; part[o + 1] = yv; part[o + 2] = (rho * sp + bt * cp) * ctx.sz;
         uv[g * 2] = -1; uv[g * 2 + 1] = clamp(c[1] / H, 0, 1);   // u < 0: a strap has no angle around the pot
         surf[g * 4 + 2] = 10; surf[g * 4 + 3] = 1;
         surf[g * 4] = 0.5 * shade; ao[g] = 1 - 0.5 * shade;                // the crotch of the joint: shaded, and full of glaze
@@ -1286,7 +1387,7 @@ float ezMicro(vec3 p, float fw, out float crack, out float cell, out float pit) 
   float h = uPeel * (0.011 * (ezNoise(p * 9.0) - 0.5) * (1.0 - smoothstep(0.028, 0.067, fw))
                    + 0.020 * (ezNoise(p * 2.7 + 5.0) - 0.5) * (1.0 - smoothstep(0.09, 0.22, fw)));
   // throwing rings: one fine spiral left by the fingers, stronger inside where no rib smoothed it; straps have none
-  h += uHand * 0.0035 * (vSurf.w > 2.5 ? 3.0 : 1.0) * sin(6.2831853 * p.y / 0.32 + atan(p.z, p.x)) * (1.0 - smoothstep(0.06, 0.16, fw)) * smoothstep(0.2, 1.0, length(p.xz)) * step(-0.5, vEzUv.x);
+  h += uHand * 0.0035 * (vSurf.w > 2.5 ? 2.0 : 1.0) * sin(6.2831853 * p.y / 0.32 + atan(p.z, p.x)) * (1.0 - smoothstep(0.035, 0.09, fw)) * smoothstep(0.2, 1.0, length(p.xz)) * step(-0.5, vEzUv.x);
   crack = 0.0; cell = 0.5; pit = 0.0;
   if (uCrackle > 0.001) {
     vec3 v = ezVoronoi(p / uCrackleSize + (ezNoise(p * 1.3) - 0.5) * 0.35);
@@ -1946,7 +2047,7 @@ $('#chart-toggle').addEventListener('click', (ev) => {
 const num = (key, label, min = 0, max = 1, step = 0.01, kind) => ({ key, label, min, max, step, kind });
 const opt = (key, label, options, kind) => ({ key, label, options, kind });
 const GUI_DEF = [
-  { title: 'Vessel form', kind: 'geo', preset: 'form', items: [
+  { title: 'Shape', kind: 'geo', preset: 'form', items: [
     num('height', 'Height · cm', 12, 48, 0.5), num('footRadius', 'Foot radius', 2, 12, 0.1), num('footHeight', 'Waist height', 0.3, 6, 0.1),
     num('waistRadius', 'Waist radius', 1.5, 12, 0.1), num('bellyRadius', 'Belly radius', 2.5, 16, 0.1), num('bellyPos', 'Belly position', 0.12, 0.8, 0.005),
     num('shoulderRadius', 'Shoulder radius', 1.2, 15, 0.1), num('shoulderPos', 'Shoulder position', 0.3, 0.92, 0.005), num('neckRadius', 'Neck radius', 0.8, 15, 0.1),
@@ -1962,16 +2063,16 @@ const GUI_DEF = [
   { title: 'Handles', kind: 'geo', preset: 'form', items: [
     num('handles', 'Count', 0, 4, 1), num('handleLow', 'Lower joint', 0.1, 0.9, 0.005), num('handleHigh', 'Upper joint', 0.2, 0.98, 0.005), num('handleReach', 'Reach · cm', 1, 10, 0.1),
     num('handleArch', 'Arch', 0, 1.2), num('handleThick', 'Thickness · cm', 0.5, 2.4, 0.02), num('handleFlat', 'Strap flatness', 0.5, 1.8, 0.01), num('handleBlend', 'Joint blend')] },
-  { title: 'Base glaze', kind: 'mat', preset: 'lustre', items: [
+  { title: 'Glaze', kind: 'mat', preset: 'lustre', items: [
     { key: 'glazeColor', label: 'Glaze colour', color: true }, { key: 'bodyColor', label: 'Clay body', color: true },
     num('glazeThick', 'Glaze thickness', 0.3, 2, 0.01, 'geo'), num('pooling', 'Pooling in hollows', 0, 1.5), num('breaking', 'Breaking on edges', 0, 1.2), num('runs', 'Runs'),
     num('runScale', 'Run width · cm', 0.15, 3.3), num('sag', 'Gravity sag'), num('gloss', 'Gloss'), num('peel', 'Orange peel'), num('crackle', 'Crackle'),
     num('crackleSize', 'Crackle cell · cm', 0.15, 3), num('crackleStain', 'Crackle stain'), num('pinholes', 'Pinholes'),
     num('glazeLine', 'Glaze line · cm', 0, 4, 0.05, 'geo'), num('dripAmp', 'Drip length · cm', 0, 4, 0.05, 'geo'), num('dripCount', 'Drips', 0, 16, 1, 'geo')] },
-  { title: 'Lustre chemistry', kind: 'mat', preset: 'lustre', open: true, items: [
+  { title: 'Lustre metals', kind: 'mat', preset: 'lustre', items: [
     num('cu', 'Copper'), num('ag', 'Silver'), num('au', 'Gold'), num('bi', 'Bismuth flux'), num('coat', 'Paste thickness', 0.3, 3),
     num('coverage', 'Coverage'), num('innerLustre', 'Interior lustre')] },
-  { title: 'Reduction firing', kind: 'mat', preset: 'lustre', open: true, items: [
+  { title: 'Firing', kind: 'mat', preset: 'lustre', items: [
     num('kilnTemp', 'Kiln temperature · °C', 480, 760, 1), num('soak', 'Soak · min', 5, 120, 1), num('reduction', 'Reducing atmosphere'), num('reox', 'Re-oxidation on cooling'),
     num('activation', 'Diffusion barrier · kJ/mol', 60, 160, 1), num('flash', 'Flashing'), num('flashScale', 'Flame size · cm', 1.5, 50, 0.5), num('flashWarp', 'Turbulence', 0, 2),
     num('flashStretch', 'Flame stretch', 0.3, 10, 0.05), num('flameBias', 'Flame-side bias'), num('flameDir', 'Flame direction · °', 0, 360, 1), num('seed', 'Firing seed', 0, 99, 1, 'geo')] },
@@ -1979,15 +2080,134 @@ const GUI_DEF = [
     num('glassIndex', 'Glaze refractive index', 1.45, 1.75, 0.005), num('dispersion', 'Dispersion'), num('thickVar', 'Thickness variation'), num('thickScale', 'Variation scale · cm', 0.8, 33, 0.1),
     num('lustrePool', 'Film pooling', -1, 1), num('mosaic', 'Crackle mosaic'), num('trimThick', 'Layer thickness ×', 0.25, 4), num('trimFill', 'Metal fill ×', 0, 3),
     num('trimCover', 'Cover film ×', 0, 4), opt('spectral', 'Spectral samples', [8, 12, 16, 24])] },
-  { title: 'Decoration', kind: 'mat', preset: 'lustre', items: [
+  { title: 'Painted decoration', kind: 'mat', preset: 'lustre', items: [
     opt('deco', 'Second lustre', DECOS), num('decoCount', 'Repeats around', 2, 40, 1), num('decoRows', 'Rows', 1, 24, 1), num('decoSoft', 'Edge softness'),
     num('decoThick', 'Film thickness ×', 0.2, 3), num('decoFill', 'Metal fill ×', 0, 2.5), num('decoSilver', 'Copper ↔ silver', -1, 1), num('decoMatte', 'Etched matte')] },
-  { title: 'Stage & light', kind: 'stage', items: [
+  { title: 'Light & view', kind: 'stage', items: [
     opt('env', 'Lighting', Object.keys(ENVS)), num('envRot', 'Light rotation · °', 0, 360, 1), num('envInt', 'Ambient level', 0, 2.5), num('keyInt', 'Key light', 0, 6, 0.05),
     num('keyAz', 'Key azimuth · °', 0, 360, 1), num('keyEl', 'Key elevation · °', 5, 85, 1), num('exposure', 'Exposure', 0.3, 2.5), opt('tone', 'Tone curve', Object.keys(TONES)),
     num('bloom', 'Highlight bloom'), num('occlusion', 'Contact shading', 0, 1, 0.01, 'mat'), num('spin', 'Turntable · rpm', -6, 6, 0.1), { key: 'plinth', label: 'Plinth' }, opt('detail', 'Mesh detail', Object.keys(DETAIL), 'geo'),
     num('pixelRatio', 'Max pixel ratio', 1, 3, 0.25), { key: 'adaptive', label: 'Adaptive quality' }] },
 ];
+
+// What the panel adds to a control, by parameter key: basic = shown in Simple, label = plain name on the row (stored keys
+// and values are untouched), help = the line in the strip under the list, lvl = a share of the height (0 foot, 1 rim),
+// tint = the track is painted with the lustre colour each value would give. A key without an entry is an advanced
+// control under its GUI_DEF label.
+const TRIM = 'Fine-tune: scales the fired film directly, after the kiln model.';
+const META = {
+  height: { basic: true, help: 'How tall the piece is, foot to rim.' },
+  footRadius: { label: 'Foot radius · cm', help: 'Radius of the foot ring the piece stands on.' },
+  footHeight: { label: 'Foot height · cm', help: 'How far above the plinth the narrow waist over the foot sits.' },
+  waistRadius: { label: 'Waist radius · cm', help: 'Radius of the narrowing just above the foot.' },
+  bellyRadius: { basic: true, label: 'Body radius · cm', help: 'How wide the body is at its fullest.' },
+  bellyPos: { basic: true, lvl: true, label: 'Widest point · level', help: 'How far up the widest point sits. Low gives a pear shape, high a shouldered jar.' },
+  shoulderRadius: { label: 'Shoulder radius · cm', help: 'Radius where the body turns in towards the neck.' },
+  shoulderPos: { lvl: true, label: 'Shoulder · level', help: 'How far up the shoulder sits.' },
+  neckRadius: { basic: true, label: 'Neck radius · cm', help: 'Width of the neck. Narrow makes a bottle, wide opens the piece up.' },
+  neckPos: { lvl: true, label: 'Neck · level', help: 'How far up the neck is at its narrowest.' },
+  lipRadius: { basic: true, label: 'Mouth radius · cm', help: 'Width of the mouth. Wider than the neck, the rim flares out.' },
+  lipBead: { label: 'Rim bead · cm', help: 'A rolled bead around the rim.' },
+  wall: { label: 'Wall thickness · cm', help: 'Thickness of the clay wall, seen at the rim and inside.' },
+  softness: { help: 'Rounds the profile off between its radii.' },
+  handmade: { basic: true, help: 'Marks of a thrown piece: a slight lean, an uneven rim, wandering motifs, faint throwing rings. 0 is machine-true.' },
+  squash: { help: 'Presses the round plan into an oval, one way or the other.' },
+  lobes: { basic: true, help: 'Divides the body into vertical lobes, like a melon. 0 leaves it round.' },
+  lobeDepth: { help: 'How deep the grooves between lobes are.' },
+  lobeProfile: { help: 'Cross-section of a lobe: a soft wave, a rounded gadroon or a hollow flute.' },
+  lobeStart: { lvl: true, label: 'Lobes from · level', help: 'Where the lobes begin.' },
+  lobeEnd: { lvl: true, label: 'Lobes to · level', help: 'Where the lobes fade out.' },
+  twist: { basic: true, help: 'Turns lobes and relief into a spiral. Shows only with lobes or a relief.' },
+  relief: { basic: true, help: 'A pattern modelled in the clay under the glaze. The lustre catches on it.' },
+  reliefHeight: { basic: true, help: 'How far the relief stands out. Below zero it is carved in.' },
+  reliefCount: { help: 'How many times the motif repeats around the piece.' },
+  reliefRows: { help: 'How many rows of the motif are stacked in the band.' },
+  reliefStart: { lvl: true, label: 'Band from · level', help: 'Lower edge of the relief band.' },
+  reliefEnd: { lvl: true, label: 'Band to · level', help: 'Upper edge of the relief band.' },
+  rings: { help: 'Turned rings around the piece. 0 for none.' },
+  ringHeight: { help: 'How far the collar rings stand out.' },
+  ringPos: { lvl: true, label: 'Rings at · level', help: 'Where the group of collar rings sits.' },
+  rimWaves: { help: 'Cuts the rim into this many petals. 0 leaves it level.' },
+  rimHeight: { help: 'How far the petals rise and dip.' },
+  rimFrom: { lvl: true, label: 'Waves from · level', help: 'Where below the rim the petal waves begin.' },
+  handles: { basic: true, label: 'Handles', help: 'Number of handles. 0 for none.' },
+  handleLow: { lvl: true, label: 'Lower joint · level', help: 'Where each handle meets the body at the bottom.' },
+  handleHigh: { lvl: true, label: 'Upper joint · level', help: 'Where each handle meets the neck at the top.' },
+  handleReach: { help: 'How far the handles stand out from the wall.' },
+  handleArch: { help: 'How high the handles arch over their upper joint.' },
+  handleThick: { help: 'Thickness of the handle strap.' },
+  handleFlat: { help: 'Cross-section of the strap, from a wide flat band to a deep one.' },
+  handleBlend: { help: 'How far each handle flares and spreads where it joins the wall. 0 leaves a plain butt joint.' },
+  glazeColor: { basic: true, help: 'Colour of the glass under the lustre. It shows where the metal film is thin.' },
+  bodyColor: { help: 'Colour of the fired clay, seen at the bare foot and where the glaze breaks thin.' },
+  glazeThick: { help: 'How thickly the glaze lies. Thick glaze softens the relief and drips further.' },
+  pooling: { label: 'Dark in hollows', help: 'Glaze gathers and darkens in hollows.' },
+  breaking: { label: 'Thin on edges', help: 'Glaze thins on sharp edges and lets the clay colour through.' },
+  runs: { basic: true, help: 'Streaks where the glaze flowed down in the kiln.' },
+  runScale: { help: 'Width of the glaze streaks.' },
+  sag: { help: 'How much the glaze has slumped towards the foot.' },
+  gloss: { basic: true, help: 'How mirror-smooth the glaze is. Low gives a satin surface.' },
+  peel: { label: 'Surface ripple', help: 'Fine waviness of the fired surface.' },
+  crackle: { basic: true, help: 'A net of fine cracks in the glaze.' },
+  crackleSize: { help: 'Size of the cells between cracks.' },
+  crackleStain: { help: 'How dark the cracks are stained.' },
+  pinholes: { help: 'Tiny pits where bubbles burst through the glaze.' },
+  glazeLine: { label: 'Bare foot · cm', help: 'Height of unglazed clay left at the foot.' },
+  dripAmp: { help: 'How far the drips run down past the glaze line.' },
+  dripCount: { help: 'Number of drips around the foot. 0 for a level glaze line.' },
+  cu: { basic: true, tint: true, help: 'Copper in the lustre paste: warm red, brown and green-gold tones.' },
+  ag: { basic: true, tint: true, help: 'Silver in the paste: pale yellow, blue and pearl tones.' },
+  au: { basic: true, tint: true, help: 'Gold in the paste: rose and ruby tones.' },
+  bi: { tint: true, label: 'Bismuth (sheen shift)', help: 'Bismuth makes the clear skin over the metal denser, which shifts the sheen colour.' },
+  coat: { tint: true, label: 'Paste coat', help: 'How thickly the lustre paste was brushed on.' },
+  coverage: { basic: true, help: 'How much of the surface carries lustre. Lower leaves patches of plain glaze.' },
+  innerLustre: { help: 'How much lustre reached the inside of the piece.' },
+  kilnTemp: { basic: true, tint: true, help: 'A hotter kiln drives more metal into the glaze. The colour bar shows where each temperature lands.' },
+  soak: { tint: true, help: 'Minutes held at top temperature. Longer grows a deeper film, up to a limit.' },
+  reduction: { basic: true, tint: true, label: 'Smoke (reduction)', help: 'How smoky the kiln is. Smoke turns dissolved copper and silver into metal; with little smoke there is hardly any lustre.' },
+  reox: { basic: true, tint: true, label: 'Air on cooling', help: 'Air let in as the kiln cools clears metal from the top skin of the film. That clear skin sets the rainbow colour.' },
+  activation: { tint: true, label: 'Glaze resistance · kJ/mol', help: 'How strongly the glaze resists metal moving into it. Higher gives a thinner film.' },
+  flash: { basic: true, label: 'Flame marks', help: 'Uneven flame licks that leave cloudy patches of different colour.' },
+  flashScale: { help: 'Size of the flame patches.' },
+  flashWarp: { help: 'How much the flame patches swirl.' },
+  flashStretch: { help: 'Draws the flame patches out into upright tongues.' },
+  flameBias: { help: 'Makes one side of the piece, the one that faced the flame, fire differently.' },
+  flameDir: { help: 'Which side of the piece faced the flame.' },
+  seed: { help: 'Reshuffles the random flame and drip pattern.' },
+  glassIndex: { tint: true, help: 'How strongly the glaze glass bends light.' },
+  dispersion: { help: 'How much that bending differs between red and blue light.' },
+  thickVar: { help: 'How unevenly deep the film is from place to place.' },
+  thickScale: { help: 'Size of the patches of deeper and shallower film.' },
+  lustrePool: { help: 'Makes the film deeper in hollows, or below zero on ridges.' },
+  mosaic: { help: 'Gives each crackle cell its own slight shift of colour.' },
+  trimThick: { tint: true, label: 'Layer depth ×', help: TRIM },
+  trimFill: { tint: true, label: 'Metal amount ×', help: TRIM },
+  trimCover: { tint: true, label: 'Clear skin ×', help: TRIM },
+  spectral: { label: 'Colour samples', help: 'Wavelengths computed per pixel. More is truer and slower.' },
+  deco: { basic: true, label: 'Painted pattern', help: 'A second lustre painted over the first. None switches it off.' },
+  decoCount: { help: 'How many times the painted pattern repeats around the piece.' },
+  decoRows: { help: 'How many rows the painted pattern has.' },
+  decoSoft: { help: 'How soft the brushed edge of the pattern is.' },
+  decoThick: { help: 'Depth of the painted film against the ground lustre.' },
+  decoFill: { help: 'Metal in the painted film against the ground lustre.' },
+  decoSilver: { help: 'Shifts the painted film towards copper or towards silver.' },
+  decoMatte: { help: 'Etches the painted areas to a matte surface.' },
+  env: { basic: true, help: 'The room the piece stands in. Its reflections change with it.' },
+  envRot: { basic: true, help: 'Turns the room lighting around the piece.' },
+  envInt: { label: 'Room light', help: 'Brightness of the room and its reflections.' },
+  keyInt: { label: 'Spotlight', help: 'Brightness of the single spotlight that casts the shadow.' },
+  keyAz: { label: 'Spotlight turn · °', help: 'Moves the spotlight around the piece.' },
+  keyEl: { label: 'Spotlight height · °', help: 'Raises or lowers the spotlight.' },
+  exposure: { basic: true, help: 'Overall brightness of the picture.' },
+  tone: { help: 'How bright highlights are rolled off into the picture.' },
+  bloom: { help: 'Glow around the brightest highlights.' },
+  occlusion: { help: 'Soft shade in hollows, inside the piece and under handles, and the shadow where the foot meets the plinth.' },
+  spin: { basic: true, help: 'Turntable speed. 0 stops it.' },
+  plinth: { help: 'Shows or hides the stand under the piece.' },
+  detail: { help: 'Triangles in the mesh. The page may lower it by itself to stay smooth.' },
+  pixelRatio: { help: 'Upper limit on rendered pixels per screen pixel.' },
+  adaptive: { help: 'Lets the page trade resolution and mesh detail for a steady frame rate.' },
+};
 
 // A preset chip restores every parameter of its groups, so a pressed chip always shows the same piece as its #link.
 const presetKeys = (name) => GUI_DEF.filter((g) => g.preset === name).flatMap((g) => g.items.map((it) => it.key));
@@ -1996,27 +2216,51 @@ const FORM_KEYS = presetKeys('form');
 const presetState = (keys, set) => ({ ...Object.fromEntries(keys.map((k) => [k, DEFAULTS[k]])), ...set });
 
 // Controls that can do nothing in the current state are greyed out, so a dead slider is not taken for a broken one.
+// The third entry is what the help strip says about such a row.
 const reliefOn = () => P.relief !== 'None' && Math.abs(P.reliefHeight) > 1e-4;
 const DEPENDS = [
-  [['lobeDepth', 'lobeProfile', 'lobeStart', 'lobeEnd'], () => P.lobes > 0],
-  [['reliefHeight'], () => P.relief !== 'None'],
-  [['reliefCount', 'reliefRows', 'reliefStart', 'reliefEnd'], reliefOn],
-  [['ringHeight', 'ringPos'], () => P.rings > 0],
-  [['rimHeight', 'rimFrom'], () => P.rimWaves > 0],
-  [['handleLow', 'handleHigh', 'handleReach', 'handleArch', 'handleThick', 'handleFlat', 'handleBlend'], () => P.handles > 0],
-  [['crackleSize', 'crackleStain', 'mosaic'], () => P.crackle > 0],
-  [['dripAmp'], () => P.dripCount > 0],
-  [['flashScale', 'flashWarp', 'flashStretch'], () => P.flash > 0],
-  [['flameDir'], () => P.flameBias > 0],
-  [['thickScale'], () => P.thickVar > 0],
-  [['runScale'], () => P.runs > 0 || P.thickVar > 0],
-  [['decoSoft', 'decoThick', 'decoFill', 'decoSilver', 'decoMatte'], () => P.deco !== 'None' && !(P.deco === 'Relief motif' && !reliefOn())],
-  [['decoCount'], () => ['Scales', 'Marbled veins', 'Whiplash vines'].includes(P.deco)],
-  [['decoRows'], () => ['Bands', 'Scales', 'Whiplash vines'].includes(P.deco)],
+  [['lobeDepth', 'lobeProfile', 'lobeStart', 'lobeEnd'], () => P.lobes > 0, 'Set Lobes above 0 first.'],
+  [['reliefHeight'], () => P.relief !== 'None', 'Choose a Relief motif first.'],
+  [['reliefCount', 'reliefRows', 'reliefStart', 'reliefEnd'], reliefOn, 'Needs a Relief motif with a height other than 0.'],
+  [['ringHeight', 'ringPos'], () => P.rings > 0, 'Add Collar rings first.'],
+  [['rimHeight', 'rimFrom'], () => P.rimWaves > 0, 'Add Rim waves first.'],
+  [['handleLow', 'handleHigh', 'handleReach', 'handleArch', 'handleThick', 'handleFlat', 'handleBlend'], () => P.handles > 0, 'Add Handles first.'],
+  [['crackleSize', 'crackleStain', 'mosaic'], () => P.crackle > 0, 'Raise Crackle first.'],
+  [['dripAmp'], () => P.dripCount > 0, 'Add Drips first.'],
+  [['flashScale', 'flashWarp', 'flashStretch'], () => P.flash > 0, 'Raise Flame marks first.'],
+  [['flameDir'], () => P.flameBias > 0, 'Raise Flame-side bias first.'],
+  [['thickScale'], () => P.thickVar > 0, 'Raise Thickness variation first.'],
+  [['runScale'], () => P.runs > 0 || P.thickVar > 0, 'Raise Runs or Thickness variation first.'],
+  [['decoSoft', 'decoThick', 'decoFill', 'decoSilver', 'decoMatte'], () => P.deco !== 'None' && !(P.deco === 'Relief motif' && !reliefOn()), 'Choose a Painted pattern first.'],
+  [['decoCount'], () => ['Scales', 'Marbled veins', 'Whiplash vines'].includes(P.deco), 'This pattern has no repeat count.'],
+  [['decoRows'], () => ['Bands', 'Scales', 'Whiplash vines'].includes(P.deco), 'This pattern has no rows.'],
 ];
-const SCHEMA = {}, ctl = {};
+
+// Panel preferences outlive the visit where the browser lets them; where storage is blocked they last for the session.
+const prefs = (() => {
+  const mem = {};
+  return {
+    get(k) { try { const v = localStorage.getItem(k); if (v !== null) return v; } catch { /* blocked */ } return mem[k] ?? null; },
+    set(k, v) { mem[k] = v; try { localStorage.setItem(k, v); } catch { /* blocked */ } },
+  };
+})();
+
+const SCHEMA = {}, ctl = {}, why = {}, said = {}, folders = [], keyOf = new WeakMap();
+const BASE = { ...START };                           // what the "changed" dots compare against: the presets last applied
+let helpKey = null, helpHtml = '', markDirty = true, hiddenChanged = 0, tintDirty = true, tintAt = 0, histTimer = 0;
 function syncControls() {
-  for (const [keys, live] of DEPENDS) { const on = live(); for (const key of keys) ctl[key].enable(on); }
+  for (const [keys, live, reason] of DEPENDS) {
+    const on = live();
+    for (const key of keys) { ctl[key].enable(on); why[key] = on ? '' : reason || 'Not used in the current state.'; }
+  }
+  for (const k in ctl) {                             // what a screen reader is told about the field: the help line, or why it is off
+    const text = why[k] || SCHEMA[k].help || '';
+    if (said[k] === text) continue;
+    said[k] = text;
+    for (const el of ctl[k].domElement.querySelectorAll('input, select')) { if (text) el.setAttribute('aria-description', text); else el.removeAttribute('aria-description'); }
+  }
+  markDirty = true;
+  showHelp(helpKey);
 }
 
 let geoDirty = null, geoTimer = 0;
@@ -2028,20 +2272,59 @@ function changed(kind) {
   }
   if (kind === 'stage') updateStage(); else updateMaterial();
   syncControls();
-}
-const gui = new GUI({ container: $('#controls'), title: 'Parameters' });
-for (const group of GUI_DEF) {
-  const folder = gui.addFolder(group.title);
-  if (!group.open) folder.close();
-  for (const it of group.items) {
-    const kind = it.kind || group.kind;
-    SCHEMA[it.key] = { ...it, kind };
-    const c = it.color ? folder.addColor(P, it.key) : it.options ? folder.add(P, it.key, it.options) : it.min === undefined ? folder.add(P, it.key) : folder.add(P, it.key, it.min, it.max, it.step);
-    c.name(it.label).onChange(() => { changed(kind); markPreset(null, it.key === 'spectral' ? null : group.preset); });
-    ctl[it.key] = c;
-  }
+  clearTimeout(histTimer);                           // an edit that reports no end (the colour picker) becomes an undo step once it rests
+  histTimer = setTimeout(commit, 1200);
 }
 
+// --- tool bar: pinned above the list, so mode, undo and the session actions are in reach whatever is scrolled or open
+const embedded = !!document.querySelector('meta[name="eozin:embedded"]');
+const controlsEl = $('#controls');
+const MENU = ['Copy parameters', 'Paste parameters…', 'Save PNG', 'Restore shape', 'Restore lustre', 'Reset everything'].filter((n) => !(embedded && n === 'Save PNG'));
+controlsEl.insertAdjacentHTML('afterbegin', `
+  <div class="qbar" role="toolbar" aria-label="Design tools">
+    <div class="seg" role="group" aria-label="How many controls to show">
+      <button type="button" id="mode-simple" aria-pressed="true">Simple</button><button type="button" id="mode-all" aria-pressed="false">All</button>
+    </div>
+    <button type="button" id="surprise" title="Random shape and lustre (Shift: lustre only)">Surprise me</button>
+    <button type="button" id="undo" class="ico" aria-label="Undo" title="Undo (Ctrl+Z)" disabled>↶</button>
+    <button type="button" id="redo" class="ico" aria-label="Redo" title="Redo (Ctrl+Shift+Z)" disabled>↷</button>
+    <button type="button" id="more" class="ico" aria-label="More actions" aria-haspopup="true" aria-expanded="false">⋯</button>
+  </div>
+  <div class="qmenu" id="qmenu" hidden>
+    <div class="qitems">${MENU.map((n) => `<button type="button" data-run="${n}">${n}</button>`).join('')}</div>
+    <div class="qpaste" hidden>
+      <textarea id="paste-box" rows="4" aria-label="Paste parameter JSON here" placeholder="Paste copied parameters here"></textarea>
+      <div class="qrow"><button type="button" id="paste-cancel">Cancel</button><button type="button" id="paste-apply">Apply</button></div>
+    </div>
+  </div>`);
+
+const gui = new GUI({ container: controlsEl, title: 'Parameters' });
+const scroller = gui.$children;                      // lil-gui's list is the one scrolling element of the panel
+// A wheel notch over a slider track would change its value whenever the list has no scrollbar: keep the wheel for scrolling.
+gui.domElement.addEventListener('wheel', (ev) => { if (ev.target.closest('.slider')) ev.stopPropagation(); }, { capture: true, passive: true });
+for (const group of GUI_DEF) {
+  const folder = gui.addFolder(group.title);
+  folders.push({ folder, group });
+  for (const it of group.items) {
+    const kind = it.kind || group.kind, m = META[it.key] || {};
+    SCHEMA[it.key] = { ...it, kind, ...m };
+    const c = it.color ? folder.addColor(P, it.key) : it.options ? folder.add(P, it.key, it.options) : it.min === undefined ? folder.add(P, it.key) : folder.add(P, it.key, it.min, it.max, it.step);
+    c.name(m.label || it.label).onChange(() => { changed(kind); if (group.preset && it.key !== 'spectral') rematch(group.preset); });
+    ctl[it.key] = c;
+    keyOf.set(c.domElement, it.key);
+  }
+  folder.$title.addEventListener('click', () => {    // phone sheet: one folder at a time, its title brought to the top of the list
+    if (!sheetLayout.matches || folder._closed) return;
+    for (const f of gui.folders) if (f !== folder) f.close();
+    setTimeout(() => { scroller.scrollTop += folder.domElement.getBoundingClientRect().top - scroller.getBoundingClientRect().top; }, window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 320);   // once lil-gui's opening transition is through
+  });
+}
+for (const k in META) if (!SCHEMA[k]) console.warn('META: unknown key', k);
+for (const { folder } of folders) folder.close();
+for (const title of sheetLayout.matches ? ['Lustre metals'] : ['Shape', 'Lustre metals']) gui.folders.find((f) => f._title === title)?.open();
+
+const norm = (it, v) => +clamp(Math.round(v / it.step) * it.step, it.min, it.max).toFixed(6);
+const normState = (o) => Object.fromEntries(Object.entries(o).map(([k, v]) => [k, SCHEMA[k]?.min !== undefined && typeof v === 'number' ? norm(SCHEMA[k], v) : v]));
 function applyParams(values, { silent } = {}) {
   let n = 0, geo = false;
   // rimDepth was this height in centimetres (0..5) before it became the 0..1 fraction rimHeight
@@ -2053,7 +2336,7 @@ function applyParams(values, { silent } = {}) {
     if (it.color) { if (typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value)) { P[key] = value; n++; } }
     else if (it.options) { if (it.options.includes(value)) { P[key] = value; n++; } }
     else if (it.min === undefined) { if (typeof value === 'boolean') { P[key] = value; n++; } }
-    else if (typeof value === 'number' && Number.isFinite(value)) { P[key] = +clamp(Math.round(value / it.step) * it.step, it.min, it.max).toFixed(6); n++; }
+    else if (typeof value === 'number' && Number.isFinite(value)) { P[key] = norm(it, value); n++; }
     if (it.kind === 'geo' && P[key] !== before) geo = true;
   }
   if (n && !silent) {
@@ -2064,32 +2347,225 @@ function applyParams(values, { silent } = {}) {
   return n;
 }
 
+// --- presets: a chip is pressed exactly while every parameter of its group has the preset's value
+const PRESET = { lustre: { keys: LUSTRE_KEYS, table: {} }, form: { keys: FORM_KEYS, table: {} } };
+for (const [id, preset] of Object.entries(LUSTRES)) PRESET.lustre.table[id] = normState(presetState(LUSTRE_KEYS, preset.set));
+for (const [id, form] of Object.entries(FORMS)) PRESET.form.table[id] = normState(presetState(FORM_KEYS, form.set));
+const chipEls = { lustre: {}, form: {} };
+function setHash(id) {                               // the link names the lustre on show, or nothing
+  if (location.hash === (id ? '#' + id : '')) return;
+  try { history.replaceState(null, '', id ? '#' + id : location.pathname + location.search); } catch { /* sandboxed */ }
+}
+function markPreset(id, group) {
+  if (!chipEls[group]) return;
+  for (const [key, el] of Object.entries(chipEls[group])) el.setAttribute('aria-pressed', String(key === id));
+  if (group === 'lustre' && !id) setHash(null);      // an edited glaze is no longer the one the link names
+}
+function rematch(group) {                            // no group: both; returns the matching preset id, or null
+  if (!group) return { lustre: rematch('lustre'), form: rematch('form') };
+  const { keys, table } = PRESET[group];
+  const id = Object.keys(table).find((name) => keys.every((k) => P[k] === table[name][k])) || null;
+  markPreset(id, group);
+  if (group === 'lustre') setHash(id);
+  markDirty = true;
+  return id;
+}
+const adoptBase = () => { for (const k of FORM_KEYS) BASE[k] = P[k]; for (const k of LUSTRE_KEYS) BASE[k] = P[k]; };   // a pasted or random piece is its own starting point
+
+// --- undo history: whole parameter states as JSON; the camera is not part of it
+const hist = { past: [], future: [], now: JSON.stringify(P) };
+function syncHist() { $('#undo').disabled = !hist.past.length; $('#redo').disabled = !hist.future.length; }
+function commit() {
+  clearTimeout(histTimer);
+  const s = JSON.stringify(P);
+  if (s === hist.now) return;
+  hist.past.push(hist.now);
+  if (hist.past.length > 60) hist.past.shift();
+  hist.now = s; hist.future.length = 0;
+  syncHist();
+}
+function step(from, to) {
+  commit();                                          // an edit still waiting for its timer is a step of its own
+  if (!from.length) return;
+  const snap = () => FORM_KEYS.map((k) => P[k]).join(), before = snap();
+  to.push(hist.now); hist.now = from.pop();
+  applyParams(JSON.parse(hist.now));
+  if (snap() !== before) state.framed = false;       // another vessel: fit it, from the same side
+  const match = rematch();
+  for (const g in match) if (match[g]) Object.assign(BASE, PRESET[g].table[match[g]]);
+  syncHist();
+}
+const undo = () => step(hist.past, hist.future), redo = () => step(hist.future, hist.past);
+const undoAction = { label: 'Undo', run: undo };
+gui.onFinishChange(() => commit());                  // a slider released, a number entered, a choice made
+window.addEventListener('keydown', (ev) => {
+  const key = ev.key.toLowerCase(), mod = ev.ctrlKey || ev.metaKey, t = ev.target;
+  if (!mod || ev.altKey || !(key === 'z' || (key === 'y' && ev.ctrlKey))) return;
+  if (t.tagName === 'TEXTAREA' || (t.tagName === 'INPUT' && t.type === 'text')) return;   // text fields keep their own undo
+  if (t.tagName === 'INPUT' && gui.domElement.contains(t)) t.blur();                      // which commits the edit in progress
+  ev.preventDefault();
+  if (key === 'y' || ev.shiftKey) redo(); else undo();
+}, true);                                            // capturing: lil-gui keeps key events from bubbling out of the panel
+
 let toastTimer = 0;
-function toast(message) {
-  const el = $('#toast');
-  el.textContent = message;
-  el.classList.add('show');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.classList.remove('show'), 2600);
+const toastEl = $('#toast');
+function toast(message, action) {                    // action: { label, run } adds a button and keeps the toast up longer
+  toastEl.textContent = message;
+  if (action) {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'link-btn'; b.textContent = action.label;
+    b.addEventListener('click', () => { toastEl.classList.remove('show'); action.run(); });
+    toastEl.append(b);
+  }
+  const sheet = sheetLayout.matches ? $('.label.open, .controls.open') : null;   // clear of the preset shelf and of an open phone sheet
+  toastEl.style.bottom = `${$('#app').clientHeight - (sheet || $('.dock')).getBoundingClientRect().top + 12}px`;
+  toastEl.classList.add('show');
+  const wait = () => {                               // it does not leave from under the pointer or the focus
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { if (toastEl.matches(':hover, :focus-within')) wait(); else toastEl.classList.remove('show'); }, action ? 6000 : 2600);
+  };
+  wait();
 }
 
-const embedded = !!document.querySelector('meta[name="eozin:embedded"]');
+// --- changed marks: a dot on every row that differs from its preset, a count on its folder, and a way back
+function markChanged() {
+  hiddenChanged = 0;
+  for (const { folder, group } of folders) {
+    let n = 0;
+    for (const { key } of group.items) {
+      const d = P[key] !== BASE[key];
+      ctl[key].domElement.classList.toggle('changed', d);
+      if (d) { n++; if (ctl[key]._hidden) hiddenChanged++; }
+    }
+    folder.$title.dataset.changed = n || '';
+  }
+  for (const [name, keys] of [['Restore shape', FORM_KEYS], ['Restore lustre', LUSTRE_KEYS]]) $(`#qmenu [data-run="${name}"]`).disabled = keys.every((k) => P[k] === BASE[k]);
+  syncMore();
+  showHelp(helpKey);
+}
+function restoreKeys(keys, label) {
+  commit();
+  applyParams(Object.fromEntries(keys.map((k) => [k, BASE[k]])));
+  rematch();
+  commit();
+  if (label) toast(label, undoAction);
+}
+
+// --- help strip: what the row under the pointer (or the focus) does, its range, and why it is greyed out if it is
+controlsEl.insertAdjacentHTML('beforeend', '<div class="help" id="help"></div>');
+const helpEl = $('#help');
+const IDLE = 'Pick a shape and a lustre below, then fine-tune here. Drag the vessel to turn it. Every change can be undone.'
+  + (window.matchMedia('(pointer: fine)').matches ? ' Double-click a name to put it back.' : '');
+function showHelp(key) {
+  helpKey = key;
+  let html = IDLE;
+  if (key) {
+    const it = SCHEMA[key], c = ctl[key], base = BASE[key];
+    const range = (it.min !== undefined ? `${it.min}–${it.max} · ` : '') + `preset ${base === true ? 'on' : base === false ? 'off' : base}` + (it.lvl ? `<span class="lvl"> · ${Math.round(P[key] * 100)}% of the height</span>` : '');
+    html = `<b>${c._name}</b> <span class="rng">${range}</span>`
+      + (P[key] !== base ? ` <button type="button" class="link-btn" id="help-restore">Restore</button>` : '')
+      + `<br>${(c._disabled && why[key]) || it.help || ''}`;
+  }
+  if (html !== helpHtml) helpEl.innerHTML = helpHtml = html;
+}
+for (const type of ['pointerover', 'pointerdown', 'focusin']) {
+  gui.domElement.addEventListener(type, (ev) => { const row = ev.target.closest('.controller'); if (row && keyOf.has(row)) showHelp(keyOf.get(row)); });
+}
+helpEl.addEventListener('click', (ev) => {
+  if (ev.target.id !== 'help-restore' || !helpKey) return;
+  restoreKeys([helpKey]);
+  if (!ev.detail) ctl[helpKey].domElement.querySelector('input, select')?.focus();   // a keyboard user goes on from the row
+});
+gui.domElement.addEventListener('dblclick', (ev) => {
+  const row = ev.target.closest('.controller');
+  if (row && keyOf.has(row) && (ev.target === row || ev.target.closest('.name'))) restoreKeys([keyOf.get(row)]);
+});
+// Number fields: PageUp / PageDown move ten steps, Home / End go to the ends of the range.
+gui.domElement.addEventListener('keydown', (ev) => {
+  const row = ev.target.tagName === 'INPUT' && ev.target.closest('.controller'), key = row && keyOf.get(row), it = key && SCHEMA[key];
+  if (!it || it.min === undefined || ctl[key]._disabled) return;
+  const v = { PageUp: P[key] + 10 * it.step, PageDown: P[key] - 10 * it.step, Home: it.min, End: it.max }[ev.key];
+  if (v === undefined) return;
+  ev.preventDefault();
+  ctl[key].setValue(norm(it, v));
+  ev.target.value = P[key];                          // lil-gui leaves a focused field as typed
+}, true);
+
+// --- Simple shows the controls marked basic, All shows every one; hidden parameters keep working through presets and paste
+const moreLink = document.createElement('button');
+moreLink.type = 'button'; moreLink.className = 'more-link'; moreLink.id = 'more-link';
+scroller.append(moreLink);
+moreLink.addEventListener('click', () => setMode(controlsEl.dataset.mode === 'all' ? 'simple' : 'all'));
+function syncMore() {
+  const hidden = Object.values(ctl).filter((c) => c._hidden).length;
+  moreLink.textContent = controlsEl.dataset.mode === 'all' ? 'Show fewer controls' : `${hidden} more controls in All${hiddenChanged ? ` · ${hiddenChanged} changed` : ''}`;
+}
+function setMode(m) {
+  if (gui.domElement.contains(document.activeElement)) document.activeElement.blur();
+  for (const k in ctl) ctl[k].show(m === 'all' || !!SCHEMA[k].basic);
+  for (const { folder } of folders) folder.show(folder.controllers.some((c) => !c._hidden));
+  $('#mode-simple').setAttribute('aria-pressed', String(m !== 'all'));
+  $('#mode-all').setAttribute('aria-pressed', String(m === 'all'));
+  controlsEl.dataset.mode = m;
+  prefs.set('eozin:mode', m);
+  if (helpKey && ctl[helpKey]._hidden) showHelp(null);
+  markDirty = tintDirty = true;
+  syncMore();
+}
+$('#mode-simple').addEventListener('click', () => setMode('simple'));
+$('#mode-all').addEventListener('click', () => setMode('all'));
+setMode(prefs.get('eozin:mode') === 'all' ? 'all' : 'simple');
+
+// --- slider tracks of the film parameters carry the face-on lustre colour each value would give (as the chip swatches do)
+const TINT_BASIS = spectralBasis(16), tintCss = {};
+function paintTracks() {
+  for (const k in SCHEMA) {
+    const it = SCHEMA[k], c = ctl[k];
+    if (!it.tint || !c.$slider || c._hidden) continue;
+    const stops = [];
+    for (let i = 0; i <= 8; i++) stops.push(rgbCss(lustreRGB(1, deriveOptics({ ...P, [k]: lerp(it.min, it.max, i / 8) }), TINT_BASIS)));
+    const css = `linear-gradient(90deg, ${stops.join(', ')})`;
+    if (tintCss[k] !== css) { tintCss[k] = css; c.$slider.style.background = css; }
+    c.domElement.classList.add('tint');
+  }
+}
+
+// --- session actions
+const randomLustre = () => {
+  const r = Math.random, hue = r(), dark = 0.08 + 0.2 * r();
+  const col = new THREE.Color().setHSL(hue, 0.45 + 0.35 * r(), dark);
+  return {
+    glazeColor: '#' + col.getHexString(), cu: r() < 0.2 ? 0 : r(), ag: r() < 0.25 ? 0 : r(), au: r() < 0.65 ? 0 : 0.8 * r(), bi: r(), coat: 0.5 + 1.2 * r(),
+    kilnTemp: Math.round(550 + 150 * r()), soak: Math.round(12 + 60 * r()), reduction: 0.45 + 0.55 * r(), reox: r(), flash: 0.25 + 0.6 * r(),
+    flashScale: 4 + 16 * r(), flashWarp: 0.4 + 1.4 * r(), seed: Math.floor(r() * 100), decoSilver: r() * 1.6 - 0.8, decoThick: 0.5 + r(),
+    trimThick: 0.77 + 1.85 * r(),
+  };
+};
 const actions = {
-  'Randomise firing': () => {
-    const r = Math.random, hue = r(), dark = 0.08 + 0.2 * r();
-    const col = new THREE.Color().setHSL(hue, 0.45 + 0.35 * r(), dark);
-    applyParams({
-      glazeColor: '#' + col.getHexString(), cu: r() < 0.2 ? 0 : r(), ag: r() < 0.25 ? 0 : r(), au: r() < 0.65 ? 0 : 0.8 * r(), bi: r(), coat: 0.5 + 1.2 * r(),
-      kilnTemp: Math.round(550 + 150 * r()), soak: Math.round(12 + 60 * r()), reduction: 0.45 + 0.55 * r(), reox: r(), flash: 0.25 + 0.6 * r(),
-      flashScale: 4 + 16 * r(), flashWarp: 0.4 + 1.4 * r(), seed: Math.floor(r() * 100), decoSilver: r() * 1.6 - 0.8, decoThick: 0.5 + r(),
-      trimThick: 0.77 + 1.85 * r(),
-    });
-    markPreset(null, 'lustre');
+  'Randomise firing': () => { applyParams(randomLustre()); rematch('lustre'); },
+  'Surprise me': (lustreOnly) => {                   // a random lustre, and unless told otherwise a varied preset shape under it
+    commit();
+    const r = Math.random, pick = (a) => a[Math.floor(r() * a.length)];
+    let s = {};
+    if (!lustreOnly) {
+      s = presetState(FORM_KEYS, pick(Object.values(FORMS)).set);
+      for (const k of ['height', 'bellyRadius', 'shoulderRadius', 'neckRadius', 'lipRadius']) s[k] *= 0.92 + 0.16 * r();
+      if (r() < 0.3) { s.lobes = 5 + Math.floor(r() * 5); s.lobeDepth = 0.05 + 0.08 * r(); s.twist = Math.round(r() * 90); }
+      if (r() < 0.5) s.relief = pick(Object.keys(RELIEFS));
+      state.framed = state.userMoved = false;
+    }
+    applyParams({ ...s, ...randomLustre() });
+    rematch(); adoptBase(); commit();
+    toast('A new piece.', undoAction);
   },
   'Copy parameters': async () => {
     const text = JSON.stringify(P);
     try { await navigator.clipboard.writeText(text); toast('Parameters copied. Paste them into this page to restore.'); }
-    catch { toast('Copying is blocked here.'); }
+    catch {                                          // no clipboard here: hand the text over for a manual copy
+      openMenu(true, true);
+      const box = $('#paste-box'); box.value = text; box.focus(); box.select();
+      toast('Copying is blocked here. Copy the text from the box instead.');
+    }
   },
   'Save PNG': () => {
     const v = camera.view && camera.view.enabled ? { ...camera.view } : null;
@@ -2107,61 +2583,112 @@ const actions = {
     });
   },
   'Reset': () => {                                   // back to the state the page opens in, camera included
+    commit();
     applyParams(START); markPreset('zold', 'lustre'); markPreset('baluster', 'form'); setHash(null);
+    Object.assign(BASE, START);
     state.framed = state.posed = state.userMoved = false;
+    commit();
+    toast('Back to the opening piece.', undoAction);
   },
 };
-const session = gui.addFolder('Session');
-for (const name of Object.keys(actions)) if (!(embedded && name === 'Save PNG')) session.add(actions, name);
 
+// Restores a parameter set from JSON text (as Copy parameters writes it); false if the text is not one.
+function restoreText(text) {
+  let data;
+  try { data = JSON.parse(text); } catch { return false; }
+  if (!data || typeof data !== 'object' || Array.isArray(data)) return false;
+  commit();
+  const snap = () => FORM_KEYS.map((k) => P[k]).join(), before = snap(), n = applyParams(data);
+  if (!n) return false;
+  if (snap() !== before) state.framed = false;       // another vessel: fit it, from the same side
+  rematch(); adoptBase(); commit();
+  toast(`Restored ${n} parameters.`, undoAction);
+  return true;
+}
 window.addEventListener('paste', (ev) => {
-  if (/^(INPUT|TEXTAREA)$/.test(document.activeElement?.tagName || '')) return;
-  try {
-    const data = JSON.parse(ev.clipboardData.getData('text')), snap = (keys) => keys.map((k) => P[k]).join(), wasF = snap(FORM_KEYS), wasL = snap(LUSTRE_KEYS);
-    if (data && typeof data === 'object' && applyParams(data)) {
-      toast('Parameters restored from the clipboard.');
-      if (snap(FORM_KEYS) !== wasF) { markPreset(null, 'form'); state.framed = false; }   // another vessel: fit it, from the same side
-      if (snap(LUSTRE_KEYS) !== wasL) markPreset(null, 'lustre');
-    }
-  } catch { /* not a parameter set */ }
+  const text = ev.clipboardData?.getData('text') || '', json = text.trim()[0] === '{';
+  const field = /^(INPUT|TEXTAREA)$/.test(document.activeElement?.tagName || '');
+  if (document.activeElement?.id === 'paste-box' || (field && !json)) return;   // a field takes ordinary text itself
+  if (restoreText(text)) { if (field) ev.preventDefault(); }
+  else if (json) toast('That is not an Eozin parameter set.');
 });
 
+// --- the ⋯ menu, and the paste box that stands in for a clipboard paste on touch screens and in sandboxed frames
+const qmenu = $('#qmenu'), moreBtn = $('#more');
+function openMenu(open, paste = false) {
+  qmenu.hidden = !open;
+  moreBtn.setAttribute('aria-expanded', String(open));
+  $('.qitems').hidden = paste; $('.qpaste').hidden = !paste;
+}
+const menuRuns = {
+  'Copy parameters': () => actions['Copy parameters'](),
+  'Save PNG': () => actions['Save PNG'](),
+  'Restore shape': () => { state.framed = false; restoreKeys(FORM_KEYS, 'Shape restored.'); },
+  'Restore lustre': () => restoreKeys(LUSTRE_KEYS, 'Lustre restored.'),
+  'Reset everything': () => actions.Reset(),
+};
+moreBtn.addEventListener('click', () => openMenu(qmenu.hidden));
+qmenu.addEventListener('click', async (ev) => {
+  const b = ev.target.closest('button');
+  if (!b) return;
+  const box = $('#paste-box');
+  if (b.dataset.run === 'Paste parameters…') {
+    openMenu(true, true); box.value = ''; box.focus();
+    try { const text = await navigator.clipboard.readText(); if (!box.value && text.trim()[0] === '{') box.value = text; } catch { /* no clipboard access: the box is typed or pasted into */ }
+  } else if (b.id === 'paste-apply') {
+    if (restoreText(box.value)) openMenu(false); else toast('That is not an Eozin parameter set.');
+  } else { openMenu(false); menuRuns[b.dataset.run]?.(); }
+});
+window.addEventListener('pointerdown', (ev) => { if (!qmenu.hidden && !ev.target.closest('#qmenu, #more')) openMenu(false); }, true);
+$('#surprise').addEventListener('click', (ev) => actions['Surprise me'](ev.shiftKey));
+$('#undo').addEventListener('click', undo);
+$('#redo').addEventListener('click', redo);
+
 // --- preset shelf
-const chipEls = { lustre: {}, form: {} };
-function setHash(id) {                               // the link names the lustre on show, or nothing
-  if (location.hash === (id ? '#' + id : '')) return;
-  try { history.replaceState(null, '', id ? '#' + id : location.pathname + location.search); } catch { /* sandboxed */ }
-}
-function markPreset(id, group) {
-  if (!chipEls[group]) return;
-  for (const [key, el] of Object.entries(chipEls[group])) el.setAttribute('aria-pressed', String(key === id));
-  if (group === 'lustre' && !id) setHash(null);      // an edited glaze is no longer the one the link names
-}
 function buildChips() {
+  for (const [id, form] of Object.entries(FORMS)) {
+    const { H, f } = bodyProfile({ ...DEFAULTS, ...form.set }), side = [];
+    // a silhouette of the profile, to the scale of the largest preset (15 cm radius, 37 cm tall)
+    for (let i = 0; i <= 24; i++) { const y = H * i / 24; side.push([clamp(f(y) / 15 * 7.5, 0.5, 7.5), 19.5 - y / 37 * 19]); }
+    const d = [...side.map(([x, y]) => [8 + x, y]), ...side.reverse().map(([x, y]) => [8 - x, y])].map(([x, y], i) => `${i ? 'L' : 'M'}${x.toFixed(1)} ${y.toFixed(1)}`).join('');
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'chip plain'; b.id = `form-${id}`;
+    b.innerHTML = `<svg class="sil" viewBox="0 0 16 20" width="16" height="20" aria-hidden="true"><path d="${d}Z" fill="currentColor" opacity=".75"/></svg>${form.name}`;
+    b.addEventListener('click', () => {
+      commit();
+      applyParams(presetState(FORM_KEYS, form.set)); markPreset(id, 'form'); state.framed = state.userMoved = false;
+      Object.assign(BASE, PRESET.form.table[id]);
+      commit();
+      toast(`${form.name} applied.`, undoAction);
+    });
+    $('#form-chips').append(b);
+    chipEls.form[id] = b;
+  }
   for (const [id, preset] of Object.entries(LUSTRES)) {
     const o = deriveOptics({ ...DEFAULTS, ...preset.set });
     const b = document.createElement('button');
     b.type = 'button'; b.className = 'chip'; b.id = `lustre-${id}`;
+    b.title = `${preset.name}, ${preset.note}`; b.setAttribute('aria-label', b.title);   // the note is not always on show
     b.innerHTML = `<span class="sw" style="background: linear-gradient(135deg, ${rgbCss(lustreRGB(1, o, FINE_BASIS))}, ${rgbCss(lustreRGB(0.45, o, FINE_BASIS))})"></span>${preset.name} <small>${preset.note}</small>`;
     b.addEventListener('click', () => {
+      commit();
       applyParams(presetState(LUSTRE_KEYS, preset.set)); markPreset(id, 'lustre'); setHash(id);
+      Object.assign(BASE, PRESET.lustre.table[id]);
+      commit();
+      toast(`${preset.name} applied.`, undoAction);
     });
     $('#lustre-chips').append(b);
     chipEls.lustre[id] = b;
-  }
-  for (const [id, form] of Object.entries(FORMS)) {
-    const b = document.createElement('button');
-    b.type = 'button'; b.className = 'chip plain'; b.id = `form-${id}`;
-    b.textContent = form.name;
-    b.addEventListener('click', () => { applyParams(presetState(FORM_KEYS, form.set)); markPreset(id, 'form'); state.framed = state.userMoved = false; });
-    $('#form-chips').append(b);
-    chipEls.form[id] = b;
   }
 }
 buildChips();
 markPreset('zold', 'lustre'); markPreset('baluster', 'form');
 const fromHash = Object.hasOwn(LUSTRES, location.hash.slice(1)) ? LUSTRES[location.hash.slice(1)] : null;
-if (fromHash) { applyParams(fromHash.set, { silent: true }); markPreset(location.hash.slice(1), 'lustre'); gui.controllersRecursive().forEach((c) => c.updateDisplay()); }
+if (fromHash) {
+  applyParams(fromHash.set, { silent: true }); markPreset(location.hash.slice(1), 'lustre'); gui.controllersRecursive().forEach((c) => c.updateDisplay());
+  Object.assign(BASE, PRESET.lustre.table[location.hash.slice(1)]);
+}
+hist.now = JSON.stringify(P);                        // the piece the page opens with is the first undo state
 window.addEventListener('hashchange', () => {        // a link to another lustre, followed while the page is open
   const id = location.hash.slice(1);
   if (Object.hasOwn(LUSTRES, id) && chipEls.lustre[id].getAttribute('aria-pressed') !== 'true') chipEls.lustre[id].click();
@@ -2169,15 +2696,19 @@ window.addEventListener('hashchange', () => {        // a link to another lustre
 syncControls();
 
 // --- small screens: panels open from the masthead
-for (const id of ['label', 'controls']) {
-  $(`#tab-${id}`).addEventListener('click', () => {
-    for (const other of ['label', 'controls']) {
-      const open = other === id && !$(`#${other}`).classList.contains('open');
-      $(`#${other}`).classList.toggle('open', open);
-      $(`#tab-${other}`).setAttribute('aria-expanded', String(open));
-    }
-  });
+function setPanel(id) {                              // 'label', 'controls', or null for neither
+  for (const other of ['label', 'controls']) {
+    $(`#${other}`).classList.toggle('open', other === id);
+    $(`#tab-${other}`).setAttribute('aria-expanded', String(other === id));
+  }
 }
+for (const id of ['label', 'controls']) $(`#tab-${id}`).addEventListener('click', () => setPanel($(`#${id}`).classList.contains('open') ? null : id));
+window.addEventListener('keydown', (ev) => {         // Escape closes the menu, or else the open small-screen panel
+  if (ev.key !== 'Escape') return;
+  const panel = narrowLayout.matches ? $('.label.open, .controls.open') : null;
+  if (!qmenu.hidden) { openMenu(false); moreBtn.focus(); }
+  else if (panel) { setPanel(null); $(`#tab-${panel.id}`).focus(); }
+}, true);
 
 /* --------------------------------------------------------------------------
    Run
@@ -2229,7 +2760,9 @@ function tick(now) {
   controls.update();
   const fogNear = clamp(camera.position.distanceTo(controls.target) + 3, 13, 33);   // the fog stays behind the vessel at every zoom
   scene.fog.near = fogNear; scene.fog.far = fogNear + 31;
-  if (labelDirty) { labelDirty = false; updateLabel(); }
+  if (labelDirty) { labelDirty = false; updateLabel(); tintDirty = true; }
+  if (tintDirty && now - tintAt > 150) { tintDirty = false; tintAt = now; paintTracks(); }   // a few times a second at most while a slider is dragged
+  if (markDirty) { markDirty = false; markChanged(); }
   state.drew = stale;
   if (stale) {                                       // nothing moved, nothing changed: the frame on screen is still right
     stale = false;
@@ -2240,7 +2773,7 @@ function tick(now) {
 }
 requestAnimationFrame(tick);
 
-window.eozin = { P, applyParams, state, renderer, scene, camera, controls, gui, invalidate };   // handle for the console
+window.eozin = { P, applyParams, state, renderer, scene, camera, controls, gui, invalidate, actions, setMode, undo, redo, rematch };   // handle for the console
 </script>
 </body>
 </html>
