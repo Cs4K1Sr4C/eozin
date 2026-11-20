@@ -45,11 +45,15 @@ an unglazed foot with a dripped glaze line that ends in a bead.
   (*Joint blend*).
 - *Lids* are a third turned part: a domed, flat or conical cover that rests on the rim
   with a bare-clay flange inside the mouth, and a finial (ball, bud, acorn or disc) on a
-  short stem. A lobed mouth gets a lobed lid; a waved rim cannot carry one.
+  short stem. A lobed mouth gets a lobed lid; a waved rim cannot carry one. Under a lid
+  the upper joint of a handle stays below the lip, clear of the brim.
 
 **The set.** The floor sweeps up into a round studio cove, so every view has a graded
 backdrop and no horizon line; *Pool of light* gathers its brightness around the plinth
-and lets it fall away outward and up the wall. *Backdrop: Void* brings back the plain
+and lets it fall away outward and up the wall. The cove is as large as the view needs:
+seen from further out than its floor reaches (a long lens, a small window, the wheel) it
+grows about the piece, so the camera always stands inside it and the pool of light stays
+where it is. *Backdrop: Void* brings back the plain
 dark floor that dissolves into fog. The plinth is a turned stand (torus base, cavetto,
 eased top edge) in lacquer, veined black stone, ebonised wood or patinated bronze.
 
@@ -154,13 +158,15 @@ The third row of the shelf holds five shots, worked out from the piece as it is,
   f/2.8. *Detail*: close on the middle of the relief band, or of the body where there is
   no relief, 85 mm at f/4. A shot sets lens, aperture and focus height as one undo step
   and flies the camera there; the three close shots hold the turntable until the vessel
-  is dragged or another view is chosen. The camera pose itself is not a parameter:
-  undoing a shot puts the lens values back and leaves the camera where it is.
+  is dragged or another view is chosen (a plain click or tap leaves the shot as it is).
+  The camera pose itself is not a parameter: undoing a shot puts the lens values back,
+  releases the shot and leaves the camera where it is.
 - **Present** (key P; Esc or P returns). The panels leave, the piece is fitted to the
   whole stage or to the *Presentation frame* with bars around it, and a caption gives
   the lustre, the form and its height, and the firing. Moving the pointer, pressing a
-  key or, on a touch screen, tapping the stage brings the shelf back for a moment. On
-  an upright phone the wide frames are ignored.
+  key or, on a touch screen, tapping the stage brings the shelf back for a moment. While
+  presenting, the shelf also has *Save* (key S): the picture as presented, cropped to
+  its frame. On an upright phone the wide frames are ignored.
 - **Follow edits.** While a control that belongs to one part of the piece is changed
   (the rim, the foot, a handle, the lid, the relief band, the glaze surface…), the
   camera eases to that part and focuses there, and about a second and a half after the
@@ -194,11 +200,12 @@ The third row of the shelf holds five shots, worked out from the piece as it is,
   text box for touch screens and for frames without clipboard access. *Save PNG* takes
   an exposure: the turntable waits, the still is gathered in full (at least 32 lens
   samples) without the page layout's offset, and the picture is saved at the size of the
-  canvas, cropped to the frame while presenting in one; Esc cancels. *Follow edits* and
+  canvas, cropped to the frame while presenting in one (*Save* on the shelf, or key S,
+  starts it there); Esc cancels. *Follow edits* and
   *Reset everything* are here too.
 - **Keys.** In a number field, PageUp and PageDown move ten steps and Home and End go to
-  the ends of the range. 1 to 5 take the shots and P presents, except while a field is
-  being typed in. Escape closes the menu, or else cancels an exposure, leaves the
+  the ends of the range. 1 to 5 take the shots, P presents and S saves the presented
+  picture, except while a field is being typed in. Escape closes the menu, or else cancels an exposure, leaves the
   presentation, and on small screens closes the open panel. On phones the panel is a
   sheet that shows one folder at a time.
 

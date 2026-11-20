@@ -274,6 +274,8 @@ button { font: inherit; color: inherit; }
 
 .chip.view { padding: 5px 10px; }
 #present-btn { margin-left: 10px; }
+#save-btn { display: none; }                /* the presented picture: on the shelf only while presenting */
+.app.present #save-btn { display: inline-flex; }
 
 /* ---------- presentation: the chrome leaves, a caption stands at the foot of the picture ---------- */
 .card, .mast, .dock { transition: opacity 0.5s; }
@@ -319,6 +321,14 @@ button { font: inherit; color: inherit; }
 .toast .link-btn { margin-left: 8px; color: var(--gilt); }
 
 @media (max-width: 1480px) { .chip small { display: none; } }   /* the lustre shelf stays one row between the side panels */
+@media (min-width: 1081px) and (max-width: 1279px) {   /* a narrow column between the side panels: smaller chips, so the shelf does not pile up */
+  .chips { gap: 4px; }
+  .chip { padding: 5px 7px 5px 5px; gap: 5px; }
+  .chip.plain, .chip.view { padding: 5px 7px; }
+  .chip .sil { display: none; }
+  #present-btn { margin-left: 4px; }
+  .dock-name { flex-basis: 40px; }
+}
 @media (max-width: 1080px) {
   .app { grid-template-columns: minmax(0, 1fr); padding-top: max(10px, env(safe-area-inset-top, 0px)); padding-bottom: max(10px, env(safe-area-inset-bottom, 0px)); }
   .chip small { display: inline; }
@@ -340,12 +350,22 @@ button { font: inherit; color: inherit; }
 @media (max-width: 720px) {                /* phones: an open panel is a sheet over the lower stage; the vessel is drawn above it */
   .chip.view { padding: 5px 7px; }
   #view-chips { gap: 4px; }
-  #present-btn { order: -1; margin: 0 4px 0 0; }   /* first, so it is in reach without scrolling the strip */
+  #present-btn, #save-btn { order: -1; margin: 0 4px 0 0; }   /* first, so they are in reach without scrolling the strip */
   .label, .controls { width: 100%; align-self: end; max-height: 63%; }
   .help { height: 62px; padding: 6px 14px; }
   .help .lvl { display: none; }
 }
-@media (max-height: 480px) { .help { height: 44px; padding: 5px 14px; } }   /* a phone on its side: two lines, the list needs the room */
+@media (max-height: 480px) {               /* a phone on its side: the list needs the room */
+  .help { height: 44px; padding: 5px 14px; }         /* two lines */
+  .dock { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, auto); gap: 6px 12px; }   /* two strips: Shape, then Lustre and View side by side */
+  .dock-row:first-child { grid-column: 1 / -1; }
+  .dock-row:last-child { max-width: 56vw; }
+  .dock-row:last-child .dock-name { flex-basis: auto; }
+  .chip small { display: none; }
+  .chip.view { padding: 5px 7px; }
+  #view-chips { gap: 4px; }
+  #present-btn, #save-btn { order: -1; margin: 0 4px 0 0; }
+}
 @media (prefers-reduced-motion: reduce) {
   .toast, .card, .mast, .dock, .slate, .app.present .slate, .status { transition: none; }
   .controls .lil-gui.transition > .children { transition-duration: 0s !important; }
@@ -1290,14 +1310,14 @@ function buildLid(p, ctx, level) {
   }
   rows[0][0] = 0; rows[NP - 1][0] = 0;
   const N = NP * C1, pos = new Float64Array(N * 3), uv = new Float32Array(N * 2), surf = new Float32Array(N * 4), ao = new Float32Array(N);
-  const tw = ctx.twAt(1);
   let topY = 0, reach = 0;
   for (let k = 0; k < NP; k++) {
     const [r, y, zone, s] = rows[k];
     const lw = zone < 3 ? 1 : zone < 4 ? 1 - smooth(3, 3.16, zone) : 0;   // a lobed mouth has a lobed lid: round again 40 % of the way up the cap
     const glz = s > bareA && s < bareB ? -Math.min(1, s - bareA, bareB - s) : Math.min(10, s <= bareA ? bareA - s : s - bareB);
+    const hh = clamp(y / H, 0, 1), tw = ctx.twAt(hh);   // the flange hangs inside the neck: it is lobed and twisted as the wall is at its own height
     for (let j = 0; j < C1; j++) {
-      const o = k * C1 + j, a = TAU * (j % C) / C, rr = r * lerp(1, ctx.lobeAt(a - tw, 1), lw);
+      const o = k * C1 + j, a = TAU * (j % C) / C, rr = r * lerp(1, ctx.lobeAt(a - tw, hh), lw);
       pos[o * 3] = rr * Math.cos(a) * ctx.sx; pos[o * 3 + 1] = y; pos[o * 3 + 2] = rr * Math.sin(a) * ctx.sz;
       uv[o * 2] = -1; uv[o * 2 + 1] = 1;             // u < 0: no lattice decoration and no throwing rings, as on a strap
       surf[o * 4 + 2] = glz; surf[o * 4 + 3] = 1;
@@ -1322,7 +1342,12 @@ function buildLid(p, ctx, level) {
   geometry.computeBoundingSphere();
   return { geometry, rows, top: topY - H, reach };
 }
-const handleJoints = (p) => { const lo = clamp(p.handleLow, 0.08, 0.9); return [lo, clamp(p.handleHigh, lo + 0.08, 0.985)]; };   // heights, as fractions
+// Joint heights, as fractions. Under a lid the upper joint stays below the lip by the strap's flared root, so the strap is not luted into the brim.
+const handleJoints = (p) => {
+  const lidded = p.lid !== 'None' && FINIALS.hasOwnProperty(p.finial) && !(p.rimWaves > 0);
+  const top = lidded ? clamp(1 - (p.handleThick * (0.8 + 0.1 * p.handleTaper + 0.15 * p.handleBlend) + 0.1) / p.height, 0.5, 0.985) : 0.985, lo = clamp(p.handleLow, 0.08, Math.min(0.9, top - 0.08));
+  return [lo, clamp(p.handleHigh, lo + 0.08, top)];
+};
 
 // Pulled handles: an elliptical strap swept along a Bézier ear. It is heavier at the top, where the pull began, and
 // thins towards the lower joint ('Pulled taper'); the fingers leave a thumb groove or ribs down its back; at both
@@ -1965,18 +1990,19 @@ const GROUND = new THREE.Color('#0e0b10'), COVE_LO = new THREE.Color('#17141a'),
 const scene = new THREE.Scene();
 scene.background = GROUND;
 scene.fog = new THREE.Fog(GROUND, 13, 44);          // 'Void' backdrop: dissolves the floor into the background; tick() keeps it behind the vessel
-const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 200);
+const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 500);          // far: the cove's wall, with a long lens at its furthest (fitCove)
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.08;
 controls.minDistance = 0.5;
-controls.maxDistance = 40;                           // the cove's wall is single-sided: from outside it, the near arc is not drawn
+controls.maxDistance = 40;                           // setLens() lets a long lens stand further back
 controls.maxPolarAngle = Math.PI * 0.5;
 controls.zoomSpeed = 0.7;
 
 const PLINTH_H = 0.24;
 // The set: a round floor that sweeps up into a cove wall, so every view has a graded backdrop and no horizon line.
-// 'Void' hides the wall and stretches the floor into the fog instead.
+// 'Void' hides the wall and stretches the floor into the fog instead. The wall is single-sided and the floor ends under
+// it, so the camera has to stand inside: fitCove() makes the set as large as the view needs.
 const lathe = (pts, seg) => new THREE.LatheGeometry(pts.map(([x, y]) => new THREE.Vector2(x, y)), seg);
 const COVE_R = 14, VOID_SCALE = 5;
 const floor = new THREE.Mesh(lathe([[COVE_R, 0], [10, 0], [6, 0], [3, 0], [1.5, 0], [0, 0]], 96), new THREE.MeshStandardMaterial({ color: '#1c181e', roughness: 0.96 }));
@@ -1988,6 +2014,14 @@ const cycWall = new THREE.Mesh(lathe((() => {
   return q;
 })(), 96), new THREE.MeshStandardMaterial({ color: '#1c181e', roughness: 1, side: THREE.BackSide }));   // its own material: it is not a mirror
 scene.add(floor, cycWall);
+// Seen from further out than the floor of the cove reaches (a long lens, a small window, the wheel), the whole set grows
+// about the piece, so the camera always stands on its floor with the wall behind it. The pool of light is laid out in
+// world space and stays as it is. The room capture takes the set at its own size (captureLocal).
+function fitCove(own = false) {
+  const cove = P.backdrop === 'Cove', s = !cove ? VOID_SCALE : own ? 1 : Math.max(1, (Math.hypot(camera.position.x, camera.position.z) + 1) / COVE_R);
+  if (floor.scale.x !== s) floor.scale.setScalar(s);
+  if (cycWall.scale.x !== (cove ? s : 1)) cycWall.scale.setScalar(cove ? s : 1);
+}
 // The plinth: a turned stand with a torus base, a cavetto and an eased top arris. Its flat top has radius 0.95.
 const plinth = new THREE.Mesh(
   lathe((() => {
@@ -2161,6 +2195,7 @@ function captureLocal(now) {
   const fog = scene.fog, bg = scene.background, rp = plinth.material.roughness, rf = floor.material.roughness, mp = reflOnPlinth.value, mf = reflOnFloor.value;
   scene.background = envTarget.texture; scene.backgroundRotation.copy(scene.environmentRotation); scene.backgroundIntensity = P.envInt; scene.fog = null;
   contactMesh.visible = cycWall.visible = false;     // the lamps are the capture's background: a wall around the piece would hide them
+  fitCove(true);                                     // the same floor whatever the camera's distance; tick() sets it again before the picture
   vesselMesh.material = handleMesh.material = lidMesh.material = hiddenMat;
   plinth.material.roughness = 0.7; floor.material.roughness = 0.96;        // the capture serves every view direction
   reflOnPlinth.value = reflOnFloor.value = 0;
@@ -2276,10 +2311,10 @@ if (uPlinthMat == 0) {
   diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.13, 0.115, 0.095), 0.3 * szVein);
   szRo = 0.10 * szSpk - 0.08 * szVein;
 } else if (uPlinthMat == 2) {
-  float szR = length(szP.xz), szA = atan(szP.z, szP.x);
-  float szG = szF(mix(vec3(szR * 0.25, szP.y * 9.0, szA * 1.5), vec3(szR * 3.2 + 2.0 * szN(vec3(szA * 3.0, 0.0, 1.0)), 0.0, szA * 0.8), szUp) + 4.0);   // lathe lines on the side, growth rings on top
+  float szR = length(szP.xz); vec2 szC = szP.xz / max(szR, 1e-3);            // the direction round the axis as a point on a circle: no seam where the angle wraps
+  float szG = szF(mix(vec3(szR * 0.25 + szC.x * 1.5, szP.y * 9.0, szC.y * 1.5), vec3(szR * 3.2 + 2.0 * szN(vec3(szC.x * 3.0, szC.y * 3.0, 1.0)) + szC.x * 0.8, 0.0, szC.y * 0.8), szUp) + 4.0);   // lathe lines on the side, growth rings on top
   float szLine = 0.5 + 0.5 * sin(mix(szP.y * 46.0, szR * 9.0, szUp) + 5.0 * szG);
-  float szPore = smoothstep(0.62, 0.8, szF(vec3(szR * mix(1.0, 6.0, szUp), szP.y * mix(24.0, 1.0, szUp), szA * 14.0))) * (1.0 - smoothstep(0.1, 0.3, szFw));
+  float szPore = smoothstep(0.62, 0.8, szF(vec3(szR * mix(1.0, 6.0, szUp) + szC.x * 14.0, szP.y * mix(24.0, 1.0, szUp), szC.y * 14.0))) * (1.0 - smoothstep(0.1, 0.3, szFw));
   diffuseColor.rgb = vec3(0.0075, 0.0056, 0.0047) * (0.7 + 0.5 * szG + 0.25 * szLine) * (1.0 - 0.45 * szPore);
   szRo = 0.06 * (szLine - 0.5) + 0.14 * szPore;
 } else {
@@ -2336,6 +2371,10 @@ function renderMirror() {
 // The lens: a frame in motion is a pinhole picture blurred by depth (dofPass); a picture at rest is the mean of many
 // pictures taken through points of the aperture (accumPass), which is true lens blur and smooths every edge as well.
 const composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(4, 4, { type: THREE.HalfFloatType, samples: 4, depthTexture: new THREE.DepthTexture(4, 4) }));
+// The scene is always drawn into the composer's second target (tick() pins the pair before every frame); the first is
+// only ever written by a full-screen pass, so it carries no samples and no depth.
+composer.renderTarget1.dispose();
+composer.renderTarget1 = composer.writeBuffer = new THREE.WebGLRenderTarget(4, 4, { type: THREE.HalfFloatType, depthBuffer: false });
 composer.addPass(new RenderPass(scene, camera));
 const acc = { n: 0, F: 5, A: 0 };                    // samples in the sum; focus distance and aperture of the still being gathered
 const FSQ_VERT = 'varying vec2 vUv; void main() { vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }';
@@ -2452,7 +2491,7 @@ $1
   if (max(o.x, o.y) > 0.0) gl_FragColor.rgb = vec3(0.0); }`);
   outputPass.material.fragmentShader = fs;
 }
-outputPass.needsSwap = false;                        // it draws to the canvas; a swap here would make the scene alternate between two MSAA targets
+outputPass.needsSwap = false;                        // it draws to the canvas
 composer.addPass(outputPass);
 
 const state = {
@@ -2468,16 +2507,18 @@ let stale = true;                                    // the picture on screen is
 const invalidate = () => { stale = true; };
 let held = false;                                    // a gesture is in progress: only one that moves the camera takes it
 let camLeg = null;                                   // an eased camera move in flight (flyCamera)
-const hold = { k: 1, shot: false };                  // the turntable waits while a shot or an edit looks at one part of the piece
+const hold = { k: 1, shot: false, id: '' };                  // the turntable waits while a shot or an edit looks at one part of the piece
 const lens = { aim: null };                          // where the focus is while the Focus height slider does not say it: put there by a shot, or
 const AIM_AUTO = { auto: true };                     // following the hand: on the wall at the height the camera was dragged to look at
 const follow = { on: true, region: null, home: null, timer: 0, aim: null, hold: false };
-controls.addEventListener('change', () => { if (held) { state.userMoved = true; if (!follow.region) lens.aim = AIM_AUTO; } invalidate(); });
-controls.addEventListener('start', () => {           // the hand always wins: the move in flight stops, the view stays where it is put
+const dropFollow = () => { clearTimeout(follow.timer); follow.region = follow.home = follow.aim = null; follow.hold = false; };   // no way back to the view an edit was followed from
+// The hand always wins. A press stops the move in flight; a shot is given up only when the camera is in fact moved, so
+// a plain click or the tap that brings the shelf back leaves a held shot as it is.
+controls.addEventListener('change', () => { if (held) { state.userMoved = true; if (hold.id) releaseShot(); if (!follow.region) lens.aim = AIM_AUTO; } invalidate(); });
+controls.addEventListener('start', () => {
   held = true;
-  if (camLeg) { camLeg = null; setLens(); }
-  if (follow.region) { clearTimeout(follow.timer); follow.region = follow.home = follow.aim = null; follow.hold = false; }
-  releaseShot();
+  if (camLeg) { camLeg = null; setLens(); releaseShot(); }   // a shot stopped on its way is not that shot
+  if (follow.region) dropFollow();
 });
 controls.addEventListener('end', () => { held = false; });
 
@@ -2712,25 +2753,21 @@ function detailLevel() {
 }
 const shotEls = {};
 function releaseShot() {
-  hold.shot = false; lens.aim = null;
+  hold.shot = false; hold.id = ''; lens.aim = null;
   for (const el of Object.values(shotEls)) el.setAttribute('aria-pressed', 'false');
 }
 function takeShot(id) {
   const sh = SHOTS[id];
   if (!sh || !state.posed || first) return;
-  if (follow.region) { clearTimeout(follow.timer); follow.region = follow.home = follow.aim = null; follow.hold = false; }
+  dropFollow();
   const reg = sh.region ? sh.region() : null;
-  let focal = sh.focal, pose;
-  for (let i = 0; i < 2; i++) {                      // a long lens on a narrow screen would stand outside the cove: take a shorter one
-    poseFocal = focal; pose = fitPose(state, reg, sh.view); poseFocal = 0;
-    if (P.backdrop !== 'Cove' || pose.r <= COVE_R - 1.5 || focal <= 28) break;
-    focal = Math.max(28, Math.round(focal * (COVE_R - 1.5) / pose.r));
-  }
+  const focal = sh.focal;
+  poseFocal = focal; const pose = fitPose(state, reg, sh.view); poseFocal = 0;
   flyCamera(pose, 1600);                             // in flight before the lens values land: the move carries the change of lens
   commit(); applyParams({ focal, fstop: sh.fstop, focusLevel: sh.focusLevel() }); commit();
   camLeg.s1 = pose.r * (12 / focal);
   releaseShot();
-  hold.shot = !!sh.hold; lens.aim = reg && reg.focus ? reg.focus : null;
+  hold.shot = !!sh.hold; hold.id = id; lens.aim = reg && reg.focus ? reg.focus : null;
   state.userMoved = id !== 'hero'; state.framed = true;
   shotEls[id]?.setAttribute('aria-pressed', 'true');
 }
@@ -2783,7 +2820,7 @@ function lensEnd() {
 }
 
 // --- presentation: the page chrome leaves, the piece is fitted to the whole stage or to a frame, and a caption stands under it
-let peekTimer = 0;
+let peekTimer = 0, presentFrom = null;
 function peek(on = true) {                           // the shelf comes back for a moment
   if (!state.present) return;
   clearTimeout(peekTimer);
@@ -2799,12 +2836,18 @@ function setPresent(on) {
   clearTimeout(peekTimer);
   for (const el of [$('#label'), $('#controls'), $('.mast')]) el.inert = on;
   $('.dock').inert = on;
-  if (on && app.contains(document.activeElement)) document.activeElement.blur();
+  if (on) { presentFrom = app.contains(document.activeElement) ? document.activeElement : null; presentFrom?.blur(); }
   const b = $('#present-btn'); b.setAttribute('aria-pressed', String(on)); b.textContent = on ? 'Exit' : 'Present';
+  if (!on) {                                         // the focus goes back where it was when the presentation began, unless it has since been put elsewhere
+    const at = document.activeElement;
+    if (presentFrom && presentFrom.isConnected && (!at || at === document.body)) presentFrom.focus({ preventScroll: true });
+    presentFrom = null;
+  }
   layoutDirty = true; state.fit = '';
   if (!state.userMoved) state.framed = false;
   invalidate();
-  if (on) toast(window.matchMedia('(pointer: fine)').matches ? 'Presenting. Move the pointer for the shelf; Esc or P returns.' : 'Presenting. Tap for the shelf.');
+  const save = actions['Save PNG'] ? [' S saves the picture.', ' Save is on it.'] : ['', ''];
+  if (on) toast(window.matchMedia('(pointer: fine)').matches ? `Presenting. Move the pointer for the shelf; Esc or P returns.${save[0]}` : `Presenting. Tap for the shelf.${save[1]}`);
 }
 
 // The shadow frustum is fitted to the casters (an orthographic shadow lies straight behind them), so every texel is
@@ -2949,7 +2992,7 @@ function updateStage() {
   UP.uPlinthMat.value = Math.max(0, PLINTHS.indexOf(P.plinthMat));
   const cove = P.backdrop === 'Cove';
   cycWall.visible = cove;
-  floor.scale.setScalar(cove ? 1 : VOID_SCALE);
+  fitCove();
   UP.uPool.value = cove ? P.pool : 0;
   if (cove) {
     floor.material.color.lerpColors(COVE_LO, COVE_HI, P.backdropTone);
@@ -3502,13 +3545,14 @@ function commit() {
 function step(from, to) {
   commit();                                          // an edit still waiting for its timer is a step of its own
   if (!from.length) return;
-  const snap = () => FORM_KEYS.map((k) => P[k]).join(), before = snap();
+  const snap = () => FORM_KEYS.map((k) => P[k]).join(), before = snap(), lensOf = () => [P.focal, P.fstop, P.focusLevel].join(), lens0 = lensOf();
   to.push({ s: hist.now, b: JSON.stringify(BASE) });
   const e = from.pop();
   hist.now = e.s; hist.base = e.b;
   applyParams(JSON.parse(e.s));
   Object.assign(BASE, JSON.parse(e.b));
   if (snap() !== before) state.framed = false;       // another vessel: fit it, from the same side
+  if (lensOf() !== lens0) releaseShot();             // a shot's lens values taken back or changed: it is no longer that shot, the turntable and the focus are free
   rematch();
   markDirty = true;
   syncHist();
@@ -3717,7 +3761,7 @@ const actions = {
     applyParams(START); markPreset('zold', 'lustre'); markPreset('baluster', 'form'); setHash(null);
     Object.assign(BASE, START);
     state.framed = state.posed = state.userMoved = false;
-    releaseShot();
+    releaseShot(); dropFollow();
     commit();
     toast('Back to the opening piece.', undoAction);
   },
@@ -3831,6 +3875,12 @@ Object.keys(SHOTS).forEach((id, i) => {              // the View row: named shot
   b.type = 'button'; b.className = 'chip plain view'; b.id = 'present-btn'; b.textContent = 'Present'; b.title = 'Show the piece alone, with its caption (key P)'; b.setAttribute('aria-pressed', 'false');
   b.addEventListener('click', () => setPresent(!state.present));
   $('#view-chips').append(b);
+  if (actions['Save PNG']) {                         // on the shelf only while presenting: the picture as presented, cropped to its frame
+    const s = document.createElement('button');
+    s.type = 'button'; s.className = 'chip plain view'; s.id = 'save-btn'; s.textContent = 'Save'; s.title = 'Save the picture as presented (key S)';
+    s.addEventListener('click', () => actions['Save PNG']());
+    $('#view-chips').append(s);
+  }
 }
 setFollow(prefs.get('eozin:follow') !== 'off');
 markPreset('zold', 'lustre'); markPreset('baluster', 'form');
@@ -3862,15 +3912,17 @@ window.addEventListener('keydown', (ev) => {         // Escape closes the menu, 
   else if (state.present) setPresent(false);
   else if (panel) { setPanel(null); $(`#tab-${panel.id}`).focus(); }
 }, true);
-window.addEventListener('keydown', (ev) => {         // 1 to 5 take the shots, P presents; not while a field is being typed in
+window.addEventListener('keydown', (ev) => {         // 1 to 5 take the shots, P presents, S saves the presented picture; not while a field is being typed in
   if (state.present && ev.key !== 'Escape') peek();  // before the focus moves: Tab then lands on the shelf
   const t = ev.target;
   if (ev.ctrlKey || ev.metaKey || ev.altKey || ev.key.length !== 1 || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName || '')) return;
-  const i = '12345'.indexOf(ev.key);
-  if (i >= 0) takeShot(Object.keys(SHOTS)[i]);
-  else if (ev.key === 'p' || ev.key === 'P') setPresent(!state.present);
-  else return;
+  const i = '12345'.indexOf(ev.key), k = ev.key.toLowerCase();
+  if (i < 0 && k !== 'p' && !(k === 's' && state.present && actions['Save PNG'])) return;
   ev.preventDefault();
+  if (ev.repeat) return;                             // a key held down acts once
+  if (i >= 0) takeShot(Object.keys(SHOTS)[i]);
+  else if (k === 'p') setPresent(!state.present);
+  else actions['Save PNG']();
 }, true);
 window.addEventListener('pointermove', (ev) => { if (state.present && ev.pointerType !== 'touch' && !ev.buttons) peek(); });
 window.addEventListener('focusin', () => { if (state.present) peek(); });
@@ -3944,8 +3996,14 @@ function tick(now) {
   if (geoDirty) { const level = geoDirty; geoDirty = null; rebuildGeometry(level); updateStage(); state.settle = Math.max(state.settle, 2); }
   resize();
   if (!state.framed && stageEl.clientWidth > 2) {    // the fit may change the view offset: apply it before this frame is drawn
-    releaseShot();                                   // the fitted view replaces a shot
-    if (!first && !reduceMotion.matches) flyCamera(fitPose(), 700); else frameCamera();
+    // Fitted from where the view is or was heading: a move in flight keeps its destination, and a view that was
+    // following an edit goes back to the side it was watched from. Reset (not posed) takes the three-quarter view.
+    let v;
+    if (state.posed && follow.home) { sph.setFromVector3(follow.home.off); v = { theta: sph.theta, el: Math.PI / 2 - sph.phi }; }
+    else if (state.posed && camLeg) v = { theta: camLeg.th0 + camLeg.dth, el: Math.PI / 2 - camLeg.ph1 };
+    dropFollow();                                    // or its delayed return would undo this fit
+    if (hold.id !== 'hero' || !state.posed) releaseShot();   // the fitted view replaces a shot; Hero is the fitted view
+    if (!first && !reduceMotion.matches) flyCamera(fitPose(state, null, v), 700); else frameCamera();
     state.framed = true; resize();
   }
   const cap = state.capture, want = cap || hold.shot || follow.hold ? 0 : 1;
@@ -3972,8 +4030,10 @@ function tick(now) {
     stale = false;
     if (localDirty && Math.abs(now - lastCapture) > 100) captureLocal(now); else if (localDirty) stale = true;   // a drag asks for many captures: a few a second, and one when it rests
     if (!refine && !reduceMotion.matches && !cap) post.uGrainSeed.value = (post.uGrainSeed.value + 1) % 61;   // the grain moves with the picture and rests with it
+    fitCove();
     lensBegin(refine, N);
     renderMirror();
+    composer.readBuffer = composer.renderTarget2; composer.writeBuffer = composer.renderTarget1;   // whatever the passes of the last frame swapped
     composer.render(dt);
     lensEnd();
     state.frames++;
