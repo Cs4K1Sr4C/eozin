@@ -9,6 +9,28 @@ Safari 16.4+). There is no build step. three.js r180 is imported from jsDelivr t
 import map, so the page needs a network connection on first load. The typefaces come from
 Google Fonts and are optional: the page falls back to system fonts without them.
 
+## The page
+
+**Plate and catalogue.** The piece stands on a plate (the 3D stage, its caption and the
+camera views); everything else is one catalogue column that scrolls by itself: the six
+lustres, the eight shapes, *Surprise me*, the fired-film data, the reflectance chart and
+a short text about eozin. Wide windows put the catalogue on the right, upright ones
+(phones, upright tablets) below the plate; the page itself never scrolls, and the piece is
+always fitted to the part of the stage that caption, views and masthead leave free.
+
+**What a visitor can do.** Choose a lustre and a shape, press *Surprise me*, take one of
+the five views, present the piece, switch the language, and drag or pinch the vessel.
+There is nothing else on the page. Every parameter described below still exists and
+travels with presets, pasted JSON and links, but the configurator that edits them one by
+one is hidden (see *The configurator*).
+
+**English and Hungarian.** The page opens in Hungarian for a browser whose language list
+puts Hungarian before English, otherwise in English. The EN / HU switch in the masthead
+changes every word at once, without a reload, and the choice is remembered.
+`index.html?lang=hu` or `?lang=en` sets the language for one visit. Numbers follow the
+language (a decimal comma in Hungarian); stored parameter values and option names stay
+English, so a parameter set copied in one language pastes in the other.
+
 ## What is simulated
 
 **Firing → film.** Kiln temperature, soak time, reducing atmosphere, re-oxidation on
@@ -22,15 +44,24 @@ per wavelength: Maxwell-Garnett effective medium with Johnson & Christy optical 
 for Cu, Ag and Au, then an Airy thin-film recursion for both polarisations, integrated
 against the CIE 1931 observer. Each spectral sample stands for a band of wavelengths, so
 thick films wash out to their phase-averaged reflectance instead of aliasing. The same
-code runs on the CPU (the spectrum chart and the angle strip in the label) and per
+code runs on the CPU (the spectrum chart and the angle strip in the catalogue) and per
 fragment in GLSL, where it replaces three.js's RGB iridescence approximation inside
-`MeshPhysicalMaterial`, for direct and image-based light alike.
+`MeshPhysicalMaterial`, for direct and image-based light alike. The film answers in two
+lobes: a sharp image of the lamps at the roughness of the glass surface, and under it a
+broad glow from the metal colloids (*Colloid scatter*, `scatter`; 0 gives the single lobe
+of earlier versions). The share of the glow follows the haze of the fired film, so the two
+lobes together reflect what one did. The glaze is coloured glass: seen at a slant the light
+travels further through it and the colour deepens.
 
 **Surface.** Film thickness and metal fill vary across the pot: glaze pooling in hollows
 and breaking on ridges (driven by mesh curvature), gravity runs, flame flashing
 (domain-warped noise with a flame-side bias), crackle with a per-cell mosaic shift,
 pinholes, orange peel, and a second painted lustre that can follow the relief, with a
-brushed edge. The break of a thin glaze on an edge is ragged and has its own colour
+brushed edge. The flashing gathers into a few tongues with an edge (*Flame fronts*,
+`front`); round the edge of a mark the cover film swells by some tens of nanometres and
+wears a ring of the neighbouring interference colours (*Flame-mark halo*, `halo`), and
+fine drawn-out streaks run through the film (*Film streaks*, `streak`). With all three at
+0 the flashing is the even mottle of earlier versions. The break of a thin glaze on an edge is ragged and has its own colour
 (*Break colour*).
 
 **Vessel.** A monotone-spline meridian with foot ring, recessed base, wall thickness,
@@ -59,7 +90,12 @@ eased top edge) in lacquer, veined black stone, ebonised wood or patinated bronz
 
 **Light, shadow and reflections.** The piece stands in a small procedural studio:
 softboxes with a hot centre, a few bare bulbs for pin highlights and a black flag, rendered
-into a prefiltered environment.
+into a prefiltered environment. The *Atelier softboxes* rig has two low fills, warm and
+cool, so the underside of a belly and a foot reflect lamps and not a black floor, and a
+key softbox with a gentler core that keeps colour in its reflection. The close shots
+(Lip, Foot, Detail) open up the exposure by a fraction of a stop while they are held;
+that is part of the view, not of the parameters, and the exposure returns with Hero or
+when the camera is moved.
 
 - *One key light.* The spotlight that casts the shadow stands where the main softbox of
   the room is, so shadow and brightest reflection agree and turn together with *Light
@@ -93,7 +129,7 @@ into a prefiltered environment.
   vignette; *Lens fringing* towards the corners; a *Look* (Neutral, Print, Catalogue,
   Nocturne) graded after the tone curve; film grain; and a dither against banding in the
   dark backdrop. *Look: Neutral* with grain, fringing and halation at 0 is the ungraded
-  picture, in which the lustre colours are exactly those of the label.
+  picture, in which the lustre colours are exactly those of the fired-film data.
 - *Moves.* The camera never jumps: a new shape, a shot, Reset and the first view are all
   eased moves, and any drag on the vessel stops a move at once. With *reduced motion*
   set in the system, moves are cuts, the opening move and the grain animation are off
@@ -124,7 +160,9 @@ into a prefiltered environment.
   held; the bare foot shows coarse grog, grains of kiln sand and a rubbed foot ring. All
   of it is for close-ups and fades before it could shimmer.
 
-## Controls
+## Parameters
+
+The groups of the parameter model, as the configurator shows them:
 
 | Group | Parameters |
 | --- | --- |
@@ -149,7 +187,7 @@ a taper is restored with even, smooth straps, as it was drawn then.
 
 ### Views
 
-The third row of the shelf holds five shots, worked out from the piece as it is, and
+Along the foot of the plate are five views, worked out from the piece as it is, and
 *Present*.
 
 - **Shots** (keys 1 to 5). *Hero*: three-quarter view, 45 mm at f/4. *Profile*: side-on
@@ -161,27 +199,54 @@ The third row of the shelf holds five shots, worked out from the piece as it is,
   is dragged or another view is chosen (a plain click or tap leaves the shot as it is).
   The camera pose itself is not a parameter: undoing a shot puts the lens values back,
   releases the shot and leaves the camera where it is.
-- **Present** (key P; Esc or P returns). The panels leave, the piece is fitted to the
-  whole stage or to the *Presentation frame* with bars around it, and a caption gives
+- **Present** (key P; Esc or P returns). The catalogue leaves, the piece is fitted to the
+  whole window or to the *Presentation frame* with bars around it, and the caption gives
   the lustre, the form and its height, and the firing. Moving the pointer, pressing a
-  key or, on a touch screen, tapping the stage brings the shelf back for a moment. While
-  presenting, the shelf also has *Save* (key S): the picture as presented, cropped to
-  its frame. On an upright phone the wide frames are ignored.
-- **Follow edits.** While a control that belongs to one part of the piece is changed
+  key or, on a touch screen, tapping the stage brings the views back for a moment. While
+  presenting they include *Save* (key S): an exposure of the picture as presented,
+  cropped to its frame; a note counts the lens samples and Esc cancels. On an upright
+  phone the wide frames are ignored.
+- **Follow edits** (configurator only). While a control that belongs to one part of the piece is changed
   (the rim, the foot, a handle, the lid, the relief band, the glaze surface…), the
   camera eases to that part and focuses there, and about a second and a half after the
   last change it eases back. Dragging the vessel meanwhile keeps the view where it is
   put. *Follow edits* in the ⋯ menu switches this off; the choice is remembered. Preset
   chips, undo, paste and Reset do not move the view this way.
 
-### Using the panel
+### Presets, Surprise me and undo
+
+- **Lustre and shape tiles.** A tile restores every parameter of its group and stays
+  pressed exactly while all of them have its values. The caption on the plate names
+  what is on show; a varied piece is named after the lustre it came from.
+- **Surprise me** is described below. Shift-click keeps the shape.
+- **Undo.** Each preset and each surprise shows a short note with *Undo*; Ctrl+Z and
+  Ctrl+Shift+Z (Ctrl+Y) step through the whole history.
+- **Paste.** Parameter JSON pasted anywhere on the page is applied.
+
+### The configurator
+
+The panel with all 149 controls is not part of the page an ordinary visitor sees, and
+nothing on the page leads to it. It is fetched and built only on request:
+
+- `index.html?configurator=1` opens it as a drawer over the left of the stage;
+- `eozin.configurator()` in the browser console does the same, `eozin.configurator(false)`
+  hides it again.
+
+Without it, the same actions are on the console handle `window.eozin`:
+`eozin.applyParams({...})`, `eozin.undo()`, `eozin.redo()`,
+`eozin.actions['Copy parameters']()` (logs the JSON when there is no clipboard),
+`eozin.actions['Save PNG']()`, `eozin.actions.Reset()`, `eozin.menu['Restore shape']()`,
+`eozin.menu['Restore lustre']()`, `eozin.setFollow(false)`, `eozin.takeShot('foot')`,
+`eozin.setPresent(true)`, `eozin.setLang('hu')`, `eozin.makePiece(seed)`.
+
+The rest of this section describes the drawer once it is open.
 
 - **Simple / All.** The panel opens in *Simple*, with the thirty or so controls that change
   the piece most. *All* shows every parameter; the choice is remembered. Presets and
   pasted parameter sets also set the controls that Simple hides, and the line at the end
   of the list says how many hidden controls differ from the preset.
 - **Help strip.** Pointing at a row, tapping it or tabbing into it shows what it does, its
-  range and its preset value under the list. Controls that cannot do anything in the
+  range and its preset value under the list, in the language of the page. Controls that cannot do anything in the
   current state are greyed out, for example the lobe settings while the lobe count is
   zero; the strip then says what they wait for.
 - **Colour tracks.** The sliders of the lustre metals, the firing schedule and the film
@@ -193,27 +258,37 @@ The third row of the shelf holds five shots, worked out from the piece as it is,
   lustre* in the ⋯ menu put a whole group back.
 - **Undo.** Every change is an undo step, presets and Reset included: the ↶ ↷ buttons, or
   Ctrl+Z and Ctrl+Shift+Z (Ctrl+Y). The camera is not part of the history.
-- **Surprise me** picks a preset shape, varies it and fires a random lustre on it; with
-  Shift held it keeps the shape and changes the lustre only.
+- **Surprise me** makes a curated random piece: one of the eight shapes with its
+  proportions varied together, a relief that suits it, and one of the six lustres fired
+  a little differently (metals, kiln schedule, glaze tone, flame side and seed, all inside
+  bounds). A firing that comes out dull, black or far from its family is thrown away and
+  another tried, and two presses in a row never give the same shape or lustre family.
+  With Shift held it keeps the shape and changes the firing only. A surprise piece is a
+  function of its seed and can be linked as `index.html#piece-<seed>`; such a link names
+  a piece of this version of the generator and may give another piece after an update.
+  Editing, a preset, undo or Reset drop the piece link.
 - **⋯ menu.** *Copy parameters* puts the whole state on the clipboard as JSON. Pasting
   that JSON anywhere on the page restores it, as does *Paste parameters…*, which opens a
   text box for touch screens and for frames without clipboard access. *Save PNG* takes
   an exposure: the turntable waits, the still is gathered in full (at least 32 lens
   samples) without the page layout's offset, and the picture is saved at the size of the
-  canvas, cropped to the frame while presenting in one (*Save* on the shelf, or key S,
+  canvas, cropped to the frame while presenting in one (*Save* among the views, or key S,
   starts it there); Esc cancels. *Follow edits* and
   *Reset everything* are here too.
 - **Keys.** In a number field, PageUp and PageDown move ten steps and Home and End go to
   the ends of the range. 1 to 5 take the shots, P presents and S saves the presented
-  picture, except while a field is being typed in. Escape closes the menu, or else cancels an exposure, leaves the
-  presentation, and on small screens closes the open panel. On phones the panel is a
-  sheet that shows one folder at a time.
+  picture, except while a field is being typed in. Escape closes the menu, or else cancels an exposure, or leaves the
+  presentation. On phones the drawer covers the stage and shows one folder at a time.
 
-The shelf at the bottom holds eight shapes (two of them covered: *Ginger jar* and *Covered urn*) and six lustre presets (Zöld, Hajnal, Labrador,
-Ibolya, Bronz, Gyöngyház). A preset restores every parameter of its groups, and its chip
+The catalogue holds eight shapes (two of them covered: *Ginger jar* and *Covered urn*) and six lustre presets (Zöld, Hajnal, Labrador,
+Ibolya, Bronz, Gyöngyház). A preset restores every parameter of its groups, and its tile
 stays pressed exactly while all of them have the preset's values. A lustre preset can be
 linked directly with its hash, for example `index.html#labrador`; the hash is dropped as
-soon as the glaze is edited and comes back when the edit is undone.
+soon as the glaze is edited and comes back when the edit is undone. The six are fired as
+coloured films over dark glass rather than as metal plate: Zöld emerald, Hajnal ruby red,
+Labrador deep blue (its glaze pools and breaks less, so rims keep their lustre), Ibolya blue-violet, Bronz gilt bronze, Gyöngyház iridescent white over
+a pale crackled glaze. Their painted second lustre is the same film laid on about a
+quarter thicker, so the motif reads tone on tone, in the next colours of the series.
 
 **Adaptive quality** keeps the frame rate usable on slower GPUs: it first renders fewer
 pixels, then gives up stage extras one at a time (the plinth mirror at lower resolution
@@ -229,7 +304,7 @@ The firing model is a plausible reduced-order description, not a calibrated kiln
 simulation: its constants are chosen so that ordinary lustre firings (roughly 550–700 °C,
 10–60 minutes) give films in the range reported for historical lustres. Maxwell-Garnett
 theory ignores particle-size effects and is stretched at the highest metal fractions.
-At those fractions (Hajnal and Bronz, for instance) the lustre layer is opaque, so its
+At those fractions (Bronz, for instance) the lustre layer is opaque, so its
 thickness and the glaze colour beneath only show where the film thins: on relief edges,
-in flame-lean patches and in pinholes. The label says whether the film is opaque.
+in flame-lean patches and in pinholes. The fired-film data say whether the film is opaque.
 Colours are computed for a D65-like white and are clipped to sRGB.
