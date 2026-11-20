@@ -223,6 +223,8 @@ button { font: inherit; color: inherit; }
 .qmenu .qitems { gap: 0; }
 .qmenu .qitems button { text-align: left; height: 30px; background: transparent; border-color: transparent; }
 .qmenu .qitems button:not([disabled]):hover { background: var(--well-hi); }
+.qmenu .qitems button[aria-checked]::after { content: '✓'; float: right; color: var(--gilt); opacity: 0; }
+.qmenu .qitems button[aria-checked="true"]::after { opacity: 1; }
 .qmenu textarea {
   width: 236px; max-width: 100%; resize: vertical; padding: 6px; background: var(--well); color: var(--ink);
   border: 1px solid var(--line); border-radius: 2px; font: 11px/1.4 var(--font-data);
@@ -270,6 +272,24 @@ button { font: inherit; color: inherit; }
 .chip .sil { flex: none; }
 .chip.plain { padding-left: 6px; }
 
+.chip.view { padding: 5px 10px; }
+#present-btn { margin-left: 10px; }
+
+/* ---------- presentation: the chrome leaves, a caption stands at the foot of the picture ---------- */
+.card, .mast, .dock { transition: opacity 0.5s; }
+.app.present .card, .app.present .mast, .app.present .dock { opacity: 0; pointer-events: none; }
+.app.present.peek .dock { opacity: 1; pointer-events: auto; }
+.slate {
+  position: absolute; z-index: 1; left: var(--slate-x, 5%); bottom: var(--slate-y, 5%); margin: 0; max-width: 60%;
+  pointer-events: none; opacity: 0; visibility: hidden; transition: opacity 0.6s, visibility 0s 0.6s;
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.7);
+}
+.app.present .slate { opacity: 1; visibility: visible; transition-delay: 0.3s, 0s; }
+.app.present.peek .slate { opacity: 0; transition-delay: 0s; }
+.slate b { display: block; font: 400 17px/1.2 var(--font-display); letter-spacing: 0.18em; text-transform: uppercase; color: var(--ink); }
+.slate span { display: block; margin-top: 5px; font: 400 12px/1.4 var(--font-ui); color: var(--ink-2); }
+.slate span + span { margin-top: 2px; font: 400 10.5px/1.4 var(--font-data); color: var(--ink-3); }
+
 /* ---------- small-screen chrome ---------- */
 .mast { display: none; grid-column: 1; grid-row: 1; z-index: 2; align-items: center; justify-content: space-between; gap: 12px; min-width: 0; }
 .mast .wordmark { font-size: 30px; margin: 0; }
@@ -284,7 +304,9 @@ button { font: inherit; color: inherit; }
   position: absolute; inset: 0; z-index: 1; pointer-events: none;
   display: grid; place-items: center; padding: 24px; text-align: center;
   color: var(--ink-2); font: 400 13px/1.5 var(--font-ui);
+  background: var(--ground); transition: opacity 1.2s;   /* a curtain over the stage until the first picture is drawn */
 }
+.status.out { opacity: 0; }
 .status.error { pointer-events: auto; color: var(--ink); z-index: 5; background: var(--ground); }
 .status p { max-width: 38em; margin: 0; }
 .toast {
@@ -296,7 +318,7 @@ button { font: inherit; color: inherit; }
 .toast.show { opacity: 1; visibility: visible; transition-delay: 0s; pointer-events: auto; }
 .toast .link-btn { margin-left: 8px; color: var(--gilt); }
 
-@media (max-width: 1280px) { .chip small { display: none; } }
+@media (max-width: 1480px) { .chip small { display: none; } }   /* the lustre shelf stays one row between the side panels */
 @media (max-width: 1080px) {
   .app { grid-template-columns: minmax(0, 1fr); padding-top: max(10px, env(safe-area-inset-top, 0px)); padding-bottom: max(10px, env(safe-area-inset-bottom, 0px)); }
   .chip small { display: inline; }
@@ -316,13 +338,16 @@ button { font: inherit; color: inherit; }
   .chips::-webkit-scrollbar { display: none; }
 }
 @media (max-width: 720px) {                /* phones: an open panel is a sheet over the lower stage; the vessel is drawn above it */
+  .chip.view { padding: 5px 7px; }
+  #view-chips { gap: 4px; }
+  #present-btn { order: -1; margin: 0 4px 0 0; }   /* first, so it is in reach without scrolling the strip */
   .label, .controls { width: 100%; align-self: end; max-height: 63%; }
   .help { height: 62px; padding: 6px 14px; }
   .help .lvl { display: none; }
 }
 @media (max-height: 480px) { .help { height: 44px; padding: 5px 14px; } }   /* a phone on its side: two lines, the list needs the room */
 @media (prefers-reduced-motion: reduce) {
-  .toast { transition: none; }
+  .toast, .card, .mast, .dock, .slate, .app.present .slate, .status { transition: none; }
   .controls .lil-gui.transition > .children { transition-duration: 0s !important; }
 }
 </style>
@@ -372,10 +397,13 @@ button { font: inherit; color: inherit; }
 
   <aside class="card controls" id="controls" aria-label="Simulation parameters"></aside>
 
-  <nav class="dock" aria-label="Presets">
+  <nav class="dock" aria-label="Presets and views">
     <div class="dock-row"><span class="dock-name">Shape</span><div class="chips" id="form-chips"></div></div>
     <div class="dock-row"><span class="dock-name">Lustre</span><div class="chips" id="lustre-chips"></div></div>
+    <div class="dock-row"><span class="dock-name">View</span><div class="chips" id="view-chips"></div></div>
   </nav>
+
+  <figure class="slate" id="slate" aria-hidden="true"></figure>
 
   <div class="status" id="status"><p>Lighting the kiln…</p></div>
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -416,9 +444,9 @@ function fail(message) {
   statusEl.append(p);
 }
 
-let THREE, OrbitControls, EffectComposer, RenderPass, UnrealBloomPass, OutputPass, GUI;
+let THREE, OrbitControls, EffectComposer, RenderPass, UnrealBloomPass, OutputPass, GUI, Pass, FullScreenQuad;
 try {
-  [THREE, { OrbitControls }, { EffectComposer }, { RenderPass }, { UnrealBloomPass }, { OutputPass }, { GUI }] = await Promise.all([
+  [THREE, { OrbitControls }, { EffectComposer }, { RenderPass }, { UnrealBloomPass }, { OutputPass }, { GUI }, { Pass, FullScreenQuad }] = await Promise.all([
     import('three'),
     import('three/addons/controls/OrbitControls.js'),
     import('three/addons/postprocessing/EffectComposer.js'),
@@ -426,6 +454,7 @@ try {
     import('three/addons/postprocessing/UnrealBloomPass.js'),
     import('three/addons/postprocessing/OutputPass.js'),
     import('three/addons/libs/lil-gui.module.min.js'),
+    import('three/addons/postprocessing/Pass.js'),
   ]);
 } catch (err) {
   fail('three.js could not be loaded. This page needs a browser with import maps (Safari 16.4+, Firefox 108+, Chrome 93+) and access to cdn.jsdelivr.net.');
@@ -455,10 +484,11 @@ const DEFAULTS = {
   relief: 'Leaves', reliefHeight: 0.24, reliefCount: 9, reliefRows: 1, reliefStart: 0.07, reliefEnd: 0.63,
   rings: 2, ringHeight: 0.13, ringPos: 0.795, rimWaves: 0, rimHeight: 0.6, rimFrom: 0.72,
   // handles
-  handles: 0, handleLow: 0.62, handleHigh: 0.9, handleReach: 4.2, handleArch: 0.35, handleThick: 1.1, handleFlat: 0.78, handleBlend: 0.6,
+  handles: 0, handleLow: 0.62, handleHigh: 0.9, handleReach: 4.2, handleArch: 0.35, handleThick: 1.1, handleFlat: 0.78, handleBlend: 0.6, handleTaper: 0.5, handleRibs: 1,
+  lid: 'None', lidRise: 0.45, lidOverhang: 0.35, finial: 'Bud', finialSize: 1.6,
   // base glaze
   glazeColor: '#16382a', bodyColor: '#d8c6a6', glazeThick: 1, pooling: 0.7, breaking: 0.45, runs: 0.4, runScale: 0.55, sag: 0.3,
-  gloss: 0.9, peel: 0.3, crackle: 0, crackleSize: 0.9, crackleStain: 0.5, pinholes: 0.12,
+  breakTone: '#8a5a3c', gloss: 0.9, peel: 0.3, wave: 0.3, crackle: 0, crackleSize: 0.9, crackleStain: 0.5, pinholes: 0.12, dust: 0.15, wear: 0.25, grit: 0.6,
   glazeLine: 0.55, dripAmp: 0.5, dripCount: 7,
   // lustre chemistry
   cu: 0.95, ag: 0.05, au: 0, bi: 0.74, coat: 0.65, coverage: 1, innerLustre: 0.55,
@@ -472,14 +502,19 @@ const DEFAULTS = {
   deco: 'Relief motif', decoCount: 12, decoRows: 8, decoSoft: 0.3, decoThick: 0.8, decoFill: 1, decoSilver: 0.6, decoMatte: 0,
   // stage
   env: 'Atelier softboxes', envRot: 20, envInt: 1, keyInt: 2.6, keyLock: true, keyAz: 38, keyEl: 46, keySoft: 2, keySpec: 0,
+  backdrop: 'Cove', backdropTone: 0.12, pool: 0.6, plinthMat: 'Black stone',
   roomRefl: true, reflDetail: 'High', plinthGloss: 0.35, floorGloss: 0, exposure: 1, tone: 'ACES', bloom: 0.22, vignette: 0.3,
   occlusion: 0.9, spin: 1.2, plinth: true, detail: 'Standard', pixelRatio: 2, adaptive: true,
+  // camera and film
+  focal: 45, fstop: 4, dof: 'Always', focusLevel: 0.5, stillSamples: 32, look: 'Print', grain: 0.15, chroma: 0.5, halation: 0.2, frame: 'Free',
 };
 // The state the page opens in, and returns to on Reset: the defaults, with the turntable still if motion is unwelcome
-// and the smaller studio capture on a phone-sized screen (the stage lowers it on a GPU with small textures, too).
+// and, on a phone-sized screen, the smaller studio capture (the stage lowers it on a GPU with small textures, too),
+// the lens blur kept for the picture at rest and fewer lens samples in it.
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)'), phoneSized = window.matchMedia('(max-width: 720px)').matches;
 const START = {
-  ...DEFAULTS, spin: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : DEFAULTS.spin,
-  reflDetail: window.matchMedia('(max-width: 720px)').matches ? 'Standard' : DEFAULTS.reflDetail,
+  ...DEFAULTS, spin: reduceMotion.matches ? 0 : DEFAULTS.spin,
+  reflDetail: phoneSized ? 'Standard' : DEFAULTS.reflDetail, dof: phoneSized ? 'Stills' : DEFAULTS.dof, stillSamples: phoneSized ? 16 : DEFAULTS.stillSamples,
 };
 const P = { ...START };
 
@@ -489,6 +524,8 @@ const FORMS = {
   gourd: { name: 'Double gourd', set: { height: 33, footRadius: 4.3, footHeight: 1.0, waistRadius: 4.3, bellyRadius: 9.2, bellyPos: 0.27, shoulderRadius: 3.5, shoulderPos: 0.57, neckRadius: 5.5, neckPos: 0.75, lipRadius: 1.9, lipBead: 0.1, squash: 0, lobes: 0, twist: 0, relief: 'Vines', reliefHeight: 0.2, reliefCount: 6, reliefRows: 3, reliefStart: 0.06, reliefEnd: 0.5, rings: 1, ringHeight: 0.12, ringPos: 0.57, handles: 0 } },
   tulip: { name: 'Tulip', set: { height: 30, footRadius: 4.2, footHeight: 2.4, waistRadius: 2.9, bellyRadius: 6.4, bellyPos: 0.36, shoulderRadius: 5.3, shoulderPos: 0.6, neckRadius: 4.8, neckPos: 0.8, lipRadius: 7.6, lipBead: 0.05, squash: 0, lobes: 6, lobeDepth: 0.11, lobeProfile: 'Gadroon', lobeStart: 0.16, lobeEnd: 1, twist: 70, relief: 'None', rings: 1, ringHeight: 0.18, ringPos: 0.1, rimWaves: 6, rimHeight: 0.6, rimFrom: 0.72, handles: 0 } },
   amphora: { name: 'Amphora', set: { height: 36, footRadius: 4.4, footHeight: 2.0, waistRadius: 3.3, bellyRadius: 8.8, bellyPos: 0.5, shoulderRadius: 7.0, shoulderPos: 0.68, neckRadius: 2.5, neckPos: 0.86, lipRadius: 3.7, lipBead: 0.15, squash: 0, lobes: 0, twist: 0, relief: 'Spiral ribs', reliefHeight: 0.1, reliefCount: 18, reliefRows: 2, reliefStart: 0.1, reliefEnd: 0.5, rings: 3, ringHeight: 0.11, ringPos: 0.8, handles: 2, handleLow: 0.67, handleHigh: 0.905, handleReach: 4.4, handleArch: 0.4, handleThick: 1.1, handleFlat: 0.78 } },
+  ginger: { name: 'Ginger jar', set: { height: 27, footRadius: 5.6, footHeight: 1.0, waistRadius: 5.6, bellyRadius: 10.4, bellyPos: 0.5, shoulderRadius: 8.4, shoulderPos: 0.78, neckRadius: 4.6, neckPos: 0.93, lipRadius: 4.7, lipBead: 0.1, squash: 0, lobes: 0, twist: 0, relief: 'Vines', reliefHeight: 0.16, reliefCount: 6, reliefRows: 3, reliefStart: 0.1, reliefEnd: 0.74, rings: 1, ringHeight: 0.14, ringPos: 0.9, handles: 0, lid: 'Domed', lidRise: 0.42, lidOverhang: 0.45, finial: 'Disc', finialSize: 1.7 } },
+  urn: { name: 'Covered urn', set: { height: 34, footRadius: 4.6, footHeight: 2.4, waistRadius: 3.0, bellyRadius: 8.6, bellyPos: 0.52, shoulderRadius: 7.2, shoulderPos: 0.7, neckRadius: 3.2, neckPos: 0.88, lipRadius: 4.1, lipBead: 0.14, squash: 0, lobes: 0, twist: 0, relief: 'Spiral ribs', reliefHeight: 0.09, reliefCount: 20, reliefRows: 2, reliefStart: 0.1, reliefEnd: 0.5, rings: 2, ringHeight: 0.12, ringPos: 0.8, handles: 2, handleLow: 0.66, handleHigh: 0.9, handleReach: 3.6, handleArch: 0.3, handleThick: 1.0, handleFlat: 0.78, lid: 'Conical', lidRise: 0.7, lidOverhang: 0.3, finial: 'Acorn', finialSize: 1.7 } },
   bowl: { name: 'Bowl', set: { height: 13, footRadius: 4.6, footHeight: 0.9, waistRadius: 4.2, bellyRadius: 10.6, bellyPos: 0.42, shoulderRadius: 12.6, shoulderPos: 0.72, neckRadius: 13.5, neckPos: 0.9, lipRadius: 14.2, lipBead: 0.06, squash: 0, lobes: 0, twist: 0, relief: 'Cabochons', reliefHeight: 0.22, reliefCount: 16, reliefRows: 1, reliefStart: 0.52, reliefEnd: 0.9, rings: 0, handles: 0 } },
 };
 
@@ -754,9 +791,11 @@ function lobeShape(kind, x) {
   return Math.cos(x);
 }
 
-// Smooth normals and mean curvature for a row/column grid whose last column repeats the first.
+// Smooth normals and mean curvature for a row/column grid whose last column repeats the first. The curvature is a
+// difference of normals: it is taken in double precision (callers pass Float64 positions), or the rounding of single
+// floats shows up as streaks along the columns wherever glaze pools by it.
 function finishGrid(pos, R, C1, opts = {}) {
-  const N = R * C1, nrm = new Float32Array(N * 3), curv = new Float32Array(N);
+  const N = R * C1, nrm = new Float64Array(N * 3), curv = new Float32Array(N);
   for (let k = 0; k < R; k++) {
     const kc = k > 0 ? k - 1 : k, kd = k < R - 1 ? k + 1 : k;
     for (let j = 0; j < C1; j++) {
@@ -784,7 +823,45 @@ function finishGrid(pos, R, C1, opts = {}) {
     kv /= Math.max(den, 1e-9);
     curv[k * C1 + j] = 0.5 * (ku + kv);              // > 0 on ridges, < 0 in hollows
   }
-  return { nrm, curv };
+  return { nrm: new Float32Array(nrm), curv };
+}
+// Hollows collect glaze, ridges shed it. The cavity is the mean curvature at two scales: the vertex's own neighbourhood
+// (the cut of a relief) and about a third of a centimetre of wall (the lap of a ring, the root of a neck), so glaze
+// pools at the scale of the form as well. runs: [first row, last row] spans the wider filter does not cross.
+function cavityField(pos, curv, R, C1, runs, gain) {
+  const C = C1 - 1, N = R * C1, fine = new Float32Array(N), tmp = new Float32Array(N), out = new Float32Array(N), SIG = 0.35;
+  for (let k = 1; k < R - 1; k++) for (let j = 0; j < C1; j++) {
+    let s = 0;
+    for (let dk = -1; dk <= 1; dk++) for (let dj = -1; dj <= 1; dj++) s += curv[(k + dk) * C1 + ((j + dj + C) % C)];
+    fine[k * C1 + j] = clamp(-s / 9 * gain, -1, 1);
+  }
+  const w = new Float64Array(9);
+  const taps = (ds, most) => {                       // nine taps for a Gaussian of SIG cm on a grid spaced ds; returns the stride
+    const si = SIG / Math.max(ds, 1e-4), st = Math.max(1, Math.min(most, Math.round(si / 2)));
+    let sum = 0;
+    for (let i = -4; i <= 4; i++) sum += w[i + 4] = Math.exp(-0.5 * (i * st / si) ** 2);
+    for (let i = 0; i < 9; i++) w[i] /= sum;
+    return st;
+  };
+  for (let k = 1; k < R - 1; k++) {                  // around
+    const o = k * C1 * 3, st = taps(Math.hypot(pos[o + 3] - pos[o], pos[o + 4] - pos[o + 1], pos[o + 5] - pos[o + 2]), Math.max(1, C >> 3));
+    for (let j = 0; j < C; j++) {
+      let s = 0;
+      for (let i = -4; i <= 4; i++) s += w[i + 4] * fine[k * C1 + (((j + i * st) % C) + C) % C];
+      tmp[k * C1 + j] = s;
+    }
+    tmp[k * C1 + C] = tmp[k * C1];
+  }
+  for (const [a, b] of runs) for (let k = Math.max(1, a); k <= Math.min(R - 2, b); k++) {   // up the wall
+    const o = k * C1 * 3, q = o + C1 * 3, lo = Math.max(1, a), hi = Math.min(R - 2, b);
+    const st = taps(Math.hypot(pos[q] - pos[o], pos[q + 1] - pos[o + 1], pos[q + 2] - pos[o + 2]), 8);
+    for (let j = 0; j < C1; j++) {
+      let s = 0;
+      for (let i = -4; i <= 4; i++) s += w[i + 4] * tmp[clamp(k + i * st, lo, hi) * C1 + j];
+      out[k * C1 + j] = 0.5 * fine[k * C1 + j] + 0.5 * s;
+    }
+  }
+  return out;
 }
 // fld: a height per vertex. Each quad is split along the diagonal whose ends differ least in it, so the edges of a
 // relief run along its contours instead of stepping across them.
@@ -1068,7 +1145,8 @@ function buildVessel(p, level) {
   };
   let below = null, above = null, aboveK = -1;
   const { rowAO, groundAO } = profileAO(rows, level);
-  const N = R * C1, pos = new Float32Array(N * 3), uv = new Float32Array(N * 2), surf = new Float32Array(N * 4), ao = new Float32Array(N), fld = new Float32Array(N);
+  const N = R * C1, pos = new Float64Array(N * 3), uv = new Float32Array(N * 2), surf = new Float32Array(N * 4), ao = new Float32Array(N), fld = new Float32Array(N);
+  const lidded = p.lid !== 'None' && rimN === 0;     // under a lid the lip and the inside see next to no sky
   let maxR = 0;
   for (let k = 0; k < R; k++) {
     const [r, y, reg] = rows[k], h = clamp(y / H, 0, 1);
@@ -1111,16 +1189,17 @@ function buildVessel(p, level) {
       pos[o * 3] = rr * cp * sx; pos[o * 3 + 1] = y + d * ny + lift * rimS[j]; pos[o * 3 + 2] = rr * sp * sz;
       uv[o * 2] = j / C; uv[o * 2 + 1] = h;
       surf[o * 4 + 1] = Math.abs(rel); surf[o * 4 + 2] = glz; surf[o * 4 + 3] = reg;
-      ao[o] = rowAO[k];
+      ao[o] = lidded && reg >= 2 ? 0.3 * rowAO[k] : rowAO[k];
       if (rr > maxR) maxR = rr;
     }
   }
   if (warp) warp(pos);
   const { nrm, curv } = finishGrid(pos, R, C1, { poles: true });
-  for (let k = 1; k < R - 1; k++) for (let j = 0; j < C1; j++) {   // hollows collect glaze, ridges shed it
-    let s = 0;
-    for (let dk = -1; dk <= 1; dk++) for (let dj = -1; dj <= 1; dj++) s += curv[(k + dk) * C1 + ((j + dj + C) % C)];
-    surf[(k * C1 + j) * 4] = clamp(-s / 9 * 1.6, -1, 1);
+  {
+    const runs = [];
+    for (let k = 0, a = 0; k <= R; k++) if (k === R || rows[k][2] !== rows[a][2]) { runs.push([a, k - 1]); a = k; }
+    const cav = cavityField(pos, curv, R, C1, runs, 1.6);
+    for (let o = 0; o < N; o++) surf[o * 4] = cav[o];
   }
   for (let k = outerEnd; k < R; k++) {               // and the glaze runs to the middle of the floor
     if (rows[k][2] !== 3 || rows[k][1] > yF + 0.05) continue;
@@ -1145,23 +1224,115 @@ function buildVessel(p, level) {
   const sunk = useRelief ? Math.max(0, p.relief === 'Hammered' ? p.reliefHeight : -p.reliefHeight) : 0;   // how far a relief cuts into the wall, cm
 
   const geometry = new THREE.BufferGeometry();
-  geometry.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(pos), 3));
   geometry.setAttribute('normal', new THREE.BufferAttribute(nrm, 3));
   geometry.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
   geometry.setAttribute('aSurf', new THREE.BufferAttribute(surf, 4));
   geometry.setAttribute('aAO', new THREE.BufferAttribute(ao, 1));
   geometry.setIndex(new THREE.BufferAttribute(gridIndex(R, C1, 0, fld), 1));
   geometry.computeBoundingSphere();
-  return { geometry, maxR: (maxR * (1 + 0.014 * hm) + 0.005 * hm * H) * Math.max(sx, sz), rise: rimRise, ctx: { H, dec, sample, wallAt, lobeAt, twAt, rimAt, normalAt, sx, sz, warp, groundAO, sunk }, vertices: N };
+  return { geometry, maxR: (maxR * (1 + 0.014 * hm) + 0.005 * hm * H) * Math.max(sx, sz), rise: rimRise, ctx: { H, dec, sample, lipTop: rows.reduce((m, q) => (q[2] === 2 ? Math.max(m, q[1]) : m), H), lipOut: top[0], mouthR: Q[0], innerAt: (y) => sample(body, y) - wallAt(y) / Math.max(normalAt(y)[0], 0.35), wallAt, lobeAt, twAt, rimAt, normalAt, sx, sz, warp, groundAO, sunk }, vertices: N };
+}
+
+// A lid, turned separately: it rests on the rim with a flange inside the mouth, and carries a finial on a short stem.
+// One closed meridian from the centre of the underside to the tip. Finials: t 0..1 -> [radius, height] in finial sizes.
+const FINIALS = {
+  'None': null,
+  'Ball': (t) => [0.5 * Math.sin(Math.PI * t), 0.5 - 0.5 * Math.cos(Math.PI * t)],
+  'Bud': (t) => [0.5 * Math.pow(Math.sin(Math.PI * Math.pow(t, 0.72)), 0.85) * (1 - 0.25 * t), 1.5 * t],
+  'Acorn': (t) => [t < 0.42 ? 0.54 * Math.sin(Math.PI * 0.5 * t / 0.42) : 0.54 * Math.pow(Math.cos(Math.PI * 0.5 * (t - 0.42) / 0.58), 0.6), 1.25 * t],
+  'Disc': (t) => [0.75 * Math.pow(Math.sin(Math.PI * t), 0.5), 0.45 * (0.5 - 0.5 * Math.cos(Math.PI * t))],
+};
+const LID_MESH = { Draft: [70, 96], Standard: [120, 192], Fine: [160, 320] };
+function buildLid(p, ctx, level) {
+  if (p.lid === 'None' || !FINIALS.hasOwnProperty(p.finial) || p.rimWaves > 0) return null;
+  let [NP, C] = LID_MESH[level] || LID_MESH.Standard;
+  if (p.lobes > 0) C = Math.max(2 * p.lobes, Math.round(C / (2 * p.lobes)) * 2 * p.lobes);   // a column on every crease, as on the body
+  const C1 = C + 1, H = ctx.H;
+  const Ro = ctx.lipOut + p.lidOverhang, Rm = Math.max(0.3, ctx.mouthR - 0.08), y0 = ctx.lipTop, th = Math.max(0.3, p.wall * 0.9), rise = p.lidRise * Ro;
+  const flat = p.lid === 'Flat' ? 0.25 : 0.62;
+  const prof = (r) => (p.lid === 'Conical' ? 1 - r / Ro : Math.pow(Math.max(0, 1 - (r / Ro) ** 2), flat));
+  const pts = [];                                    // [r, y, zone]  zone 0 inside, 1 flange and seat (bare), 2 brim, 3 cap, 4 finial
+  // underside: from the centre out, down and round the flange (which follows the inside of the neck), out along the seat
+  const fd = Math.min(0.7, 0.5 * Rm), fr = (y) => Math.max(0.12, Math.min(Rm, ctx.innerAt(clamp(y, 0, H)) - 0.08));
+  const under = (r) => y0 + th * 0.2 + Math.max(0, rise - th) * prof(r) * 0.9, rIn = Math.max(0.02, fr(y0 - fd) - 0.3);
+  for (let i = 0; i <= 10; i++) { const r = rIn * i / 10; pts.push([r, under(r), 0]); }
+  pts.push([rIn + 0.02, y0 - fd + 0.15, 1], [Math.min(rIn + 0.1, fr(y0 - fd) - 0.08), y0 - fd, 1], [fr(y0 - fd) - 0.06, y0 - fd, 1]);
+  for (let i = 0; i <= 6; i++) { const y = lerp(y0 - fd + 0.12, y0 - 0.04, i / 6); pts.push([fr(y), y, 1]); }
+  pts.push([Rm + 0.05, y0 + 0.012, 1]);
+  for (let i = 1; i <= 4; i++) pts.push([lerp(Rm + 0.05, Math.max(Rm + 0.06, Ro - 0.12), i / 4), y0 + 0.012, i < 4 ? 1 : 2]);
+  const Re = Math.max(Rm + 0.18, Ro);                // the brim's edge: a half-round
+  for (let i = 1; i <= 8; i++) { const a = -Math.PI / 2 + Math.PI * i / 8; pts.push([Re - 0.12 * (1 - Math.cos(a)), y0 + 0.012 + 0.5 * th * (1 + Math.sin(a)), 2]); }
+  // top: dome, cone or plate, into the stem of the finial
+  const fin = FINIALS[p.finial], fs = p.finialSize, stem = fin ? Math.min(0.22 * fs, 0.6 * (Re - 0.14)) : 0;
+  const topAt = (r) => y0 + th + rise * prof(Math.min(r, Ro));
+  for (let i = 1; i <= 60; i++) { const r = lerp(Re - 0.14, stem, i / 60); pts.push([r, Math.max(topAt(r), y0 + th * (0.9 + 0.1 * Math.min(1, (Re - r) / 0.3))), 3 + 0.4 * i / 60]); }
+  const yTop = pts[pts.length - 1][1];
+  if (fin) {
+    const hs = 0.35 * fs;                            // a stem with a cove, then the turned form
+    for (let i = 1; i <= 10; i++) { const t = i / 10; pts.push([stem * (1 - 0.3 * Math.sin(Math.PI * t)), yTop + hs * t, 4]); }
+    for (let i = 1; i <= 48; i++) { const t = i / 48, q = fin(t); pts.push([Math.max(0.02, stem * (1 - smooth(0, 0.2, t)) + q[0] * fs), yTop + hs + q[1] * fs, 4]); }
+  } else pts.push([0, yTop, 3.4]);
+  pts[pts.length - 1][0] = 0;
+  const cum = [0], len = [0];
+  for (let i = 1; i < pts.length; i++) {
+    const d = Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
+    len.push(len[i - 1] + d);
+    cum.push(cum[i - 1] + d * (pts[i][2] === 2 || pts[i][2] === 4 ? 2.5 : pts[i][2] < 1 ? 0.5 : 1));
+  }
+  const bareA = len[pts.findIndex((q) => q[2] === 1) - 1], bareB = len[pts.findIndex((q) => q[2] === 2) - 1];   // the flange and the seat: fired standing on them
+  const rows = [];
+  for (let k = 0, i = 1; k < NP; k++) {
+    const target = cum[cum.length - 1] * k / (NP - 1);
+    while (i < cum.length - 1 && cum[i] < target) i++;
+    const t = clamp((target - cum[i - 1]) / Math.max(cum[i] - cum[i - 1], 1e-9), 0, 1);
+    rows.push([lerp(pts[i - 1][0], pts[i][0], t), lerp(pts[i - 1][1], pts[i][1], t), pts[i][2], lerp(len[i - 1], len[i], t)]);
+  }
+  rows[0][0] = 0; rows[NP - 1][0] = 0;
+  const N = NP * C1, pos = new Float64Array(N * 3), uv = new Float32Array(N * 2), surf = new Float32Array(N * 4), ao = new Float32Array(N);
+  const tw = ctx.twAt(1);
+  let topY = 0, reach = 0;
+  for (let k = 0; k < NP; k++) {
+    const [r, y, zone, s] = rows[k];
+    const lw = zone < 3 ? 1 : zone < 4 ? 1 - smooth(3, 3.16, zone) : 0;   // a lobed mouth has a lobed lid: round again 40 % of the way up the cap
+    const glz = s > bareA && s < bareB ? -Math.min(1, s - bareA, bareB - s) : Math.min(10, s <= bareA ? bareA - s : s - bareB);
+    for (let j = 0; j < C1; j++) {
+      const o = k * C1 + j, a = TAU * (j % C) / C, rr = r * lerp(1, ctx.lobeAt(a - tw, 1), lw);
+      pos[o * 3] = rr * Math.cos(a) * ctx.sx; pos[o * 3 + 1] = y; pos[o * 3 + 2] = rr * Math.sin(a) * ctx.sz;
+      uv[o * 2] = -1; uv[o * 2 + 1] = 1;             // u < 0: no lattice decoration and no throwing rings, as on a strap
+      surf[o * 4 + 2] = glz; surf[o * 4 + 3] = 1;
+      ao[o] = zone < 2 ? 0.25 : 1;
+    }
+  }
+  if (ctx.warp) ctx.warp(pos);
+  for (let o = 0; o < N * 3; o += 3) { topY = Math.max(topY, pos[o + 1]); reach = Math.max(reach, Math.hypot(pos[o], pos[o + 2])); }
+  const { nrm, curv } = finishGrid(pos, NP, C1, { poles: true });
+  const cav = cavityField(pos, curv, NP, C1, [[0, NP - 1]], 0.45);
+  for (let o = 0; o < N; o++) {
+    const c = Math.max(-0.3, cav[o]);
+    surf[o * 4] = c; if (c > 0) ao[o] *= 1 - 0.5 * c;   // the root of the finial and the brim's inner corner hold glaze and shade
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(pos), 3));
+  geometry.setAttribute('normal', new THREE.BufferAttribute(nrm, 3));
+  geometry.setAttribute('uv', new THREE.BufferAttribute(uv, 2));
+  geometry.setAttribute('aSurf', new THREE.BufferAttribute(surf, 4));
+  geometry.setAttribute('aAO', new THREE.BufferAttribute(ao, 1));
+  geometry.setIndex(new THREE.BufferAttribute(gridIndex(NP, C1), 1));
+  geometry.computeBoundingSphere();
+  return { geometry, rows, top: topY - H, reach };
 }
 const handleJoints = (p) => { const lo = clamp(p.handleLow, 0.08, 0.9); return [lo, clamp(p.handleHigh, lo + 0.08, 0.985)]; };   // heights, as fractions
 
-// Pulled handles: an elliptical strap swept along a Bézier ear. It is a little heavier at the top, has a thumb groove
-// down its back, and at both joints flares and spreads into the wall ('Joint blend').
+// Pulled handles: an elliptical strap swept along a Bézier ear. It is heavier at the top, where the pull began, and
+// thins towards the lower joint ('Pulled taper'); the fingers leave a thumb groove or ribs down its back; at both
+// joints it flares and is smeared onto the wall in a skirt of clay ('Joint blend').
 function buildHandles(p, ctx, level) {
   const n = p.handles | 0;
   if (!n) return null;
-  const NS = level === 'Draft' ? 40 : 96, NA = level === 'Draft' ? 16 : 32, A1 = NA + 1, per = (NS + 1) * A1;
+  const ribs = level === 'Draft' ? 0 : Math.round(p.handleRibs), nRib = 2 * ribs + 1, taper = p.handleTaper;
+  const NS = level === 'Draft' ? 40 : 96, NA = level === 'Draft' ? 16 : ribs > 0 ? (level === 'Fine' ? 64 : 48) : 32, A1 = NA + 1, per = (NS + 1) * A1;
+  const girth = (s) => lerp(0.92 - 0.27 * taper, 1.06 + 0.20 * taper, s);   // s = 1 is the upper joint
   const pos = new Float32Array(n * per * 3), nrm = new Float32Array(n * per * 3), uv = new Float32Array(n * per * 2), surf = new Float32Array(n * per * 4), ao = new Float32Array(n * per);
   const idx = new Uint32Array(n * NS * NA * 6);
   const H = ctx.H, [ha, hb] = handleJoints(p), T = p.handleThick, bl = p.handleBlend;
@@ -1216,7 +1387,8 @@ function buildHandles(p, ctx, level) {
       let m = Infinity;
       for (let i = 1, a = bez(0), b = bez(1 / 120); i < 120; i++) {
         const c = bez((i + 1) / 120), cr = Math.abs((b[0] - a[0]) * (c[1] - b[1]) - (b[1] - a[1]) * (c[0] - b[0]));
-        m = Math.min(m, Math.hypot(b[0] - a[0], b[1] - a[1]) * Math.hypot(c[0] - b[0], c[1] - b[1]) * Math.hypot(c[0] - a[0], c[1] - a[1]) / Math.max(2 * cr, 1e-12));
+        // against the strap's own thickness there: a tapered strap follows a tighter turn at its thin end
+        m = Math.min(m, Math.hypot(b[0] - a[0], b[1] - a[1]) * Math.hypot(c[0] - b[0], c[1] - b[1]) * Math.hypot(c[0] - a[0], c[1] - a[1]) / Math.max(2 * cr, 1e-12) * lerp(0.92, 1.06, i / 120) / girth(i / 120));
         a = b; b = c;
       }
       return m / p.handleThick;
@@ -1234,33 +1406,63 @@ function buildHandles(p, ctx, level) {
     let len = 0;
     for (let i = 1, q = bez(0); i <= 40; i++) { const w = bez(i / 40); len += Math.hypot(w[0] - q[0], w[1] - q[1]); q = w; }
     const capS = clamp(0.3 * ctx.wallAt(A[1]) / len, 0.004, 0.1);   // the rounded tip stays buried inside the wall
-    const part = new Float32Array(per * 3), sdAt = new Float32Array(NS + 1);
+    const part = new Float64Array(per * 3), sdAt = new Float32Array(NS + 1), fil = 0.28 * T * bl;
+    const under = (rho, yv, bt) => {                 // how deep a point lies under the wall's surface (under any sunk relief), and the wall there
+      const yw = yv - lift(yv - lift(yv)), hv = clamp(yw / H, 0, 1), wn = ctx.normalAt(clamp(yw, 0, H)), rv = Math.sqrt(rho * rho + bt * bt);
+      return [(ctx.sample(ctx.dec, yw) * ctx.lobeAt(phi + Math.atan2(bt, rho) - ctx.twAt(hv), hv) - ctx.sunk - rv) * wn[0], wn, rv, yw];
+    };
+    // Rows gather at the joints, and with a fillet most of all where the strap comes out of the wall: rows are placed
+    // by a density that adds a share of them around each crossing.
+    const rowS = new Float64Array(NS + 1);
+    for (let i = 0; i <= NS; i++) rowS[i] = 0.5 - 0.5 * Math.cos(Math.PI * i / NS);
+    if (fil > 0) {
+      const out = (dir) => { for (let q = 1; q <= 150; q++) { const s = 0.3 * q / 150, c = bez(dir > 0 ? s : 1 - s); if (under(c[0], c[1], 0)[0] < 0) return s; } return 0.3; };
+      const MQ = 1024, cdf = new Float64Array(MQ + 1), share = level === 'Draft' ? 0.12 : 0.22, sg = (0.5 * fil + 0.15 * T) / len;
+      const ca = out(1) + 0.4 * fil / len, cb = 1 - out(-1) - 0.4 * fil / len, gk = share / (sg * Math.sqrt(TAU));
+      for (let q = 1; q <= MQ; q++) {
+        const s = (q - 0.5) / MQ;
+        cdf[q] = cdf[q - 1] + (1 - 2 * share) / (Math.PI * Math.sqrt(s * (1 - s))) + gk * (Math.exp(-0.5 * ((s - ca) / sg) ** 2) + Math.exp(-0.5 * ((s - cb) / sg) ** 2));
+      }
+      for (let i = 1, q = 1; i < NS; i++) {
+        const target = cdf[MQ] * i / NS;
+        while (q < MQ && cdf[q] < target) q++;
+        rowS[i] = (q - 1 + (target - cdf[q - 1]) / (cdf[q] - cdf[q - 1])) / MQ;
+      }
+    }
     for (let i = 0; i <= NS; i++) {
-      const s = 0.5 - 0.5 * Math.cos(Math.PI * i / NS);                    // rows gather at the joints
+      const s = rowS[i];
       const c = bez(s), e = bez(Math.min(1, s + 1e-3)), b0 = bez(Math.max(0, s - 1e-3));
       const tr = e[0] - b0[0], ty = e[1] - b0[1], l = Math.hypot(tr, ty) || 1, nr = ty / l, ny = -tr / l;
       const end = Math.min(s, 1 - s) / capS, cap = end >= 1 ? 1 : Math.sqrt(Math.max(0, 1 - (1 - end) * (1 - end)));
       const sd = sdAt[i] = Math.min(s, 1 - s) * len;                       // along the strap to the nearer joint, cm
-      const flare = lerp(0.3 * (Math.exp(-((s / 0.2) ** 2)) + Math.exp(-(((1 - s) / 0.2) ** 2))), 0.8 * (1 - Math.min(1, sd / (1.2 * T))) ** 3, bl);   // 'Joint blend': a fillet that meets the wall at a slope
+      const flare = Math.min(0.35, lerp(0.3 * (Math.exp(-((s / 0.2) ** 2)) + Math.exp(-(((1 - s) / 0.2) ** 2))), 0.8 * (1 - Math.min(1, sd / (1.2 * T))) ** 3, bl));   // 'Joint blend': a fillet that meets the wall at a slope
       // the flare takes no more room than the wall has between the joint and its end
-      const plain = 0.5 * T * (0.9 + 0.1 * Math.cos(TAU * s)) * lerp(0.92, 1.06, s);
+      const plain = 0.5 * T * (0.9 + 0.1 * Math.cos(TAU * s)) * girth(s);
       const rad = Math.max(plain, Math.min(plain * (1 + flare), s < 0.5 ? A[1] : H - B[1])) * cap;
       reach = Math.max(reach, c[0] + rad);
       // the clay is smeared sideways onto the wall, most at the lower joint; but towards a joint the strap is no wider
       // than the wall it meets can take (0.9 of its radius across)
       const fl = p.handleFlat * (1 + bl * (s < 0.5 ? 0.6 : 0.3) * Math.exp(-((sd / (0.8 * T)) ** 2)));
       const flat = Math.min(fl, lerp(0.45 * (s < 0.5 ? A[0] : B[0]) / Math.max(rad, 1e-6), fl, smooth(0.02, 0.22, Math.min(s, 1 - s))));
-      const groove = 0.1 * smooth(0.08, 0.3, Math.min(s, 1 - s)), shade = bl * Math.exp(-((sd / (0.6 * T)) ** 2));
+      // down the back: the thumb's groove, or with 'Finger ribs' the ridges the fingers leave instead
+      const mid = smooth(0.08, 0.3, Math.min(s, 1 - s)), groove = ribs > 0 ? 0 : 0.1 * mid, rib = ribs > 0 ? 0.06 * mid : 0, shade = bl * Math.exp(-((sd / (0.6 * T)) ** 2));
       for (let j = 0; j < A1; j++) {
         const al = TAU * (j % NA) / NA, ca = Math.cos(al), sa = Math.sin(al);   // ca > 0: the back of the strap, facing away from the pot
-        const a = rad * ca * (1 - groove * Math.exp(-((sa / 0.38) ** 2)) * Math.max(ca, 0)), bt = rad * flat * sa;
+        const rb = rad * (1 + rib * Math.cos(nRib * al) * smooth(-0.1, 0.5, ca));   // on the back only
+        let a = rb * ca * (1 - groove * Math.exp(-((sa / 0.38) ** 2)) * Math.max(ca, 0)), bt = rb * flat * sa;
         const o = (i * A1 + j) * 3, g = k * per + i * A1 + j;
         let rho = c[0] + a * nr, yv = c[1] + a * ny;
         if (sd < 2 * T) {
           // The root stays in the clay, never through the wall into the pot: a soft floor 0.7 of the wall down (under any
           // sunk relief). What lies deeper is pressed against it in order, along the wall's normal, so nothing folds.
-          const yw = yv - lift(yv - lift(yv)), hv = clamp(yw / H, 0, 1), wn = ctx.normalAt(clamp(yw, 0, H)), rv = Math.sqrt(rho * rho + bt * bt);
-          const depth = (ctx.sample(ctx.dec, yw) * ctx.lobeAt(phi + Math.atan2(bt, rho) - ctx.twAt(hv), hv) - ctx.sunk - rv) * wn[0];
+          let [depth, wn, rv, yw] = under(rho, yv, bt);
+          if (fil > 0 && depth > -fil) {
+            // Luted on: close to the wall the section swells into a skirt of smeared clay that meets the wall at a
+            // shallow angle, instead of butting against it. Not on a wall that lies nearly flat (a shelf has no 'depth').
+            const hg = Math.max(0, -depth), kx = 1 + smooth(0.25, 0.6, wn[0]) * fil * (1 - hg / fil) ** 2 / Math.max(rad, 0.05);
+            a *= kx; bt *= kx; rho = c[0] + a * nr; yv = c[1] + a * ny;
+            [depth, wn, rv, yw] = under(rho, yv, bt);
+          }
           const soft = 0.1 * ctx.wallAt(yw), e = (depth - 0.7 * ctx.wallAt(yw)) / soft;
           if (e > -6) {
             const push = soft * (e > 30 ? e : Math.log1p(Math.exp(e)));
@@ -1276,8 +1478,8 @@ function buildHandles(p, ctx, level) {
     if (ctx.warp) ctx.warp(part);
     const fin = finishGrid(part, NS + 1, A1);
     // orient outward: compare one mid-handle normal with the offset from the strap's centre line
-    const mid = (Math.floor(NS / 2) * A1) * 3, cm = bez(0.5);
-    const flip = fin.nrm[mid] * (part[mid] - cm[0] * cp * ctx.sx) + fin.nrm[mid + 1] * (part[mid + 1] - cm[1]) + fin.nrm[mid + 2] * (part[mid + 2] - cm[0] * sp * ctx.sz) < 0 ? -1 : 1;
+    const m0 = (Math.floor(NS / 2) * A1) * 3, cm = bez(0.5);
+    const flip = fin.nrm[m0] * (part[m0] - cm[0] * cp * ctx.sx) + fin.nrm[m0 + 1] * (part[m0 + 1] - cm[1]) + fin.nrm[m0 + 2] * (part[m0 + 2] - cm[0] * sp * ctx.sz) < 0 ? -1 : 1;
     pos.set(part, k * per * 3);
     for (let q = 0; q < per; q++) {
       // Near a joint the shading normal leans to the wall's, so a highlight runs from strap to wall without a crease.
@@ -1286,11 +1488,11 @@ function buildHandles(p, ctx, level) {
       let nx = fin.nrm[o] * flip, ny = fin.nrm[o + 1] * flip, nz = fin.nrm[o + 2] * flip, wx = wn[0] * cp / ctx.sx, wy = wn[1], wz = wn[0] * sp / ctx.sz;
       const wl = Math.hypot(wx, wy, wz) || 1;
       wx /= wl; wy /= wl; wz /= wl;
-      const w = 0.8 * bl * (1 - smooth(0, 0.9 * T, sdAt[Math.floor(q / A1)])) * smooth(-0.3, 0.1, nx * wx + ny * wy + nz * wz);
+      const w = 0.25 * bl * (1 - smooth(0, 0.9 * T, sdAt[Math.floor(q / A1)])) * smooth(-0.3, 0.1, nx * wx + ny * wy + nz * wz);
       nx = lerp(nx, wx, w); ny = lerp(ny, wy, w); nz = lerp(nz, wz, w);
       const l = Math.hypot(nx, ny, nz) || 1;
       nrm[g] = nx / l; nrm[g + 1] = ny / l; nrm[g + 2] = nz / l;
-      surf[(k * per + q) * 4] = clamp(surf[(k * per + q) * 4] - fin.curv[q] * flip * 0.35, -0.6, 1);
+      surf[(k * per + q) * 4] = clamp(surf[(k * per + q) * 4] - fin.curv[q] * flip * 0.35, -0.6, 0.75);
     }
     const gi = gridIndex(NS + 1, A1, k * per);
     if (flip < 0) for (let q = 0; q < gi.length; q += 3) { const t = gi[q + 1]; gi[q + 1] = gi[q + 2]; gi[q + 2] = t; }
@@ -1341,7 +1543,9 @@ varying vec2 vEzUv;
 varying float vAO;          // ambient occlusion from the meridian: 1 open, 0 enclosed
 varying vec3 vEzWorld;
 
-uniform float uUnit, uHeight, uAO, uHand, uKeySpec;
+uniform float uUnit, uHeight, uAO, uHand, uKeySpec, uWave, uDust, uWear, uGrit;
+uniform vec3 uBreakTone;
+uniform mat3 normalMatrix;
 uniform int uSpecN;
 uniform float uSpecBW;       // half the spacing of the spectral samples, nm
 uniform float uLam[EZ_MAX];
@@ -1396,6 +1600,19 @@ float ezNoise(vec3 x) {                        // gradient noise, remapped to ab
     mix(mix(ezGrad(i, f, vec3(0, 0, 0)), ezGrad(i, f, vec3(1, 0, 0)), u.x), mix(ezGrad(i, f, vec3(0, 1, 0)), ezGrad(i, f, vec3(1, 1, 0)), u.x), u.y),
     mix(mix(ezGrad(i, f, vec3(0, 0, 1)), ezGrad(i, f, vec3(1, 0, 1)), u.x), mix(ezGrad(i, f, vec3(0, 1, 1)), ezGrad(i, f, vec3(1, 1, 1)), u.x), u.y), u.z);
 }
+vec4 ezNoiseD(vec3 x) {                       // the same noise with its gradient: (value, d/dx)
+  vec3 i = floor(x), f = fract(x);
+  vec3 u = f * f * f * (f * (f * 6.0 - 15.0) + 10.0), du = 30.0 * f * f * (f * (f - 2.0) + 1.0);
+  vec3 ga = ezHash3(i) * 2.0 - 1.0, gb = ezHash3(i + vec3(1, 0, 0)) * 2.0 - 1.0, gc = ezHash3(i + vec3(0, 1, 0)) * 2.0 - 1.0, gd = ezHash3(i + vec3(1, 1, 0)) * 2.0 - 1.0;
+  vec3 ge = ezHash3(i + vec3(0, 0, 1)) * 2.0 - 1.0, gf = ezHash3(i + vec3(1, 0, 1)) * 2.0 - 1.0, gg = ezHash3(i + vec3(0, 1, 1)) * 2.0 - 1.0, gh = ezHash3(i + vec3(1, 1, 1)) * 2.0 - 1.0;
+  float va = dot(ga, f), vb = dot(gb, f - vec3(1, 0, 0)), vc = dot(gc, f - vec3(0, 1, 0)), vd = dot(gd, f - vec3(1, 1, 0));
+  float ve = dot(ge, f - vec3(0, 0, 1)), vf = dot(gf, f - vec3(1, 0, 1)), vg = dot(gg, f - vec3(0, 1, 1)), vh = dot(gh, f - vec3(1, 1, 1));
+  float kxy = va - vb - vc + vd, kyz = va - vc - ve + vg, kzx = va - vb - ve + vf, kxyz = -va + vb + vc - vd + ve - vf - vg + vh;
+  float v = va + u.x * (vb - va) + u.y * (vc - va) + u.z * (ve - va) + u.x * u.y * kxy + u.y * u.z * kyz + u.z * u.x * kzx + u.x * u.y * u.z * kxyz;
+  vec3 d = ga + u.x * (gb - ga) + u.y * (gc - ga) + u.z * (ge - ga) + u.x * u.y * (ga - gb - gc + gd) + u.y * u.z * (ga - gc - ge + gg) + u.z * u.x * (ga - gb - ge + gf) + u.x * u.y * u.z * (-ga + gb + gc - gd + ge - gf - gg + gh)
+    + du * (vec3(vb - va, vc - va, ve - va) + u.yzx * vec3(kxy, kyz, kzx) + u.zxy * vec3(kzx, kxy, kyz) + u.yzx * u.zxy * kxyz);
+  return vec4(0.5 + 0.62 * v, 0.62 * d);
+}
 float ezFbm2(vec3 p) { return (ezNoise(p) + 0.5 * ezNoise(p * 2.03 + vec3(17.1, 9.2, 13.7))) / 1.5; }
 float ezFbm(vec3 p) {
   float a = 0.5, s = 0.0;
@@ -1415,37 +1632,60 @@ vec3 ezVoronoi(vec3 x) {                       // F1, F2, cell id
   return vec3(sqrt(d1), sqrt(d2), fract(id * 7.13));
 }
 
-// ---- glaze micro-relief (cm): orange peel, crackle grooves, pinholes
-float ezMicro(vec3 p, float fw, out float crack, out float cell, out float pit) {
-  float h = uPeel * (0.011 * (ezNoise(p * 9.0) - 0.5) * (1.0 - smoothstep(0.028, 0.067, fw))
-                   + 0.020 * (ezNoise(p * 2.7 + 5.0) - 0.5) * (1.0 - smoothstep(0.09, 0.22, fw)));
-  // throwing rings: one fine spiral left by the fingers, stronger inside where no rib smoothed it; straps have none
-  h += uHand * 0.0035 * (vSurf.w > 2.5 ? 2.0 : 1.0) * sin(6.2831853 * p.y / 0.32 + atan(p.z, p.x)) * (1.0 - smoothstep(0.035, 0.09, fw)) * smoothstep(0.2, 1.0, length(p.xz)) * step(-0.5, vEzUv.x);
+// ---- glaze micro-relief: the gradient of the height field in object space (cm per cm), evaluated once per pixel.
+// Orange peel on a lattice turned off the pot's axes, long slump waves, throwing rings whose pitch and depth wander,
+// crackle grooves and pinholes. 'lost' is the slope a pixel is too large to show: it goes to roughness instead.
+const mat3 EZ_R1 = mat3(0.36, 0.48, -0.80, -0.80, 0.60, 0.00, 0.48, 0.64, 0.60);
+vec3 ezMicro(vec3 p, float fw, out float crack, out float cell, out float pit, out float lost) {
+  vec3 pa = EZ_R1 * p, pb = (EZ_R1 * pa).zxy;
+  float fa = 1.0 - smoothstep(0.022, 0.055, fw), fb = 1.0 - smoothstep(0.07, 0.18, fw);
+  vec4 nw = ezNoiseD(pb * 0.55 + 3.0);
+  vec4 na = ezNoiseD(pa * 10.5 + 2.0 * nw.x), nb = ezNoiseD(pb * 3.1 + 5.0);
+  vec3 g = uPeel * (0.0075 * 10.5 * fa * (na.yzw * EZ_R1) + 0.017 * 3.1 * fb * ((nb.zwy * EZ_R1) * EZ_R1)) + uWave * 0.09 * 0.55 * ((nw.zwy * EZ_R1) * EZ_R1);
+  lost = uPeel * (0.0075 * 10.5 * (1.0 - fa) + 0.017 * 3.1 * (1.0 - fb));
+  // throwing rings: one spiral left by the fingers, stronger inside where no rib smoothed it; straps and lids have none
+  float rr = max(dot(p.xz, p.xz), 0.04);
+  float ph = 6.2831853 * p.y / 0.32 + atan(p.z, p.x) + 1.7 * sin(0.83 * p.y + uSeed) + 0.9 * sin(2.31 * p.y + 1.7 * uSeed);
+  float amp = uHand * (vSurf.w > 2.5 ? 0.007 : 0.002) * (0.55 + 0.45 * sin(1.37 * p.y + 2.3 * uSeed) + 0.3 * sin(0.41 * p.y + uSeed))
+            * (1.0 - smoothstep(0.035, 0.09, fw)) * smoothstep(0.2, 1.0, sqrt(rr)) * step(-0.5, vEzUv.x);
+  g += amp * cos(ph) * vec3(-p.z / rr, 6.2831853 / 0.32 + 1.7 * 0.83 * cos(0.83 * p.y + uSeed) + 0.9 * 2.31 * cos(2.31 * p.y + 1.7 * uSeed), p.x / rr);
   crack = 0.0; cell = 0.5; pit = 0.0;
   if (uCrackle > 0.001) {
-    vec3 v = ezVoronoi(p / uCrackleSize + (ezNoise(p * 1.3) - 0.5) * 0.35);
-    float w = max(0.012, fw * 1.3);
-    crack = (1.0 - smoothstep(0.0, w, (v.y - v.x) * uCrackleSize)) * uCrackle * min(1.0, 0.03 / w);
-    cell = mix(0.5, v.z, smoothstep(0.0, 0.2, uCrackle));        // the mosaic comes in with the crack network, not ahead of it
-    h -= crack * 0.006;
+    vec3 x = p / uCrackleSize + (nw.x - 0.5) * 0.5, i = floor(x), f = fract(x), r1 = vec3(0.0), r2 = vec3(0.0);
+    float d1 = 8.0, d2 = 8.0, id = 0.0;
+    for (int a = -1; a <= 1; a++) for (int b = -1; b <= 1; b++) for (int c = -1; c <= 1; c++) {
+      vec3 gq = vec3(float(a), float(b), float(c)), o = ezHash3(i + gq), r = gq + o - f;
+      float d = dot(r, r);
+      if (d < d1) { d2 = d1; r2 = r1; d1 = d; r1 = r; id = o.x + o.y * 0.37; } else if (d < d2) { d2 = d; r2 = r; }
+    }
+    d1 = sqrt(d1); d2 = sqrt(d2);
+    float w = max(0.012, fw * 1.3), t = clamp((d2 - d1) * uCrackleSize / w, 0.0, 1.0), k = uCrackle * min(1.0, 0.03 / w);
+    crack = (1.0 - t * t * (3.0 - 2.0 * t)) * k;
+    cell = mix(0.5, fract(id * 7.13), smoothstep(0.0, 0.2, uCrackle));   // the mosaic comes in with the crack network, not ahead of it
+    g += 0.006 * k * 6.0 * t * (1.0 - t) / w * (r1 / max(d1, 1e-4) - r2 / max(d2, 1e-4));
   }
   if (uPinholes > 0.001) {
-    vec3 q = p * 2.3, i = floor(q), o = ezHash3(i + 3.7);
-    float d = length(fract(q) - (0.2 + 0.6 * o));
-    float r0 = 0.06 + 0.08 * o.z, r = max(r0, 1.5 * fw * 2.3);   // never smaller than a pixel: a wider, shallower pit of the same volume
-    pit = step(1.0 - uPinholes * 0.3, ezHash(i + 9.1)) * (1.0 - smoothstep(0.0, r, d)) * (r0 * r0) / (r * r);
-    h -= pit * 0.012;
+    vec3 q = p * 2.3, i = floor(q), o = ezHash3(i + 3.7), c = fract(q) - (0.2 + 0.6 * o);
+    float d = length(c);
+    float r0 = 0.06 + 0.08 * o.z, r = max(r0, 1.5 * fw * 2.3), t = clamp(d / r, 0.0, 1.0);   // never smaller than a pixel: a wider, shallower pit of the same volume
+    float k = step(1.0 - uPinholes * 0.3, ezHash(i + 9.1)) * (r0 * r0) / (r * r);
+    pit = k * (1.0 - t * t * (3.0 - 2.0 * t));
+    g += 0.012 * k * 6.0 * t * (1.0 - t) / r * 2.3 * c / max(d, 1e-4);
   }
-  return h;
+  return g;
 }
-float ezClayRelief(vec3 p, float under) {          // trimming rings under the foot, grog elsewhere
-  return under * 0.004 * sin(length(p.xz) * 26.0) + 0.004 * (ezNoise(p * 24.0) - 0.5);
-}
-vec3 ezPerturb(vec3 surfPos, vec3 n, vec2 dH, float face) {   // Mikkelsen, unnormalised: heights in scene units
-  vec3 sx = dFdx(surfPos), sy = dFdy(surfPos);
-  vec3 r1 = cross(sy, n), r2 = cross(n, sx);
-  float det = dot(sx, r1) * face;
-  return normalize(abs(det) * n - sign(det) * (dH.x * r1 + dH.y * r2));
+// Bare clay: trimming rings under the foot, fine grog, a coarser grog octave and grains of kiln sand ('Foot grit').
+// near: 1 beside the glaze edge and on the foot ring, where the sand of the kiln shelf sticks.
+vec3 ezClayRelief(vec3 p, float under, float fw, float near, out float sand) {
+  float l = max(length(p.xz), 0.05), f = 1.0 - smoothstep(0.03, 0.09, fw);
+  vec3 g = f * (under * 0.004 * 26.0 * cos(l * 26.0) * vec3(p.x, 0.0, p.z) / l + 0.004 * 24.0 * ezNoiseD(p * 24.0).yzw);
+  g += uGrit * 0.04 * 5.3 * ezNoiseD(p * 5.3 + 7.0).yzw * (1.0 - smoothstep(0.1, 0.3, fw));
+  vec3 q = p * 14.0, o = ezHash3(floor(q) + 5.1), c = fract(q) - (0.3 + 0.4 * o);
+  float d = length(c), r = 0.16 + 0.14 * o.x, t = clamp(d / r, 0.0, 1.0);
+  float k = uGrit * step(0.93 - 0.25 * near, o.z) * (0.4 + 0.6 * near) * (1.0 - smoothstep(0.015, 0.045, fw));
+  sand = k * (1.0 - t * t * (3.0 - 2.0 * t));
+  g -= 0.012 * k * 6.0 * t * (1.0 - t) / r * 14.0 * c / max(d, 1e-4);   // a grain stands proud
+  return g;
 }
 
 // ---- film optics: air / cover film / Maxwell-Garnett metal-glass composite / glaze
@@ -1504,6 +1744,7 @@ void ezLustreEval(float cosT, vec3 fill, float dC, float dM, out vec3 R, out vec
 float ezDecoMask(float rel, vec3 p) {
   float s = 0.02 + 0.3 * uDecoSoft, m = 0.0;
   if (uDeco == 1) {
+    if (abs(rel - 0.34) < s + 0.05) rel += 0.05 * (ezNoise(p * 9.0) - 0.5) + 0.03 * (ezNoise(p * 31.0) - 0.5);   // a brushed edge, not a contour line
     m = smoothstep(0.34 - s, 0.34 + s, rel);
   } else if (uDeco == 2) {
     m = 1.0 - smoothstep(0.22 - s * 0.5, 0.22 + s * 0.5, abs(fract(vEzUv.y * uDecoRows) - 0.5));
@@ -1545,25 +1786,27 @@ float ezRunN = ezFbm(vec3(ezP.x, ezP.y * 0.1, ezP.z) * uRunScale + uSeed);     /
 float ezLow = ezFbm(ezP * uThickScale + vec3(uSeed * 1.7, 4.1, 2.3));
 float ezGT = max(0.03, uGlazeThick * (1.0 + uPool * 1.4 * ezCav + uRuns * 1.5 * (ezRunN - 0.5) + uSag * (0.5 - ezHN)));
 float ezBreak = 1.0 - smoothstep(0.15 * uBreak, 0.85 * uBreak + 1e-3, ezGT);
+// the break is ragged: its width and depth wander along an arris, as a dipped glaze thins unevenly over an edge
+float ezBn = 0.0;
+if (ezBreak > 0.0) { ezBn = clamp(ezBreak * (0.55 + 0.9 * ezNoise(ezP * 5.0)), 0.0, 1.0); ezBn *= ezBn * (3.0 - 2.0 * ezBn); }
 
-float ezCrack = 0.0, ezCell = 0.5, ezPit = 0.0, ezT0, ezT1, ezT2;
-vec2 ezDH = vec2(0.0), ezDHc = vec2(0.0);
+float ezCrack = 0.0, ezCell = 0.5, ezPit = 0.0, ezLost = 0.0, ezSand = 0.0, ezWorn = 0.0;
+vec3 ezG = vec3(0.0), ezGc = vec3(0.0);
 vec3 ezClay = uBodyColor;
-if (ezGlaze > 0.002) {
-  float ezH0 = ezMicro(ezP, ezFw, ezCrack, ezCell, ezPit);
-  ezDH = vec2(ezMicro(ezP + ezDx, ezFw, ezT0, ezT1, ezT2), ezMicro(ezP + ezDy, ezFw, ezT0, ezT1, ezT2)) - ezH0;
-}
+if (ezGlaze > 0.002) ezG = ezMicro(ezP, ezFw, ezCrack, ezCell, ezPit, ezLost);
 if (ezGlaze < 0.998) {
-  float ezC0 = ezClayRelief(ezP, ezUnder);
-  ezDHc = (vec2(ezClayRelief(ezP + ezDx, ezUnder), ezClayRelief(ezP + ezDy, ezUnder)) - ezC0) * (1.0 - smoothstep(0.03, 0.09, ezFw));
+  ezWorn = uGrit * ezUnder * (1.0 - smoothstep(0.01, 0.12, ezP.y));   // the foot ring, rubbed smooth and pale by every shelf it stood on
+  ezGc = ezClayRelief(ezP, ezUnder, ezFw, max(ezOuter * (1.0 - smoothstep(0.0, 0.3, -vSurf.z)), ezWorn), ezSand);
   float ezSpeck = smoothstep(0.70, 0.76, ezNoise(ezP * 12.0)) * (1.0 - smoothstep(0.03, 0.08, ezFw));   // iron specks; gone before they alias
   ezClay *= (0.7 + 0.42 * ezFbm(ezP * 6.0)) * (1.0 - 0.3 * ezSpeck);
   ezClay *= mix(vec3(0.58, 0.50, 0.44), vec3(1.0), smoothstep(0.0, 0.35, -vSurf.z));   // toasted by flux and smoke beside the glaze edge
+  ezClay *= 1.0 + 0.12 * ezWorn;
+  ezClay = mix(ezClay, vec3(0.80, 0.77, 0.70), 0.7 * ezSand);
 }
-ezDH = mix(ezDHc, ezDH, ezGlaze) * uUnit;
+ezG = mix(ezGc, ezG, ezGlaze);
 
 vec3 ezCol = pow(uGlazeColor, vec3(clamp(ezGT, 0.15, 3.0)));          // Beer-Lambert: deeper where thicker
-ezCol = mix(ezCol, mix(uBodyColor, ezCol, 0.35) * 0.9, ezBreak * 0.75);
+ezCol = mix(ezCol, mix(uBreakTone, ezCol, 0.3), 0.7 * ezBn);
 ezCol *= (1.0 - 0.7 * uCrackleStain * ezCrack) * (1.0 - 0.5 * ezPit);
 
 // reduction flashing: where the flame licked the pot
@@ -1580,7 +1823,7 @@ float ezDeco = ezDecoMask(ezRel, ezP) * ezOuter;
 if (uDeco == 3 || uDeco == 5) ezDeco *= step(-0.5, vEzUv.x);          // lattice motifs need the body's (u, v); handles carry u = -1
 
 float ezLustre = ezGlaze * uCoverage * (1.0 - 0.85 * ezPit) * mix(1.0, uInnerLustre, ezInner);
-vec3 ezFill = uFill * ezRed * (1.0 - 0.6 * ezBreak) * mix(1.0, uDecoFill, ezDeco);
+vec3 ezFill = uFill * ezRed * (1.0 - 0.6 * ezBn) * mix(1.0, uDecoFill, ezDeco);
 float ezMove = uDecoSilver * ezDeco;
 ezMove = ezMove > 0.0 ? ezFill.x * ezMove : ezFill.y * ezMove;        // repaint copper as silver, or the reverse
 ezFill.x -= ezMove; ezFill.y += ezMove;
@@ -1589,14 +1832,25 @@ float ezDM = uDMetal * max(0.1, 1.0 + uThickVar * 1.6 * (ezLow - 0.5) + uLustreP
            * mix(0.75, 1.15, clamp(ezRed * 0.5, 0.0, 1.0)) * mix(1.0, uDecoThick, ezDeco);
 float ezDC = uDCover * max(0.1, 1.0 + uThickVar * 1.2 * (ezRunN - 0.5) + uMosaic * 0.35 * (ezCell - 0.5)) * mix(1.0, uDecoThick, ezDeco);
 
-float ezRough = mix(0.93, uRough + uHaze + 0.22 * ezBreak + 0.5 * uDecoMatte * ezDeco + 0.25 * ezCrack + 0.3 * ezPit, ezGlaze);
+// what lies on the surface: dust settles on what faces up, as a haze and as single motes; hands leave a duller bloom
+// where a pot is held. All of it fades before it could alias, and none of it takes more than a little of the lustre.
+vec3 ezNo = normalize(vObjNormal);
+float ezUpF = smoothstep(0.15, 0.85, ezNo.y) * (1.0 - ezInner);
+vec3 ezDq = ezP * 38.0, ezDo = ezHash3(floor(ezDq));
+float ezMote = step(1.0 - 0.10 * uDust * (0.25 + ezUpF), ezDo.z) * (1.0 - smoothstep(0.10, 0.34, length(fract(ezDq) - 0.25 - 0.5 * ezDo))) * (1.0 - smoothstep(0.012, 0.03, ezFw));
+float ezFilm = uDust * ezUpF * (0.35 + 0.65 * ezLow);
+float ezHeld = uWear * smoothstep(0.42, 0.75, ezRunN + 0.25 * (ezLow - 0.5)) * ezOuter * smoothstep(0.25, 0.5, ezHN) * (1.0 - smoothstep(0.7, 0.9, ezHN));
+ezLustre *= 1.0 - 0.5 * ezMote - 0.15 * ezFilm;
+
+float ezRough = mix(0.93 - 0.33 * ezWorn, uRough + uHaze + 0.22 * ezBn + 0.5 * uDecoMatte * ezDeco + 0.25 * ezCrack + 0.3 * ezPit + 0.55 * ezLost + 0.10 * ezHeld + 0.22 * ezFilm + 0.5 * ezMote, ezGlaze);
 diffuseColor.rgb = mix(ezClay, ezCol, ezGlaze);
+diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.42, 0.40, 0.37), ezGlaze * (0.10 * ezFilm + 0.6 * ezMote));
 vec3 ezR = vec3(0.04), ezT = vec3(1.0);
 `;
 
 const GLSL_FRAG_NORMAL = /* glsl */`
 // ================= eozin: micro-relief and film response =================
-normal = ezPerturb(-vViewPosition, normal, ezDH, faceDirection);
+normal = normalize(normalMatrix * (ezNo - (ezG - ezNo * dot(ezNo, ezG)))) * faceDirection;
 if (ezLustre > 0.001) {
   float ezNV = clamp(dot(normal, normalize(vViewPosition)), 0.04, 1.0);
   ezLustreEval(ezNV, ezFill, ezDC, ezDM, ezR, ezT);
@@ -1707,27 +1961,46 @@ if (renderer.capabilities.maxTextureSize < 4096) START.reflDetail = P.reflDetail
 stageEl.append(renderer.domElement);
 
 const UNIT = 0.1;                                    // scene units per centimetre
-const GROUND = new THREE.Color('#0e0b10');
+const GROUND = new THREE.Color('#0e0b10'), COVE_LO = new THREE.Color('#17141a'), COVE_HI = new THREE.Color('#6a6470'), coveBg = new THREE.Color();
 const scene = new THREE.Scene();
 scene.background = GROUND;
-scene.fog = new THREE.Fog(GROUND, 13, 44);          // dissolves the floor into the background; tick() keeps it behind the vessel
+scene.fog = new THREE.Fog(GROUND, 13, 44);          // 'Void' backdrop: dissolves the floor into the background; tick() keeps it behind the vessel
 const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 200);
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.08;
-controls.minDistance = 1.5;
-controls.maxDistance = 30;
+controls.minDistance = 0.5;
+controls.maxDistance = 40;                           // the cove's wall is single-sided: from outside it, the near arc is not drawn
 controls.maxPolarAngle = Math.PI * 0.5;
 controls.zoomSpeed = 0.7;
 
 const PLINTH_H = 0.24;
-const floor = new THREE.Mesh(new THREE.CircleGeometry(70, 64), new THREE.MeshStandardMaterial({ color: '#1c181e', roughness: 0.96 }));
-floor.rotation.x = -Math.PI / 2;
+// The set: a round floor that sweeps up into a cove wall, so every view has a graded backdrop and no horizon line.
+// 'Void' hides the wall and stretches the floor into the fog instead.
+const lathe = (pts, seg) => new THREE.LatheGeometry(pts.map(([x, y]) => new THREE.Vector2(x, y)), seg);
+const COVE_R = 14, VOID_SCALE = 5;
+const floor = new THREE.Mesh(lathe([[COVE_R, 0], [10, 0], [6, 0], [3, 0], [1.5, 0], [0, 0]], 96), new THREE.MeshStandardMaterial({ color: '#1c181e', roughness: 0.96 }));
 floor.receiveShadow = true;
-scene.add(floor);
+const cycWall = new THREE.Mesh(lathe((() => {
+  const q = [];
+  for (let i = 0; i <= 24; i++) { const a = Math.PI / 2 * i / 24; q.push([COVE_R + 5 * Math.sin(a), 5 - 5 * Math.cos(a)]); }
+  q.push([COVE_R + 5, 12], [COVE_R + 5, 24], [COVE_R + 5, 40]);
+  return q;
+})(), 96), new THREE.MeshStandardMaterial({ color: '#1c181e', roughness: 1, side: THREE.BackSide }));   // its own material: it is not a mirror
+scene.add(floor, cycWall);
+// The plinth: a turned stand with a torus base, a cavetto and an eased top arris. Its flat top has radius 0.95.
 const plinth = new THREE.Mesh(
-  new THREE.LatheGeometry([[1.012, 0], [1, 0.02], [1, PLINTH_H - 0.05], [0.992, PLINTH_H - 0.022], [0.972, PLINTH_H - 0.006], [0.95, PLINTH_H], [0, PLINTH_H]].map(([x, y]) => new THREE.Vector2(x, y)), 128),
-  new THREE.MeshStandardMaterial({ color: '#2a242b', roughness: 0.7 }),
+  lathe((() => {
+    const q = [[1.04, 0]], H = PLINTH_H;
+    for (let i = 0; i <= 10; i++) { const a = lerp(-Math.PI / 3, Math.PI / 2, i / 10); q.push([1.03 + 0.03 * Math.cos(a), 0.036 + 0.03 * Math.sin(a)]); }
+    q.push([1.014, 0.069], [1.006, 0.074], [1.005, 0.078]);
+    for (let i = 1; i <= 8; i++) { const a = Math.PI / 2 * i / 8; q.push([1.005 - 0.03 * Math.sin(a), 0.108 - 0.03 * Math.cos(a)]); }
+    q.push([0.975, 0.14], [0.975, H - 0.06], [0.975, H - 0.022]);
+    for (let i = 1; i <= 8; i++) { const a = Math.PI / 2 * i / 8; q.push([0.953 + 0.022 * Math.cos(a), H - 0.022 + 0.022 * Math.sin(a)]); }
+    q.push([0.94, H], [0.6, H], [0.3, H], [0, H]);
+    return q;
+  })(), 160),
+  new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.7 }),
 );
 plinth.receiveShadow = true;
 plinth.castShadow = true;
@@ -1741,6 +2014,7 @@ keyLight.shadow.normalBias = 0.006;
 scene.add(keyLight, keyLight.target);
 
 const U = {
+  uWave: { value: 0.3 }, uDust: { value: 0.15 }, uWear: { value: 0.25 }, uGrit: { value: 0.6 }, uBreakTone: { value: new THREE.Color('#8a5a3c') },
   uUnit: { value: UNIT }, uHeight: { value: 30 }, uAO: { value: 0.9 }, uHand: { value: 0.3 }, uKeySpec: { value: 0 }, uSpecN: { value: 16 }, uSpecBW: { value: 0 },
   uLam: { value: new Float32Array(MAX_SPECTRAL).fill(550) }, uCMF: { value: new Float32Array(MAX_SPECTRAL * 3) },
   uEpsCu: { value: new Float32Array(MAX_SPECTRAL * 2) }, uEpsAg: { value: new Float32Array(MAX_SPECTRAL * 2) }, uEpsAu: { value: new Float32Array(MAX_SPECTRAL * 2) },
@@ -1762,8 +2036,8 @@ vesselGroup.scale.setScalar(UNIT);
 vesselGroup.position.y = PLINTH_H;
 scene.add(vesselGroup);
 const vesselMesh = new THREE.Mesh(new THREE.BufferGeometry(), glaze);
-const handleMesh = new THREE.Mesh(new THREE.BufferGeometry(), glaze);
-for (const m of [vesselMesh, handleMesh]) { m.castShadow = true; m.receiveShadow = true; vesselGroup.add(m); }
+const handleMesh = new THREE.Mesh(new THREE.BufferGeometry(), glaze), lidMesh = new THREE.Mesh(new THREE.BufferGeometry(), glaze);
+for (const m of [vesselMesh, handleMesh, lidMesh]) { m.castShadow = true; m.receiveShadow = true; vesselGroup.add(m); }
 // Contact shadow: a disc just above the ground, darkened where the pot hides the sky from it (see profileAO).
 const contactMesh = new THREE.Mesh(new THREE.BufferGeometry(), new THREE.MeshBasicMaterial({ color: 0x000000, vertexColors: true, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -1, fog: false }));
 contactMesh.renderOrder = 1;
@@ -1812,6 +2086,12 @@ const ENVS = {
     { at: [-7, 2.5, -3], size: [7, 6], color: '#ff9a4a', power: 2.2, soft: 0.6 },
     { at: [0, 11, 0], size: [9, 9], color: '#7f9cff', power: 1.3, soft: 0.6 },
     { at: [-5, 6, 7], size: [3.5, 3.5], color: '#ffe0b0', power: 6, soft: 0.6 }] },
+  // low key: two strips from behind draw the edges of the piece, a broad faint cool fill and a dim top keep the body readable
+  'Chiaroscuro': { dome: [[0.02, 0.02, 0.026], [0.012, 0.012, 0.015], [0.005, 0.005, 0.005]], key: '#fff1de', bulbs: 0.3, panels: [
+    { at: [-7, 5, -5], size: [2.4, 10], color: '#fff1de', power: 30, soft: 0.35, core: 3 },
+    { at: [7.5, 4, -4.5], size: [1.6, 9], color: '#ffe2c0', power: 12, soft: 0.35 },
+    { at: [3, 5, 9], size: [10, 10], color: '#9db4ff', power: 0.65, soft: 0.6 },
+    { at: [0, 11, 0], size: [6, 6], color: '#fff3e0', power: 0.6, soft: 0.6 }] },
 };
 // Practicals: small, very bright lamps that put pin highlights on the lustre ([x, y, z, radius, colour, radiance]),
 // and a black flag that gives the reflections one dark edge.
@@ -1846,7 +2126,7 @@ function setEnvironment(name) {
     s.add(group);
   }
   for (const [x, y, z, r, color, power] of BULBS) {
-    const bulb = new THREE.Mesh(new THREE.SphereGeometry(r, 16, 8), new THREE.MeshBasicMaterial({ color: new THREE.Color(color).multiplyScalar(power) }));
+    const bulb = new THREE.Mesh(new THREE.SphereGeometry(r, 16, 8), new THREE.MeshBasicMaterial({ color: new THREE.Color(color).multiplyScalar(power * (cfg.bulbs ?? 1)) }));
     bulb.position.set(x, y, z);
     s.add(bulb); trash.push(bulb);
   }
@@ -1880,14 +2160,14 @@ function captureLocal(now) {
   const C = U.uEzEnvC.value.set(0, vesselGroup.position.y + P.height * UNIT * 0.5, 0);
   const fog = scene.fog, bg = scene.background, rp = plinth.material.roughness, rf = floor.material.roughness, mp = reflOnPlinth.value, mf = reflOnFloor.value;
   scene.background = envTarget.texture; scene.backgroundRotation.copy(scene.environmentRotation); scene.backgroundIntensity = P.envInt; scene.fog = null;
-  contactMesh.visible = false;
-  vesselMesh.material = handleMesh.material = hiddenMat;
+  contactMesh.visible = cycWall.visible = false;     // the lamps are the capture's background: a wall around the piece would hide them
+  vesselMesh.material = handleMesh.material = lidMesh.material = hiddenMat;
   plinth.material.roughness = 0.7; floor.material.roughness = 0.96;        // the capture serves every view direction
   reflOnPlinth.value = reflOnFloor.value = 0;
   const next = pmremLocal.fromScene(scene, 0, 0.05, 100, { size: sheetLayout.matches ? 128 : 256, position: C });
   scene.background = bg; scene.backgroundIntensity = 1; scene.fog = fog;
-  contactMesh.visible = true;
-  vesselMesh.material = handleMesh.material = glaze;
+  contactMesh.visible = true; cycWall.visible = P.backdrop === 'Cove';
+  vesselMesh.material = handleMesh.material = lidMesh.material = glaze;
   plinth.material.roughness = rp; floor.material.roughness = rf;
   reflOnPlinth.value = mp; reflOnFloor.value = mf;
   if (localTarget) localTarget.dispose();
@@ -1935,6 +2215,90 @@ if (uReflOn > 0.0) {
 }
 reflective(plinth.material, reflOnPlinth);
 reflective(floor.material, reflOnFloor);
+// The pool of light: floor and wall are brightest around the plinth and fall away outward and up the wall.
+const POOL = /* glsl */`{ float ezPd = length(vEzWp.xz); diffuseColor.rgb *= pow(mix(0.16, 1.0, 1.0 / (1.0 + 0.045 * ezPd * ezPd)) * (1.0 - 0.75 * smoothstep(1.0, 9.0, vEzWp.y)), 2.0 * uPool); }`;
+const UP = { uPool: { value: 0.6 }, uPlinthMat: { value: 1 }, uPlinthS: { value: 1 } };
+const hook = (shader, stage, find, replacement) => {
+  if (!shader[stage].includes(find)) console.warn('Eozin shader hook not found:', find);
+  shader[stage] = shader[stage].replace(find, replacement);
+};
+{
+  const inner = floor.material.onBeforeCompile;
+  floor.material.onBeforeCompile = (shader) => {     // the floor: mirror, then pool
+    inner(shader);
+    shader.uniforms.uPool = UP.uPool;
+    hook(shader, 'fragmentShader', '#include <common>', '#include <common>\nuniform float uPool;');
+    hook(shader, 'fragmentShader', '#include <map_fragment>', '#include <map_fragment>\n' + POOL);
+  };
+  cycWall.material.onBeforeCompile = (shader) => {   // the wall: pool only
+    shader.uniforms.uPool = UP.uPool;
+    hook(shader, 'vertexShader', '#include <common>', '#include <common>\nvarying vec3 vEzWp;');
+    hook(shader, 'vertexShader', '#include <begin_vertex>', '#include <begin_vertex>\nvEzWp = (modelMatrix * vec4(transformed, 1.0)).xyz;');
+    hook(shader, 'fragmentShader', '#include <common>', '#include <common>\nuniform float uPool;\nvarying vec3 vEzWp;');
+    hook(shader, 'fragmentShader', '#include <map_fragment>', '#include <map_fragment>\n' + POOL);
+  };
+}
+// What the plinth is made of: colour, polish and metal come from a field in the plinth's own space, at world scale.
+// 0 lacquer, 1 black stone with a few pale veins, 2 ebonised wood turned on the lathe, 3 patinated bronze. Dust lies on it
+// as it does on the piece.
+const PLINTHS = ['Lacquer', 'Black stone', 'Ebonised wood', 'Bronze'];
+{
+  const inner = plinth.material.onBeforeCompile;
+  plinth.material.onBeforeCompile = (shader) => {
+    inner(shader);
+    Object.assign(shader.uniforms, { uPlinthMat: UP.uPlinthMat, uPlinthS: UP.uPlinthS, uDust: U.uDust });
+    hook(shader, 'vertexShader', '#include <common>', '#include <common>\nvarying vec3 vEzOp;');
+    hook(shader, 'vertexShader', '#include <begin_vertex>', '#include <begin_vertex>\nvEzOp = position;');
+    hook(shader, 'fragmentShader', '#include <common>', /* glsl */`#include <common>
+varying vec3 vEzOp;
+uniform int uPlinthMat;
+uniform float uPlinthS, uDust;
+float szH(vec3 p) { p = fract(p * 0.1031); p += dot(p, p.zyx + 31.32); return fract((p.x + p.y) * p.z); }
+vec3 szH3(vec3 p) { p = fract(p * vec3(0.1031, 0.1030, 0.0973)); p += dot(p, p.yxz + 33.33); return fract((p.xxy + p.yxx) * p.zyx); }
+float szN(vec3 x) { vec3 i = floor(x), f = fract(x); f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(mix(szH(i), szH(i + vec3(1, 0, 0)), f.x), mix(szH(i + vec3(0, 1, 0)), szH(i + vec3(1, 1, 0)), f.x), f.y), mix(mix(szH(i + vec3(0, 0, 1)), szH(i + vec3(1, 0, 1)), f.x), mix(szH(i + vec3(0, 1, 1)), szH(i + vec3(1, 1, 1)), f.x), f.y), f.z); }
+float szF(vec3 p) { float s = 0.0, a = 0.5; for (int i = 0; i < 4; i++) { s += a * szN(p); p = p.zxy * 2.07 + 3.1; a *= 0.5; } return s / 0.9375; }`);
+    hook(shader, 'fragmentShader', '#include <map_fragment>', /* glsl */`#include <map_fragment>
+vec3 szP = vec3(vEzOp.x * uPlinthS, vEzOp.y, vEzOp.z * uPlinthS) * 10.0;       // cm
+float szFw = max(length(dFdx(szP)), length(dFdy(szP)));
+float szUp = smoothstep(0.5, 0.95, inverseTransformDirection(normalize(vNormal), viewMatrix).y);
+float szRo = 0.0, szMe = 0.0;
+if (uPlinthMat == 0) {
+  diffuseColor.rgb = vec3(0.0232, 0.0176, 0.0242);
+} else if (uPlinthMat == 1) {
+  float szW = szF(szP * 0.11 + 2.0), szM = szF(szP * 0.05 + 9.0);
+  // a few long veins that wander across the block, and finer ones crossing them
+  float szV = abs(fract(dot(szP, vec3(0.062, 0.030, 0.041)) + 1.1 * szF(szP * 0.09 + 2.0)) - 0.5);
+  float szV2 = abs(fract(dot(szP, vec3(-0.050, 0.020, 0.090)) + 0.8 * szF(szP * 0.13 + 5.0)) - 0.5);
+  float szVein = max((1.0 - smoothstep(0.0, 0.022, szV)) * smoothstep(0.42, 0.62, szM), 0.5 * (1.0 - smoothstep(0.0, 0.009, szV2)) * smoothstep(0.5, 0.7, 1.0 - szM));
+  float szSpk = smoothstep(0.6, 0.9, szF(szP * 2.6)) * (1.0 - smoothstep(0.15, 0.4, szFw));
+  diffuseColor.rgb = vec3(0.0110, 0.0103, 0.0122) * (0.75 + 0.5 * szW) * (1.0 - 0.3 * szSpk);
+  diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.13, 0.115, 0.095), 0.3 * szVein);
+  szRo = 0.10 * szSpk - 0.08 * szVein;
+} else if (uPlinthMat == 2) {
+  float szR = length(szP.xz), szA = atan(szP.z, szP.x);
+  float szG = szF(mix(vec3(szR * 0.25, szP.y * 9.0, szA * 1.5), vec3(szR * 3.2 + 2.0 * szN(vec3(szA * 3.0, 0.0, 1.0)), 0.0, szA * 0.8), szUp) + 4.0);   // lathe lines on the side, growth rings on top
+  float szLine = 0.5 + 0.5 * sin(mix(szP.y * 46.0, szR * 9.0, szUp) + 5.0 * szG);
+  float szPore = smoothstep(0.62, 0.8, szF(vec3(szR * mix(1.0, 6.0, szUp), szP.y * mix(24.0, 1.0, szUp), szA * 14.0))) * (1.0 - smoothstep(0.1, 0.3, szFw));
+  diffuseColor.rgb = vec3(0.0075, 0.0056, 0.0047) * (0.7 + 0.5 * szG + 0.25 * szLine) * (1.0 - 0.45 * szPore);
+  szRo = 0.06 * (szLine - 0.5) + 0.14 * szPore;
+} else {
+  float szW = szF(szP * 0.16 + 5.0), szV = szF(szP * 0.7 + 3.0 * szW);
+  float szPat = smoothstep(0.52, 0.3, szV) * (0.35 + 0.65 * (1.0 - szUp));    // patina sits in the lows and on the flanks; the top is rubbed bright
+  diffuseColor.rgb = mix(vec3(0.23, 0.13, 0.058), vec3(0.040, 0.052, 0.040), szPat) * (0.8 + 0.4 * szW);
+  szMe = 1.0 - 0.75 * szPat;
+  szRo = mix(-0.35, -0.08, szPat) + 0.1 * (szW - 0.5);
+}
+// dust on the stand: a haze on what faces up, and single motes
+vec3 szDq = szP * 38.0, szDo = szH3(floor(szDq));
+float szMote = step(1.0 - 0.14 * uDust, szDo.z) * (1.0 - smoothstep(0.10, 0.34, length(fract(szDq) - 0.25 - 0.5 * szDo))) * (1.0 - smoothstep(0.012, 0.03, szFw)) * szUp;
+float szFilm = uDust * szUp * (0.4 + 0.6 * szF(szP * 0.3 + 7.0));
+diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.30, 0.29, 0.27), 0.05 * szFilm + 0.6 * szMote);
+szRo += 0.10 * szFilm + 0.4 * szMote;`);
+    hook(shader, 'fragmentShader', '#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\nroughnessFactor = clamp(roughnessFactor + szRo, 0.04, 1.0);');
+    hook(shader, 'fragmentShader', '#include <metalnessmap_fragment>', '#include <metalnessmap_fragment>\nmetalnessFactor = szMe * (1.0 - szMote);');
+  };
+}
 const mirrorV = [new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector2()], mirrorClear = new THREE.Color();
 function renderMirror() {
   const on = (P.plinth ? P.plinthGloss : P.floorGloss) >= 0.05 && state.fx < 2;   // a matte surface shows no image; the adaptive ladder can drop it
@@ -1956,7 +2320,7 @@ function renderMirror() {
   UR.uReflMat.value.set(0.5, 0, 0, 0.5, 0, 0.5, 0, 0.5, 0, 0, 0.5, 0.5, 0, 0, 0, 1).multiply(mirrorCam.projectionMatrix).multiply(mirrorCam.matrixWorldInverse);
   const bg = scene.background, pm = plinth.material, target = renderer.getRenderTarget(), alpha = renderer.getClearAlpha();
   renderer.getClearColor(mirrorClear);
-  scene.background = null; floor.visible = contactMesh.visible = false;
+  scene.background = null; floor.visible = cycWall.visible = contactMesh.visible = false;
   plinth.material = hiddenMat;                       // unseen, yet still in the shadow map this pass may be the one to draw; the fog stays, or the glaze would compile twice
   renderer.setClearColor(0x000000, 0);               // alpha stays the vessel's coverage
   renderer.setRenderTarget(mirrorRT);
@@ -1964,27 +2328,128 @@ function renderMirror() {
   renderer.render(scene, mirrorCam);
   renderer.setRenderTarget(target);
   renderer.setClearColor(mirrorClear, alpha);
-  scene.background = bg; plinth.material = pm; floor.visible = contactMesh.visible = true;
+  scene.background = bg; plinth.material = pm; floor.visible = contactMesh.visible = true; cycWall.visible = P.backdrop === 'Cove';
 }
 
 // --- post: MSAA, bloom on speculars only, then in the output pass a lens vignette before the tone curve and a dither
 // after the encoding, so the dark floor gradient does not band. The dither noise is fixed on screen.
-const composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(4, 4, { type: THREE.HalfFloatType, samples: 4 }));
+// The lens: a frame in motion is a pinhole picture blurred by depth (dofPass); a picture at rest is the mean of many
+// pictures taken through points of the aperture (accumPass), which is true lens blur and smooths every edge as well.
+const composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(4, 4, { type: THREE.HalfFloatType, samples: 4, depthTexture: new THREE.DepthTexture(4, 4) }));
 composer.addPass(new RenderPass(scene, camera));
+const acc = { n: 0, F: 5, A: 0 };                    // samples in the sum; focus distance and aperture of the still being gathered
+const FSQ_VERT = 'varying vec2 vUv; void main() { vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }';
+const dofPass = new (class extends Pass {
+  constructor() {
+    super();
+    this.fill = 1; this.taps = 48;
+    this.material = new THREE.ShaderMaterial({
+      uniforms: { tDiffuse: { value: null }, tDepth: { value: null }, uNF: { value: new THREE.Vector2(0.1, 200) }, uFocus: { value: 5 }, uCoc: { value: 0 }, uPx: { value: new THREE.Vector2() }, uTaps: { value: 48 }, uMax: { value: 24 } },
+      vertexShader: FSQ_VERT,
+      fragmentShader: /* glsl */`
+        varying vec2 vUv; uniform sampler2D tDiffuse, tDepth; uniform vec2 uNF, uPx; uniform float uFocus, uCoc, uMax; uniform int uTaps;
+        float viewZ(vec2 uv) { float d = texture2D(tDepth, uv).x; return uNF.x * uNF.y / (uNF.y - d * (uNF.y - uNF.x)); }
+        float coc(float z) { return min(abs(1.0 / uFocus - 1.0 / z) * uCoc, uMax); }     // radius of the blur disc, pixels
+        void main() {
+          float zc = viewZ(vUv), rc = coc(zc);
+          vec3 col = texture2D(tDiffuse, vUv).rgb; float tot = 1.0;
+          float phi = fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715)))) * 6.2831853;
+          float n = float(uTaps);
+          for (int i = 0; i < uTaps; i++) {
+            // rings evenly spaced in radius, each tap weighted by the area it stands for: the taps are dense near the
+            // centre, where a slightly soft edge next to a blurred backdrop needs them
+            float w = (float(i) + 0.5) / n, r = w * uMax, a = float(i) * 2.39996323 + phi;
+            vec2 uv = vUv + vec2(cos(a), sin(a)) * r * uPx;
+            float zs = viewZ(uv), rs = coc(zs);
+            if (zs > zc) rs = min(rs, rc * 2.0);                           // what lies behind does not bleed over a sharper foreground
+            float m = smoothstep(r - 0.5, r + 0.5, rs);
+            vec3 s = min(texture2D(tDiffuse, uv).rgb, vec3(64.0));
+            w *= 2.0; col += mix(col / tot, s, m) * w; tot += w;
+          }
+          gl_FragColor = vec4(col / tot, 1.0);
+        }`,
+    });
+    this.fsq = new FullScreenQuad(this.material);
+  }
+  render(renderer, writeBuffer, readBuffer) {
+    const u = this.material.uniforms, fill = this.fill;
+    u.tDiffuse.value = readBuffer.texture; u.tDepth.value = readBuffer.depthTexture;
+    u.uNF.value.set(camera.near, camera.far); u.uFocus.value = acc.F;
+    u.uMax.value = Math.max(1.5, 24 * readBuffer.height / 700 * Math.min(1, fill));
+    u.uCoc.value = 0.5 * acc.A * camera.projectionMatrix.elements[5] * readBuffer.height / 2 * fill;
+    u.uPx.value.set(1 / readBuffer.width, 1 / readBuffer.height); u.uTaps.value = fill < 1 ? 16 : this.taps;
+    renderer.setRenderTarget(writeBuffer);
+    this.fsq.render(renderer);
+  }
+  dispose() { this.material.dispose(); this.fsq.dispose(); }
+})();
+dofPass.enabled = false;
+composer.addPass(dofPass);
 const bloomPass = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.2, 0.4, 1.4);
 composer.addPass(bloomPass);
+const accumPass = new (class extends Pass {          // a running sum of lens samples in linear light; the mean goes on to the output pass
+  constructor() {
+    super();
+    this.sum = new THREE.WebGLRenderTarget(4, 4, { type: THREE.HalfFloatType, depthBuffer: false });
+    const fragmentShader = 'varying vec2 vUv; uniform sampler2D tDiffuse; uniform float k; void main() { gl_FragColor = vec4(min(texture2D(tDiffuse, vUv).rgb, vec3(48.0)) * k, 1.0); }';
+    this.add = new THREE.ShaderMaterial({ uniforms: { tDiffuse: { value: null }, k: { value: 1 } }, blending: THREE.CustomBlending, blendEquation: THREE.AddEquation, blendSrc: THREE.OneFactor, blendDst: THREE.OneFactor, depthTest: false, depthWrite: false, vertexShader: FSQ_VERT, fragmentShader });
+    this.copy = new THREE.ShaderMaterial({ uniforms: { tDiffuse: { value: null }, k: { value: 1 } }, depthTest: false, depthWrite: false, vertexShader: FSQ_VERT, fragmentShader });
+    this.fsq = new FullScreenQuad(this.add);
+  }
+  setSize(w, h) { this.sum.setSize(w, h); acc.n = 0; }
+  render(renderer, writeBuffer, readBuffer) {
+    const ac = renderer.autoClear, alpha = renderer.getClearAlpha();
+    renderer.getClearColor(mirrorClear);
+    renderer.autoClear = false;
+    renderer.setRenderTarget(this.sum);
+    if (acc.n === 0) { renderer.setClearColor(0x000000, 0); renderer.clear(); renderer.setClearColor(mirrorClear, alpha); }
+    this.add.uniforms.tDiffuse.value = readBuffer.texture; this.fsq.material = this.add; this.fsq.render(renderer);
+    acc.n++;
+    this.copy.uniforms.tDiffuse.value = this.sum.texture; this.copy.uniforms.k.value = 1 / acc.n;
+    renderer.setRenderTarget(writeBuffer); this.fsq.material = this.copy; this.fsq.render(renderer);
+    renderer.autoClear = ac;
+  }
+  dispose() { this.sum.dispose(); this.add.dispose(); this.copy.dispose(); this.fsq.dispose(); }
+})();
+accumPass.enabled = false;
+composer.addPass(accumPass);
+// Finishing, in the pass that writes the picture to the canvas: lens fringing and vignette on the scene-linear picture,
+// then after the tone curve the grade of the chosen look, and after the encoding the dither and the film grain.
+// uFrame is the picture's rectangle in the canvas (centre, size); outside it the presentation draws its bars.
 const outputPass = new OutputPass();
-const post = Object.assign(outputPass.uniforms, { uVig: { value: 0.3 }, uDither: { value: 1 }, uAspect: { value: 1 } });
+const post = Object.assign(outputPass.uniforms, {
+  uVig: { value: 0.3 }, uDither: { value: 1 }, uAspect: { value: 1 }, uCA: { value: 0 }, uGrain: { value: 0 }, uGrainSeed: { value: 0 }, uSat: { value: 1 }, uContrast: { value: 0 },
+  uLift: { value: new THREE.Vector3() }, uGain: { value: new THREE.Vector3(1, 1, 1) }, uShadowTint: { value: new THREE.Vector3(1, 1, 1) }, uHighTint: { value: new THREE.Vector3(1, 1, 1) },
+  uFrame: { value: new THREE.Vector4(0.5, 0.5, 1, 1) },
+});
 {
   let fs = outputPass.material.fragmentShader;
   const texel = 'gl_FragColor = texture2D( tDiffuse, vUv );', srgb = /(#ifdef SRGB_TRANSFER[\s\S]*?#endif)/;
   if (!fs.includes('varying vec2 vUv;') || !fs.includes(texel) || !srgb.test(fs)) console.warn('Eozin shader hook not found: output pass');
-  fs = fs.replace('varying vec2 vUv;', 'varying vec2 vUv;\nuniform float uVig, uDither, uAspect;');
-  fs = fs.replace(texel, texel + '\n{ vec2 q = (vUv - 0.5) * vec2(uAspect, 1.0); float c = 1.0 / (1.0 + dot(q, q) * 1.6 * uVig); gl_FragColor.rgb *= c * c; }');
-  fs = fs.replace(srgb, `$1
+  fs = fs.replace('varying vec2 vUv;', 'varying vec2 vUv;\nuniform float uVig, uDither, uAspect, uCA, uGrain, uGrainSeed, uSat, uContrast; uniform vec3 uLift, uGain, uShadowTint, uHighTint; uniform vec4 uFrame;');
+  fs = fs.replace(texel, texel + `
+{ vec2 d = vUv - uFrame.xy, q = d * vec2(uAspect, 1.0) / uFrame.w;
+  if (uCA > 0.0) { vec2 dc = d * dot(q, q) * uCA * 0.004; gl_FragColor.r = texture2D(tDiffuse, vUv - dc).r; gl_FragColor.b = texture2D(tDiffuse, vUv + dc).b; }
+  float c = 1.0 / (1.0 + dot(q, q) * 1.6 * uVig); gl_FragColor.rgb *= c * c; }`);
+  fs = fs.replace(srgb, `{ vec3 c = clamp(gl_FragColor.rgb, 0.0, 1.0);
+  float l = dot(c, vec3(0.2126, 0.7152, 0.0722));
+  c = mix(vec3(l), c, uSat);
+  c = c * uGain + uLift * (1.0 - c);
+  c *= mix(uShadowTint, uHighTint, smoothstep(0.0, 0.6, l));
+  c = mix(c, c * c * (3.0 - 2.0 * c), uContrast);     // a print's S-curve, on display-linear values
+  gl_FragColor.rgb = c; }
+$1
 { vec2 p = gl_FragCoord.xy;
   float n1 = fract(52.9829189 * fract(dot(p, vec2(0.06711056, 0.00583715)))), n2 = fract(52.9829189 * fract(dot(p + 47.0, vec2(0.06711056, 0.00583715))));
-  gl_FragColor.rgb += (n1 + n2 - 1.0) / 255.0 * uDither; }`);
+  gl_FragColor.rgb += (n1 + n2 - 1.0) / 255.0 * uDither;
+  if (uGrain > 0.0) {
+    vec2 g = p + uGrainSeed * vec2(37.0, 91.0);
+    float a = fract(sin(dot(floor(g), vec2(12.9898, 78.233))) * 43758.5453), b = fract(sin(dot(floor(g * 0.5) + 7.0, vec2(39.346, 11.135))) * 24634.6345);
+    float l = clamp(dot(gl_FragColor.rgb, vec3(0.299, 0.587, 0.114)), 0.0, 1.0);
+    gl_FragColor.rgb += ((a - 0.5) * 0.7 + (b - 0.5) * 0.5) * uGrain * 0.12 * (0.25 + 0.75 * sqrt(l)) * (1.0 - 0.6 * l);
+  }
+  vec2 o = abs(vUv - uFrame.xy) - uFrame.zw * 0.5;
+  if (max(o.x, o.y) > 0.0) gl_FragColor.rgb = vec3(0.0); }`);
   outputPass.material.fragmentShader = fs;
 }
 outputPass.needsSwap = false;                        // it draws to the canvas; a swap here would make the scene alternate between two MSAA targets
@@ -1992,8 +2457,9 @@ composer.addPass(outputPass);
 
 const state = {
   maxR: 10, reach: 0, rise: 0, keyEl: 0.8, optics: null, basisN: 0, vertices: 0,
-  framed: false, posed: false, userMoved: false, usable: 1, span: Infinity,           // camera fit
-  scale: 1, fx: 0, envLod: 0, lod: 0, frame: 0, n: 0, tuned: 0, settle: 8, raised: -Infinity, hold: 8000, drew: false, quality: '',   // adaptive quality
+  frames: 0, framed: false, posed: false, userMoved: false, usable: 1, span: Infinity,           // camera fit
+  scale: 1, fx: 0, envLod: 0, lod: 0, frame: 0, n: 0, tuned: 0, settle: 8, raised: -Infinity, hold: 8000, drew: false, live: false, quality: '',   // adaptive quality
+  ctx: null, lidTop: 0, present: false, capture: null, crop: null, frameW: 0, movedAt: 0,           // lens, presentation, exposure
 };
 const LEVELS = Object.keys(DETAIL);                  // coarse to fine
 const meshLevel = () => LEVELS[Math.max(0, LEVELS.indexOf(P.detail) - state.lod)];   // the chosen detail, less what the adaptive logic has given up
@@ -2001,8 +2467,18 @@ const meshLevel = () => LEVELS[Math.max(0, LEVELS.indexOf(P.detail) - state.lod)
 let stale = true;                                    // the picture on screen is out of date
 const invalidate = () => { stale = true; };
 let held = false;                                    // a gesture is in progress: only one that moves the camera takes it
-controls.addEventListener('change', () => { if (held) state.userMoved = true; invalidate(); });
-controls.addEventListener('start', () => { held = true; });
+let camLeg = null;                                   // an eased camera move in flight (flyCamera)
+const hold = { k: 1, shot: false };                  // the turntable waits while a shot or an edit looks at one part of the piece
+const lens = { aim: null };                          // where the focus is while the Focus height slider does not say it: put there by a shot, or
+const AIM_AUTO = { auto: true };                     // following the hand: on the wall at the height the camera was dragged to look at
+const follow = { on: true, region: null, home: null, timer: 0, aim: null, hold: false };
+controls.addEventListener('change', () => { if (held) { state.userMoved = true; if (!follow.region) lens.aim = AIM_AUTO; } invalidate(); });
+controls.addEventListener('start', () => {           // the hand always wins: the move in flight stops, the view stays where it is put
+  held = true;
+  if (camLeg) { camLeg = null; setLens(); }
+  if (follow.region) { clearTimeout(follow.timer); follow.region = follow.home = follow.aim = null; follow.hold = false; }
+  releaseShot();
+});
 controls.addEventListener('end', () => { held = false; });
 
 // --- layout: the vessel is drawn in the part of the stage that the page chrome leaves free
@@ -2012,9 +2488,21 @@ let layoutDirty = true;
   const watch = new ResizeObserver(() => { layoutDirty = true; });
   for (const el of [stageEl, $('.mast'), $('.dock'), $('#label'), $('#controls')]) watch.observe(el);
 }
+const FRAMES = { Free: 0, '2.39:1': 2.39, '16:9': 16 / 9, '1:1': 1 };
 function freeView(w, h) {
+  if (state.present) {                               // the whole stage is the picture, or the largest frame of the chosen format inside it
+    let ar = FRAMES[P.frame] || 0, fw = w, fh = h;
+    if (ar > 1 && sheetLayout.matches && h > w) ar = 0;                     // an upright phone has no room for a wide frame
+    if (ar) { if (w / h > ar) fw = Math.round(h * ar); else fh = Math.round(w / ar); }
+    state.frameW = fw;
+    post.uFrame.value.set(0.5, 0.5, fw / w, fh / h);
+    const app = $('#app').style;
+    app.setProperty('--slate-x', `${Math.round((w - fw) / 2 + Math.max(16, fw * 0.035))}px`); app.setProperty('--slate-y', `${Math.round((h - fh) / 2 + Math.max(16, fh * 0.05))}px`);
+    return { k: 1, cx: w / 2, cy: h / 2, usable: fh / h, fit: `${w}x${h}/present/${fw}x${fh}`, crop: [(w - fw) / 2, (h - fh) / 2, fw, fh] };
+  }
+  post.uFrame.value.set(0.5, 0.5, 1, 1);
   const st = stageEl.getBoundingClientRect(), mast = $('.mast').getBoundingClientRect(), dock = $('.dock').getBoundingClientRect();
-  // The band between masthead (small screens only) and preset shelf. The side panels of the wide layout are allowed for in frameCamera.
+  // The band between masthead (small screens only) and preset shelf. The side panels of the wide layout are allowed for in fitPose.
   const y0 = mast.height ? Math.max(0, mast.bottom - st.top) + 8 : 0, bh = Math.max(80, (dock.height ? Math.min(h, dock.top - st.top) - 8 : h) - y0);
   let x1 = w, y1 = y0 + bh;
   const panel = narrowLayout.matches ? $('.label.open, .controls.open') : null;
@@ -2044,7 +2532,10 @@ function resize() {
   }
   if (!layoutDirty) return;
   layoutDirty = false;
-  const v = freeView(w, h), view = `${w}x${h}/${v.k.toFixed(3)}/${v.cx.toFixed(1)}/${v.cy.toFixed(1)}`;
+  const v = freeView(w, h);
+  state.crop = v.crop || null;
+  if (state.capture && !state.present) { v.k = 1; v.cx = w / 2; v.cy = h / 2; }   // an exposure is a picture of the piece, not of the page layout
+  const view = `${w}x${h}/${v.k.toFixed(3)}/${v.cx.toFixed(1)}/${v.cy.toFixed(1)}/${post.uFrame.value.z.toFixed(4)}/${post.uFrame.value.w.toFixed(4)}`;
   if (state.view !== view) {                         // only the projection moves: the camera pose is the user's
     state.view = view;
     camera.setViewOffset(w * v.k, h * v.k, w * v.k / 2 - v.cx, h * v.k / 2 - v.cy, w, h);
@@ -2056,24 +2547,264 @@ function resize() {
   }
 }
 
+// --- camera: one eased mover behind the fit, the named shots, following an edit and the opening move
 function targetY() { return PLINTH_H + P.height * UNIT * 0.5; }
-function frameCamera() {
+const ease = (t) => t * t * t * (t * (6 * t - 15) + 10);
+const sph = new THREE.Spherical(), sph1 = new THREE.Spherical(), camV = new THREE.Vector3();
+const tanHalf = () => Math.tan(camera.fov * Math.PI / 360);
+let poseFocal = 0;                                   // a shot works its pose out for its own lens
+// Where the camera should stand: for the whole piece (m: its measures), or for a part of it. A region gives level and
+// span as shares of the height, el an elevation, az a direction; wide = show the full width there; face = aim at the
+// wall that faces the camera, not at the axis; side = aim that far (cm) out from the axis towards sideAz.
+function fitPose(m = state, region, view) {
   const w = stageEl.clientWidth, h = stageEl.clientHeight;
-  const free = w > 1080 ? Math.max(w - 660, w * 0.34) : w;                 // width left between the side panels
-  const up = (P.height * 0.5 + state.rise) * UNIT, rs = Math.max(state.maxR, state.reach) * UNIT;
-  const tv = Math.tan(camera.fov * Math.PI / 360);
+  const free = state.present ? state.frameW || w : w > 1080 ? Math.max(w - 660, w * 0.34) : w;   // width left between the side panels
+  const tv = 12 / (poseFocal || P.focal), H = P.height * UNIT;           // for the lens the view will have, whatever a move in flight shows now
   // Look from where the user is looking; only the first fit and Reset choose the three-quarter view.
-  const dir = state.posed ? camera.position.clone().sub(controls.target).normalize() : new THREE.Vector3(Math.sin(0.5), 0.2, Math.cos(0.5)).normalize();
-  const se = Math.abs(dir.y), ce = Math.sqrt(Math.max(0, 1 - se * se));
-  const tall = Math.max(up + 0.4, up * ce + rs * se + 0.25);                // half-height of the silhouette from that elevation
-  const dist = Math.max(tall / (tv * state.usable), (rs + 0.35) / (tv * free / h)) * 1.08 + up * Math.max(0, se - 0.2);   // the rim is nearer than the target when looking down
-  const span = (rs + 0.35) * 1.08 / (dist * tv);                            // width the fit needs, in stage heights
-  if (span !== state.span) { state.span = span; layoutDirty = true; }
+  const cur = state.posed ? camV.copy(camera.position).sub(controls.target) : camV.set(Math.sin(0.5), 0.2, Math.cos(0.5));
+  sph.setFromVector3(cur);
+  if (view) { if (view.theta !== undefined) sph.theta = view.theta; if (view.el !== undefined) sph.phi = Math.PI / 2 - view.el; }
+  if (!region) {
+    const up = (P.height * 0.5 + m.rise) * UNIT, rs = Math.max(m.maxR, m.reach) * UNIT;
+    const se = Math.abs(Math.cos(sph.phi)), ce = Math.sqrt(Math.max(0, 1 - se * se));
+    const tall = Math.max(up + 0.4, up * ce + rs * se + 0.25);                // half-height of the silhouette from that elevation
+    const dist = Math.max(tall / (tv * state.usable), (rs + 0.35) / (tv * free / h)) * 1.08 + up * Math.max(0, se - 0.2);   // the rim is nearer than the target when looking down
+    return { q: new THREE.Vector3(0, targetY(), 0), r: dist, theta: sph.theta, phi: sph.phi, span: (rs + 0.35) * 1.08 / (dist * tv) };   // span: width the fit needs, in stage heights
+  }
+  const ctx = m.ctx, wallR = (ctx ? ctx.sample(ctx.dec, clamp(region.level, 0, 1) * P.height) : P.bellyRadius) * UNIT;
+  const rr = region.r !== undefined ? region.r * UNIT : wallR * (region.reach || 1), hh = Math.max(0.12, region.span * H * 0.5, (region.tall || 0) * UNIT * 0.5);
+  const el = region.el ?? clamp(Math.PI / 2 - sph.phi, 0.05, 0.6), theta = region.az ?? sph.theta;
+  const q = new THREE.Vector3(0, vesselGroup.position.y + region.level * H, 0);
+  let dist = Math.max(hh / (tv * state.usable), region.wide ? (rr + 0.15) / (tv * free / h) : 0) * 1.1;
+  if (region.face) { q.x += Math.sin(theta) * wallR * 0.92; q.z += Math.cos(theta) * wallR * 0.92; dist = Math.max(dist, 0.5); }
+  else {
+    if (region.side) { q.x += Math.sin(region.sideAz) * region.side * UNIT; q.z += Math.cos(region.sideAz) * region.side * UNIT; }
+    dist = Math.max(dist + rr * Math.cos(el) * 0.75, rr + 0.45);            // the near wall stands in front of the target
+  }
+  return { q, r: dist, theta, phi: Math.PI / 2 - el };
+}
+// The move is flown in framing size (distance x tan of the half field of view), so a change of lens under way
+// changes the perspective and not the size of the piece.
+function flyCamera(pose, ms = 900, out = false) {
+  sph.setFromVector3(camV.copy(camera.position).sub(controls.target));
+  let d = pose.theta - sph.theta; d -= TAU * Math.round(d / TAU);            // the short way round
+  const tv0 = tanHalf(), tv1 = 12 / P.focal;
+  camLeg = { t0: performance.now(), ms: reduceMotion.matches ? 0 : ms, out, q0: controls.target.clone(), q1: pose.q, s0: sph.radius * tv0, s1: pose.r * tv1, tv0, tv1, th0: sph.theta, dth: d, ph0: sph.phi, ph1: pose.phi };
+  if (pose.span !== undefined && pose.span !== state.span) { state.span = pose.span; layoutDirty = true; }
   state.posed = true;
-  controls.target.set(0, targetY(), 0);
-  camera.position.copy(controls.target).addScaledVector(dir, dist);
+  state.settle = Math.max(state.settle, 2);          // the frames of a move are not the page at rest
+  invalidate();
+}
+function camStep(now) {
+  const c = camLeg, t = c.ms ? clamp((now - c.t0) / c.ms, 0, 1) : 1, e = c.out ? 1 - Math.pow(1 - t, 4) : ease(t);
+  const tv = lerp(c.tv0, c.tv1, e);
+  if (c.tv0 !== c.tv1) { camera.fov = 2 * Math.atan(tv) * 180 / Math.PI; camera.updateProjectionMatrix(); }
+  sph1.set(lerp(c.s0, c.s1, e) / tv, lerp(c.ph0, c.ph1, e), c.th0 + c.dth * e);
+  controls.target.lerpVectors(c.q0, c.q1, e);
+  camera.position.setFromSpherical(sph1).add(controls.target);
+  if (t >= 1) { camLeg = null; controls.update(); controls.update(); }      // twice: nothing is left for the damping to drift on
+  invalidate();
+}
+function frameCamera() {                             // the fitted view, at once
+  camLeg = null; setLens();
+  const p = fitPose();
+  if (p.span !== state.span) { state.span = p.span; layoutDirty = true; }
+  state.posed = true;
+  controls.target.copy(p.q);
+  camera.position.setFromSpherical(sph1.set(p.r, p.phi, p.theta)).add(p.q);
   controls.update();
   invalidate();
+}
+// Focal length as on a 35 mm frame (24 mm high). Changed by hand, the camera steps back or in so the piece keeps its
+// size and only the perspective changes; a move in flight carries the change itself.
+function setLens() {
+  const tv1 = 12 / P.focal, tv0 = tanHalf();
+  controls.maxDistance = 40 * Math.max(1, 12 / 45 / tv1);                  // a long lens stands further back for the same picture
+  if (camLeg) { camLeg.tv1 = tv1; return; }
+  if (Math.abs(tv0 - tv1) < 1e-7) return;
+  if (state.posed) camera.position.sub(controls.target).multiplyScalar(tv0 / tv1).add(controls.target);
+  camera.fov = 2 * Math.atan(tv1) * 180 / Math.PI; camera.updateProjectionMatrix();
+  invalidate();
+}
+
+// --- the parts of the piece a view can be about, from the live parameters. Shots and following an edit share them.
+// focus: where the lens is focused meanwhile: y cm up the piece, r cm out from the axis (towards the camera, or towards az).
+const band = (a, b, o = {}) => () => ({ level: (P[a] + P[b]) / 2, span: Math.max(0.3, Math.abs(P[b] - P[a]) + 0.14), ...o });
+const handleAz = () => Math.PI / 2 + vesselGroup.rotation.y;               // where the first handle stands, as a camera direction
+const lidTop = () => (lidMesh.visible ? state.lidTop : 0);
+const REGIONS = {
+  foot: () => ({ level: P.footHeight * 0.6 / P.height, span: 0, tall: Math.max(5, P.footHeight * 3.2), el: 0.16, wide: true, r: Math.max(P.footRadius, P.waistRadius) * 1.15 }),
+  belly: () => ({ level: P.bellyPos, span: 0.5 }),
+  shoulder: () => ({ level: P.shoulderPos, span: 0.42 }),
+  neck: () => ({ level: (P.neckPos + 1) / 2, span: 0.4, wide: true }),
+  rim: () => ({ level: 0.97, span: 0.3, el: 0.42, wide: true, r: P.lipRadius }),
+  inside: () => ({ level: 0.92, span: 0.4, el: 0.95, wide: true, r: P.lipRadius, focus: { y: P.height * 0.8, r: 0 } }),
+  lid: () => { const t = lidTop(); return { level: 1 + t * 0.45 / P.height, span: 0, tall: Math.max(6, t * 1.5 + 2), el: 0.3, wide: true, r: Math.max(P.lipRadius + P.lidOverhang, 2), focus: { y: P.height + t * 0.5, r: P.lipRadius * 0.6 } }; },
+  rings: () => ({ level: P.ringPos, span: 0.26 }),
+  lobes: band('lobeStart', 'lobeEnd'),
+  relief: band('reliefStart', 'reliefEnd'),
+  handle: () => {
+    const [lo, hi] = handleJoints(P), lv = (lo + hi) / 2, ctx = state.ctx, wr = ctx ? ctx.sample(ctx.dec, lv * P.height) : P.shoulderRadius, az = handleAz();
+    return { level: lv, span: hi - lo + 0.16, az: az - 0.95, el: 0.16, wide: true, r: P.handleReach * 0.75 + P.handleThick, side: wr + P.handleReach * 0.4, sideAz: az, hold: true, focus: { y: lv * P.height, r: wr + P.handleReach * 0.6, az } };
+  },
+  macro: () => ({ level: P.bellyPos, span: 0.2 }),
+};
+const focusEndNow = () => {
+  const h = follow.home; follow.region = follow.home = follow.aim = null; follow.hold = false;
+  invalidate();
+  if (!h) return;
+  sph.setFromVector3(h.off);
+  if (!h.moved) { flyCamera(fitPose(state, null, { theta: sph.theta, el: Math.PI / 2 - sph.phi }), 800); return; }   // the fitted view from where it was, for the piece as it now is
+  flyCamera({ q: h.q.clone().setY(h.q.y + targetY() - h.aimY), r: sph.radius * h.tv / (12 / P.focal), theta: sph.theta, phi: sph.phi }, 800);
+};
+const followReady = () => follow.on && !reduceMotion.matches && !state.present && !state.capture && state.posed && !first;
+function focusOn(key) {                              // a panel control changed: go and look at the part it belongs to
+  const name = SCHEMA[key].part;
+  if (!name || !followReady()) return;
+  clearTimeout(follow.timer);
+  const reg = REGIONS[name]();
+  if (follow.region !== name) {
+    if (!follow.region) follow.home = { q: controls.target.clone(), off: camera.position.clone().sub(controls.target), tv: tanHalf(), moved: state.userMoved, aimY: targetY() };
+    follow.region = name;
+    flyCamera(fitPose(state, reg), 650);
+    if (prefs.get('eozin:follow-told') !== '1') { prefs.set('eozin:follow-told', '1'); toast('The view follows what you edit.', { label: 'Turn off', run: () => setFollow(false) }); }
+  } else if (!camLeg) { controls.target.lerp(fitPose(state, reg).q, 0.2); invalidate(); }   // the part moves as it is edited: stay on it
+  else camLeg.q1 = fitPose(state, reg).q;
+  follow.hold = !!reg.hold; follow.aim = reg.focus || { y: clamp(reg.level, 0, 1) * P.height };
+  follow.timer = setTimeout(focusEndNow, 4000);      // for a control that never reports the end of its change
+}
+function focusEnd(wait = 1500) {
+  if (!follow.region) return;
+  clearTimeout(follow.timer);
+  follow.timer = setTimeout(focusEndNow, wait);
+}
+function setFollow(on) {
+  follow.on = on; prefs.set('eozin:follow', on ? 'on' : 'off');
+  if (!on && follow.region) { clearTimeout(follow.timer); focusEndNow(); }
+  const b = $('#qmenu [data-run="Follow edits"]');
+  if (b) b.setAttribute('aria-checked', String(on));
+}
+
+// --- named shots: compositions worked out from the piece itself. A shot writes the lens values (one undo step) and
+// flies the camera; the pose is the user's and is not part of the parameters.
+const SHOTS = {
+  hero: { name: 'Hero', focal: 45, fstop: 4, focusLevel: () => 0.5, view: { theta: 0.5, el: 0.2 } },
+  profile: { name: 'Profile', focal: 105, fstop: 8, focusLevel: () => 0.5, view: { el: 0.02 } },
+  lip: { name: 'Lip', focal: 70, fstop: 8, hold: true, focusLevel: () => 1, region: () => {
+    const t = lidTop(), r = Math.max(P.lipRadius * (1 + P.lipBead * 0.3), t ? P.lipRadius + P.lidOverhang : 0);
+    return t ? { level: 1 + t * 0.4 / P.height, span: 0, tall: t * 1.5 + 2, el: 0.42, wide: true, r, focus: { y: P.height + t * 0.75, r: 0 } }
+      : { level: 0.985, span: 0, tall: r * 1.1, el: 0.62, wide: true, r };
+  } },
+  foot: { name: 'Foot', focal: 60, fstop: 2.8, hold: true, focusLevel: () => clamp(P.footHeight * 0.3 / P.height, 0, 1), region: () => ({ level: P.footHeight * 0.35 / P.height, span: 0, tall: Math.max(4.5, P.footHeight * 3), el: 0.07, wide: true, r: Math.max(P.footRadius, P.waistRadius) * 1.2 }) },
+  detail: { name: 'Detail', focal: 85, fstop: 4, hold: true, focusLevel: () => detailLevel(),
+    region: () => {
+      const level = detailLevel(), n = state.ctx ? state.ctx.normalAt(level * P.height) : [1, 0];
+      return { level, span: 0, tall: clamp(P.height * 0.3, 5, 10), el: clamp(0.12 + 0.5 * Math.atan2(n[1], n[0]), 0.03, 0.35), face: true };   // nearer square-on to a wall that leans
+    } },
+};
+// Where a close look at the wall is aimed: in the relief band (or around the widest point without one), at the level
+// where the wall stands out furthest. There it faces the camera and the lamps, not the plinth.
+function detailLevel() {
+  const ctx = state.ctx, on = reliefOn(), a = on ? Math.min(P.reliefStart, P.reliefEnd) : P.bellyPos - 0.08, b = on ? Math.max(P.reliefStart, P.reliefEnd) : P.bellyPos + 0.08;
+  let best = (a + b) / 2, r = -1;
+  if (ctx) for (let i = 0; i <= 10; i++) { const lv = clamp(lerp(a, b, 0.15 + 0.07 * i), 0.03, 0.97), ri = ctx.sample(ctx.dec, lv * P.height); if (ri > r + 1e-6) { r = ri; best = lv; } }
+  return +clamp(best, 0.03, 0.97).toFixed(3);
+}
+const shotEls = {};
+function releaseShot() {
+  hold.shot = false; lens.aim = null;
+  for (const el of Object.values(shotEls)) el.setAttribute('aria-pressed', 'false');
+}
+function takeShot(id) {
+  const sh = SHOTS[id];
+  if (!sh || !state.posed || first) return;
+  if (follow.region) { clearTimeout(follow.timer); follow.region = follow.home = follow.aim = null; follow.hold = false; }
+  const reg = sh.region ? sh.region() : null;
+  let focal = sh.focal, pose;
+  for (let i = 0; i < 2; i++) {                      // a long lens on a narrow screen would stand outside the cove: take a shorter one
+    poseFocal = focal; pose = fitPose(state, reg, sh.view); poseFocal = 0;
+    if (P.backdrop !== 'Cove' || pose.r <= COVE_R - 1.5 || focal <= 28) break;
+    focal = Math.max(28, Math.round(focal * (COVE_R - 1.5) / pose.r));
+  }
+  flyCamera(pose, 1600);                             // in flight before the lens values land: the move carries the change of lens
+  commit(); applyParams({ focal, fstop: sh.fstop, focusLevel: sh.focusLevel() }); commit();
+  camLeg.s1 = pose.r * (12 / focal);
+  releaseShot();
+  hold.shot = !!sh.hold; lens.aim = reg && reg.focus ? reg.focus : null;
+  state.userMoved = id !== 'hero'; state.framed = true;
+  shotEls[id]?.setAttribute('aria-pressed', 'true');
+}
+
+// --- the lens. 1 scene unit is 10 cm, so a focal length in mm is f / 100 units; the opening is f / N across.
+// The focus lies on the wall nearest the camera at the focus height, unless a shot or an edit has put it elsewhere.
+const lensSave = { pos: new THREE.Vector3(), p8: 0, p9: 0, on: false }, lensV = [new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector2()];
+const halton = (i, b) => { let f = 1, r = 0; while (i > 0) { f /= b; r += f * (i % b); i = Math.floor(i / b); } return r; };
+const stillN = () => (state.fx >= 3 ? 8 : state.fx >= 1 ? P.stillSamples / 2 : +P.stillSamples);
+function focusLens() {
+  const [fwd, hz, fp] = lensV, ctx = state.ctx;
+  let aim = follow.aim || lens.aim || { y: P.focusLevel * P.height };
+  if (aim.auto) { const y = clamp((controls.target.y - vesselGroup.position.y) / UNIT, 0, P.height + lidTop()); aim = y > P.height ? { y, r: 0 } : { y }; }
+  camera.updateMatrixWorld();
+  camera.getWorldDirection(fwd);
+  const r = aim.r !== undefined ? aim.r : ctx ? ctx.sample(ctx.dec, clamp(aim.y, 0, P.height)) : P.bellyRadius;
+  if (aim.az !== undefined) hz.set(Math.sin(aim.az), 0, Math.cos(aim.az));
+  else { hz.set(camera.position.x, 0, camera.position.z); if (hz.lengthSq() < 1e-8) hz.set(0, 0, 1); hz.normalize(); }   // from the axis towards the camera
+  fp.set(0, vesselGroup.position.y + aim.y * UNIT, 0).addScaledVector(hz, r * UNIT);
+  acc.F = Math.max(0.3, fp.sub(camera.position).dot(fwd));
+  acc.A = P.dof === 'Off' ? 0 : P.focal / 100 / P.fstop;
+}
+// Before a frame is drawn. A frame in motion: a pinhole, blurred by depth where 'Always' asks for it. A frame of the
+// still: sample k of N through the aperture, and a part of a pixel aside, so the mean has lens blur and clean edges.
+function lensBegin(refine, N) {
+  if (!refine || acc.n === 0) focusLens();           // the focus of a still is fixed by the frame that began it
+  const k = acc.n + 1;
+  dofPass.enabled = acc.A > 0 && (refine || (P.dof === 'Always' && state.fx < 2));
+  dofPass.fill = refine ? 1.25 / Math.sqrt(k) : 1;   // early samples are spread out, so the picture tightens and never shows separate copies
+  dofPass.taps = state.fx >= 1 ? 24 : 48;
+  accumPass.enabled = refine;
+  lensSave.on = false;
+  if (!refine) return;
+  const e = camera.projectionMatrix.elements, size = renderer.getDrawingBufferSize(lensV[3]);
+  const r = Math.sqrt((k - 0.5) / N), a = k * 2.39996323, ox = Math.cos(a) * r * acc.A / 2, oy = Math.sin(a) * r * acc.A / 2;
+  const jx = halton(k, 2) - 0.5, jy = halton(k, 3) - 0.5;
+  camera.updateMatrixWorld();
+  lensSave.pos.copy(camera.position); lensSave.p8 = e[8]; lensSave.p9 = e[9]; lensSave.on = true;
+  camera.position.addScaledVector(lensV[0].setFromMatrixColumn(camera.matrixWorld, 0), ox).addScaledVector(lensV[1].setFromMatrixColumn(camera.matrixWorld, 1), oy);
+  e[8] += -ox / acc.F * e[0] + 2 * jx / size.x; e[9] += -oy / acc.F * e[5] + 2 * jy / size.y;   // sheared back, so the focus plane stays where it was
+  camera.projectionMatrixInverse.copy(camera.projectionMatrix).invert();
+  camera.updateMatrixWorld();
+}
+function lensEnd() {
+  if (!lensSave.on) return;
+  const e = camera.projectionMatrix.elements;
+  camera.position.copy(lensSave.pos); e[8] = lensSave.p8; e[9] = lensSave.p9;
+  camera.projectionMatrixInverse.copy(camera.projectionMatrix).invert();
+  camera.updateMatrixWorld();
+}
+
+// --- presentation: the page chrome leaves, the piece is fitted to the whole stage or to a frame, and a caption stands under it
+let peekTimer = 0;
+function peek(on = true) {                           // the shelf comes back for a moment
+  if (!state.present) return;
+  clearTimeout(peekTimer);
+  $('#app').classList.toggle('peek', on); $('.dock').inert = !on;
+  if (on) peekTimer = setTimeout(() => { if ($('.dock').matches(':hover, :focus-within')) peek(); else peek(false); }, 2500);
+}
+function setPresent(on) {
+  if (state.present === on) return;
+  if (on) { setPanel(null); openMenu(false); if (follow.region) { clearTimeout(follow.timer); focusEndNow(); } }
+  state.present = on;
+  const app = $('#app');
+  app.classList.toggle('present', on); app.classList.remove('peek');
+  clearTimeout(peekTimer);
+  for (const el of [$('#label'), $('#controls'), $('.mast')]) el.inert = on;
+  $('.dock').inert = on;
+  if (on && app.contains(document.activeElement)) document.activeElement.blur();
+  const b = $('#present-btn'); b.setAttribute('aria-pressed', String(on)); b.textContent = on ? 'Exit' : 'Present';
+  layoutDirty = true; state.fit = '';
+  if (!state.userMoved) state.framed = false;
+  invalidate();
+  if (on) toast(window.matchMedia('(pointer: fine)').matches ? 'Presenting. Move the pointer for the shelf; Esc or P returns.' : 'Presenting. Tap for the shelf.');
 }
 
 // The shadow frustum is fitted to the casters (an orthographic shadow lies straight behind them), so every texel is
@@ -2081,7 +2812,7 @@ function frameCamera() {
 function fitShadow() {
   const cam = keyLight.shadow.camera, ty = targetY() - (P.plinth ? 0 : PLINTH_H);
   const rv = Math.hypot((P.height * 0.5 + state.rise) * UNIT, Math.max(state.maxR, state.reach) * UNIT);
-  const rp = P.plinth ? Math.hypot(ty, plinth.scale.x * 1.012) : 0;
+  const rp = P.plinth ? Math.hypot(ty, plinth.scale.x * 1.06) : 0;
   const ext = Math.max(rv, rp) * 1.12 + 0.05 + (P.plinth ? 0 : PLINTH_H);
   cam.left = -ext; cam.right = ext; cam.top = ext; cam.bottom = -ext;
   cam.near = Math.max(0.5, 14 - ext - 0.5); cam.far = 14 + (ty + ext) / Math.sin(state.keyEl) + 1;
@@ -2095,11 +2826,19 @@ function rebuildGeometry(level) {
   const hd = buildHandles(P, v.ctx, level);
   handleMesh.visible = !!hd;
   if (hd) { handleMesh.geometry.dispose(); handleMesh.geometry = hd.geometry; }
-  state.maxR = v.maxR; state.rise = v.rise; state.reach = hd ? hd.reach : 0; state.vertices = v.vertices;
-  if (state.framed && state.aimY !== undefined) { const dy = targetY() - state.aimY; controls.target.y += dy; camera.position.y += dy; }
+  const ld = buildLid(P, v.ctx, level);
+  lidMesh.visible = !!ld;
+  if (ld) { lidMesh.geometry.dispose(); lidMesh.geometry = ld.geometry; }
+  state.maxR = v.maxR; state.rise = Math.max(v.rise, ld ? ld.top : 0); state.reach = Math.max(hd ? hd.reach : 0, ld ? ld.reach : 0); state.vertices = v.vertices;
+  state.ctx = v.ctx; state.lidTop = ld ? ld.top : 0;
+  if (state.framed && state.aimY !== undefined) {
+    const dy = targetY() - state.aimY;
+    controls.target.y += dy; camera.position.y += dy;
+    if (camLeg) { camLeg.q0.y += dy; camLeg.q1 = camLeg.q1.clone().setY(camLeg.q1.y + dy); }
+  }
   state.aimY = targetY();
   const ps = Math.max(P.footRadius * UNIT * 1.9, Math.max(state.maxR, state.reach) * UNIT * 0.9, 0.7);
-  plinth.scale.set(ps, 1, ps);
+  plinth.scale.set(ps, 1, ps); UP.uPlinthS.value = ps;
   // the shadow disc stays on the flat of the plinth, whatever the oval squash stretches it to
   contactMesh.geometry.dispose();
   contactMesh.geometry = buildContact(Math.min(1.6 * state.maxR, 0.95 * ps / UNIT) / Math.max(v.ctx.sx, v.ctx.sz), v.ctx.groundAO);
@@ -2134,7 +2873,8 @@ function updateMaterial() {
   U.uCoverage.value = P.coverage; U.uInnerLustre.value = P.innerLustre;
   U.uGlazeColor.value.set(P.glazeColor); U.uBodyColor.value.set(P.bodyColor);
   U.uGlazeThick.value = P.glazeThick; U.uPool.value = P.pooling; U.uBreak.value = P.breaking; U.uRuns.value = P.runs; U.uRunScale.value = 1 / P.runScale; U.uSag.value = P.sag;
-  U.uRough.value = 0.03 + (1 - P.gloss) * 0.55; U.uPeel.value = P.peel;
+  U.uRough.value = 0.03 + (1 - P.gloss) * 0.55; U.uPeel.value = P.peel; U.uWave.value = P.wave; U.uDust.value = P.dust; U.uWear.value = P.wear; U.uGrit.value = P.grit;
+  U.uBreakTone.value.set(P.breakTone);
   U.uCrackle.value = P.crackle; U.uCrackleSize.value = P.crackleSize; U.uCrackleStain.value = P.crackleStain; U.uPinholes.value = P.pinholes;
   U.uFlash.value = P.flash; U.uFlashScale.value = 1 / P.flashScale; U.uFlashWarp.value = P.flashWarp; U.uFlashStretch.value = 1 / P.flashStretch; U.uFlameBias.value = P.flameBias; U.uSeed.value = P.seed;
   U.uFlameDir.value.set(Math.cos(P.flameDir * Math.PI / 180), Math.sin(P.flameDir * Math.PI / 180));
@@ -2146,9 +2886,21 @@ function updateMaterial() {
 }
 
 const TONES = { ACES: THREE.ACESFilmicToneMapping, AgX: THREE.AgXToneMapping, Neutral: THREE.NeutralToneMapping };
+// The grade of the picture, applied after the tone curve: saturation, contrast (an S-curve), lift and gain per channel,
+// and a tint for the shadows and one for the lights. Lifts stay tiny (0.001 is a whole step of an 8-bit black): the
+// backdrop is nearly black and must stay so.
+const LOOKS = {
+  Neutral: { sat: 1, contrast: 0, lift: [0, 0, 0], gain: [1, 1, 1], shadow: [1, 1, 1], high: [1, 1, 1] },
+  Print: { sat: 0.95, contrast: 0.3, lift: [0, 0.0005, 0.001], gain: [1.03, 1, 0.96], shadow: [0.96, 1, 1.04], high: [1.03, 1, 0.96] },
+  Catalogue: { sat: 0.9, contrast: 0.1, lift: [0, 0, 0], gain: [1, 1, 1], shadow: [1, 1, 1], high: [1, 1, 1] },
+  Nocturne: { sat: 0.85, contrast: 0.45, lift: [0, 0.001, 0.002], gain: [0.98, 1, 1.04], shadow: [0.94, 0.99, 1.07], high: [1.02, 1, 0.98] },
+};
+const HALATION = [new THREE.Vector3(1, 0.75, 0.6), new THREE.Vector3(1, 0.5, 0.3), new THREE.Vector3(1, 0.35, 0.2)];   // the wider the glow, the redder
 let envName = '';
-// What the adaptive logic gives up between pixels and mesh, one rung at a time: 1 the mirror at quarter resolution,
-// 2 no mirror, 3 a 1024 shadow map, 4 the studio at 256. No rung switches a shader variant: that would recompile the glaze.
+// What the adaptive logic gives up between pixels and mesh, one rung at a time: 1 the mirror at quarter resolution, the
+// lens blur of moving frames at half its taps and half the lens samples of a still; 2 no mirror and no lens blur on
+// moving frames; 3 a 1024 shadow map and 8 lens samples; 4 the studio at 256. No rung switches a shader variant: that
+// would recompile the glaze.
 function setFx(n) {
   state.fx = n;
   const size = n >= 3 ? 1024 : 2048, shadow = keyLight.shadow;
@@ -2169,8 +2921,15 @@ function updateStage() {
   scene.environmentIntensity = P.envInt;
   renderer.toneMapping = TONES[P.tone] || THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = P.exposure;
+  setLens();
   bloomPass.enabled = P.bloom > 0.005;
-  bloomPass.strength = P.bloom * 0.9;
+  bloomPass.strength = P.bloom * 0.9 * (1 + 0.6 * P.halation);
+  HALATION.forEach((c, i) => bloomPass.bloomTintColors[i + 2].set(1, 1, 1).lerp(c, P.halation));
+  const look = LOOKS[P.look] || LOOKS.Neutral;
+  post.uSat.value = look.sat; post.uContrast.value = look.contrast;
+  post.uLift.value.fromArray(look.lift); post.uGain.value.fromArray(look.gain); post.uShadowTint.value.fromArray(look.shadow); post.uHighTint.value.fromArray(look.high);
+  post.uGrain.value = P.grain; post.uCA.value = P.chroma;
+  if (state.frameName !== P.frame) { state.frameName = P.frame; layoutDirty = true; }
   let az = P.keyAz * Math.PI / 180, el = P.keyEl * Math.PI / 180;
   if (P.keyLock) {                                   // the light that casts the shadow stands where the key softbox is reflected
     const kp = (ENVS[P.env] || ENVS['Atelier softboxes']).panels[0].at;
@@ -2187,8 +2946,22 @@ function updateStage() {
   vesselGroup.position.y = P.plinth ? PLINTH_H : 0;
   plinth.material.roughness = 0.91 - 0.6 * P.plinthGloss;
   floor.material.roughness = 0.96 - 0.8 * P.floorGloss;
+  UP.uPlinthMat.value = Math.max(0, PLINTHS.indexOf(P.plinthMat));
+  const cove = P.backdrop === 'Cove';
+  cycWall.visible = cove;
+  floor.scale.setScalar(cove ? 1 : VOID_SCALE);
+  UP.uPool.value = cove ? P.pool : 0;
+  if (cove) {
+    floor.material.color.lerpColors(COVE_LO, COVE_HI, P.backdropTone);
+    scene.background = coveBg.copy(floor.material.color).multiplyScalar(Math.pow(0.04, 2 * P.pool));   // what is left of the wall where the pool has died away
+    scene.fog.near = 900; scene.fog.far = 1000;     // parked, not removed: removing the fog would compile the glaze again
+  } else {
+    floor.material.color.set('#1c181e');
+    scene.background = GROUND;                       // tick() keeps the fog behind the vessel
+  }
+  cycWall.material.color.copy(floor.material.color);
   post.uVig.value = P.vignette;
-  const room = [P.env, P.envRot, P.envInt, P.keyInt, P.keySoft, el, az, P.plinth, plinth.scale.x, P.height, P.footRadius, state.maxR, P.roomRefl, P.reflDetail, state.envLod].join();
+  const room = [P.env, P.envRot, P.envInt, P.keyInt, P.keySoft, el, az, P.plinth, plinth.scale.x, P.height, P.footRadius, state.maxR, P.roomRefl, P.reflDetail, state.envLod, P.backdrop, P.backdropTone, P.pool, P.plinthMat, P.plinthGloss].join();
   if (state.room !== room) { state.room = room; localDirty = true; }   // the turntable does not ask for a new capture
   resize();
   shadowDirty();
@@ -2200,6 +2973,7 @@ function updateStage() {
 renderer.domElement.addEventListener('webglcontextrestored', () => {
   envTarget = localTarget = null;                    // their GL objects went with the old context; nothing to dispose
   envName = ''; localDirty = true;
+  acc.n = 0;                                         // the sum of lens samples went as well
   shadowDirty();
   updateStage();
 });
@@ -2236,6 +3010,18 @@ function updateLabel() {
   $('#angle-strip').style.background = `linear-gradient(90deg, ${stops.join(', ')})`;
   chartData = { lams, curves };
   drawChart();
+  updateSlate();
+}
+// The caption of the presentation, as on a museum label: the lustre, the form and its height, and how it was fired.
+function updateSlate() {
+  const o = state.optics;
+  if (!o) return;
+  const pressed = (g) => Object.keys(chipEls[g]).find((k) => chipEls[g][k].getAttribute('aria-pressed') === 'true');
+  const lu = pressed('lustre'), fo = pressed('form'), vol = (v) => (v * 100).toFixed(v > 0 && v < 0.0295 ? 1 : 0);
+  const html = `<b>${lu ? LUSTRES[lu].name : 'Untitled firing'}</b><span>${fo ? FORMS[fo].name : 'Thrown vessel'}, h. ${P.height} cm</span>`
+    + `<span>Cu ${vol(o.fill[0])} · Ag ${vol(o.fill[1])} · ${P.kilnTemp} °C, ${P.soak} min in reduction</span>`;
+  const el = $('#slate');
+  if (el.dataset.html !== html) { el.dataset.html = html; el.innerHTML = html; }
 }
 
 function drawChart() {
@@ -2312,14 +3098,17 @@ const GUI_DEF = [
     num('reliefRows', 'Rows', 1, 12, 1), num('reliefStart', 'Band from'), num('reliefEnd', 'Band to'),
     num('rings', 'Collar rings', 0, 5, 1), num('ringHeight', 'Ring height · cm', 0, 0.4, 0.01), num('ringPos', 'Ring position', 0.05, 0.97, 0.005),
     num('rimWaves', 'Rim waves', 0, 12, 1), num('rimHeight', 'Rim wave height', 0, 1, 0.01), num('rimFrom', 'Rim waves from', 0.4, 0.95, 0.005)] },
-  { title: 'Handles', kind: 'geo', preset: 'form', items: [
+  { title: 'Handles & lid', kind: 'geo', preset: 'form', items: [
     num('handles', 'Count', 0, 4, 1), num('handleLow', 'Lower joint', 0.1, 0.9, 0.005), num('handleHigh', 'Upper joint', 0.2, 0.98, 0.005), num('handleReach', 'Reach · cm', 1, 10, 0.1),
-    num('handleArch', 'Arch', 0, 1.2), num('handleThick', 'Thickness · cm', 0.5, 2.4, 0.02), num('handleFlat', 'Strap flatness', 0.5, 1.8, 0.01), num('handleBlend', 'Joint blend')] },
+    num('handleArch', 'Arch', 0, 1.2), num('handleThick', 'Thickness · cm', 0.5, 2.4, 0.02), num('handleFlat', 'Strap flatness', 0.5, 1.8, 0.01), num('handleBlend', 'Joint blend'),
+    num('handleTaper', 'Pulled taper'), num('handleRibs', 'Finger ribs', 0, 3, 1),
+    opt('lid', 'Lid', ['None', 'Domed', 'Flat', 'Conical']), num('lidRise', 'Lid rise', 0.05, 1.2, 0.01), num('lidOverhang', 'Lid overhang · cm', 0, 1.5, 0.01),
+    opt('finial', 'Finial', Object.keys(FINIALS)), num('finialSize', 'Finial size · cm', 0.6, 4, 0.05)] },
   { title: 'Glaze', kind: 'mat', preset: 'lustre', items: [
     { key: 'glazeColor', label: 'Glaze colour', color: true }, { key: 'bodyColor', label: 'Clay body', color: true },
-    num('glazeThick', 'Glaze thickness', 0.3, 2, 0.01, 'geo'), num('pooling', 'Pooling in hollows', 0, 1.5), num('breaking', 'Breaking on edges', 0, 1.2), num('runs', 'Runs'),
-    num('runScale', 'Run width · cm', 0.15, 3.3), num('sag', 'Gravity sag'), num('gloss', 'Gloss'), num('peel', 'Orange peel'), num('crackle', 'Crackle'),
-    num('crackleSize', 'Crackle cell · cm', 0.15, 3), num('crackleStain', 'Crackle stain'), num('pinholes', 'Pinholes'),
+    num('glazeThick', 'Glaze thickness', 0.3, 2, 0.01, 'geo'), num('pooling', 'Pooling in hollows', 0, 1.5), num('breaking', 'Breaking on edges', 0, 1.2), { key: 'breakTone', label: 'Break colour', color: true }, num('runs', 'Runs'),
+    num('runScale', 'Run width · cm', 0.15, 3.3), num('sag', 'Gravity sag'), num('gloss', 'Gloss'), num('peel', 'Orange peel'), num('wave', 'Slump waves'), num('crackle', 'Crackle'),
+    num('crackleSize', 'Crackle cell · cm', 0.15, 3), num('crackleStain', 'Crackle stain'), num('pinholes', 'Pinholes'), num('dust', 'Dust'), num('wear', 'Handling bloom'), num('grit', 'Foot grit'),
     num('glazeLine', 'Glaze line · cm', 0, 4, 0.05, 'geo'), num('dripAmp', 'Drip length · cm', 0, 4, 0.05, 'geo'), num('dripCount', 'Drips', 0, 16, 1, 'geo')] },
   { title: 'Lustre metals', kind: 'mat', preset: 'lustre', items: [
     num('cu', 'Copper'), num('ag', 'Silver'), num('au', 'Gold'), num('bi', 'Bismuth flux'), num('coat', 'Paste thickness', 0.3, 3),
@@ -2331,17 +3120,27 @@ const GUI_DEF = [
   { title: 'Film optics', kind: 'mat', preset: 'lustre', items: [
     num('glassIndex', 'Glaze refractive index', 1.45, 1.75, 0.005), num('dispersion', 'Dispersion'), num('thickVar', 'Thickness variation'), num('thickScale', 'Variation scale · cm', 0.8, 33, 0.1),
     num('lustrePool', 'Film pooling', -1, 1), num('mosaic', 'Crackle mosaic'), num('trimThick', 'Layer thickness ×', 0.25, 4), num('trimFill', 'Metal fill ×', 0, 3),
-    num('trimCover', 'Cover film ×', 0, 4), opt('spectral', 'Spectral samples', [8, 12, 16, 24])] },
+    num('trimCover', 'Cover film ×', 0, 4)] },
   { title: 'Painted decoration', kind: 'mat', preset: 'lustre', items: [
     opt('deco', 'Second lustre', DECOS), num('decoCount', 'Repeats around', 2, 40, 1), num('decoRows', 'Rows', 1, 24, 1), num('decoSoft', 'Edge softness'),
     num('decoThick', 'Film thickness ×', 0.2, 3), num('decoFill', 'Metal fill ×', 0, 2.5), num('decoSilver', 'Copper ↔ silver', -1, 1), num('decoMatte', 'Etched matte')] },
-  { title: 'Light & view', kind: 'stage', items: [
+  { title: 'Lighting', kind: 'stage', items: [
     opt('env', 'Lighting', Object.keys(ENVS)), num('envRot', 'Light rotation · °', 0, 360, 1), num('envInt', 'Ambient level', 0, 2.5), num('keyInt', 'Key light', 0, 6, 0.05),
     { key: 'keyLock', label: 'Key follows softbox' }, num('keyAz', 'Key azimuth · °', 0, 360, 1), num('keyEl', 'Key elevation · °', 5, 85, 1),
-    num('keySoft', 'Key softness · °', 0.3, 4, 0.1), num('keySpec', 'Key glint'), { key: 'roomRefl', label: 'Room reflections' }, opt('reflDetail', 'Reflection detail', ['Standard', 'High']),
-    num('plinthGloss', 'Plinth polish'), num('floorGloss', 'Floor polish'), num('exposure', 'Exposure', 0.3, 2.5), opt('tone', 'Tone curve', Object.keys(TONES)),
-    num('bloom', 'Highlight bloom'), num('vignette', 'Vignette'), num('occlusion', 'Contact shading', 0, 1, 0.01, 'mat'), num('spin', 'Turntable · rpm', -6, 6, 0.1), { key: 'plinth', label: 'Plinth' }, opt('detail', 'Mesh detail', Object.keys(DETAIL), 'geo'),
-    num('pixelRatio', 'Max pixel ratio', 1, 3, 0.25), { key: 'adaptive', label: 'Adaptive quality' }] },
+    num('keySoft', 'Key softness · °', 0.3, 4, 0.1), num('keySpec', 'Key glint'),
+    opt('backdrop', 'Backdrop', ['Cove', 'Void']), num('backdropTone', 'Backdrop tone'), num('pool', 'Pool of light'),
+    { key: 'plinth', label: 'Plinth' }, opt('plinthMat', 'Plinth material', PLINTHS), num('plinthGloss', 'Plinth polish'), num('floorGloss', 'Floor polish'),
+    num('occlusion', 'Contact shading', 0, 1, 0.01, 'mat')] },
+  { title: 'Camera & film', kind: 'stage', items: [
+    num('focal', 'Lens · mm', 24, 135, 1), opt('fstop', 'Aperture · f/', [1.4, 2, 2.8, 4, 5.6, 8, 11, 16]), opt('dof', 'Depth of field', ['Off', 'Stills', 'Always']),
+    num('focusLevel', 'Focus height', 0, 1, 0.005), opt('stillSamples', 'Still quality', [16, 32, 64]),
+    opt('look', 'Look', Object.keys(LOOKS)), num('grain', 'Film grain'), num('chroma', 'Lens fringing'), num('halation', 'Halation'),
+    num('exposure', 'Exposure', 0.3, 2.5), opt('tone', 'Tone curve', Object.keys(TONES)), num('bloom', 'Highlight bloom'), num('vignette', 'Vignette'),
+    opt('frame', 'Presentation frame', Object.keys(FRAMES))] },
+  { title: 'Rendering', kind: 'stage', items: [
+    num('spin', 'Turntable · rpm', -6, 6, 0.1), { key: 'roomRefl', label: 'Room reflections' }, opt('reflDetail', 'Reflection detail', ['Standard', 'High']),
+    opt('detail', 'Mesh detail', Object.keys(DETAIL), 'geo'), num('pixelRatio', 'Max pixel ratio', 1, 3, 0.25), { key: 'adaptive', label: 'Adaptive quality' },
+    opt('spectral', 'Spectral samples', [8, 12, 16, 24], 'mat')] },
 ];
 
 // What the panel adds to a control, by parameter key: basic = shown in Simple, label = plain name on the row (stored keys
@@ -2392,20 +3191,32 @@ const META = {
   handleThick: { help: 'Thickness of the handle strap.' },
   handleFlat: { help: 'Cross-section of the strap, from a wide flat band to a deep one.' },
   handleBlend: { help: 'How far each handle flares and spreads where it joins the wall. 0 leaves a plain butt joint.' },
+  handleTaper: { help: 'A pulled handle is heavy where the pull began, at the top, and thins towards the lower joint. 0 is an even strap.' },
+  handleRibs: { help: 'Ridges the fingers leave down the back of a pulled handle. 0 for a smooth strap.' },
+  lid: { basic: true, help: 'A cover that rests on the rim, with a flange inside the mouth. None leaves the piece open.' },
+  lidRise: { help: 'How high the lid rises, against its own radius.' },
+  lidOverhang: { help: 'How far the brim of the lid stands out past the rim.' },
+  finial: { basic: true, help: 'The turned knob the lid is lifted by.' },
+  finialSize: { help: 'Size of the finial.' },
   glazeColor: { basic: true, help: 'Colour of the glass under the lustre. It shows where the metal film is thin.' },
   bodyColor: { help: 'Colour of the fired clay, seen at the bare foot and where the glaze breaks thin.' },
   glazeThick: { help: 'How thickly the glaze lies. Thick glaze softens the relief and drips further.' },
   pooling: { label: 'Dark in hollows', help: 'Glaze gathers and darkens in hollows.' },
-  breaking: { label: 'Thin on edges', help: 'Glaze thins on sharp edges and lets the clay colour through.' },
+  breaking: { label: 'Thin on edges', help: 'Glaze thins on sharp edges and lets the colour underneath through.' },
+  breakTone: { help: 'The colour a thin glaze breaks to on edges: iron-brown on most bodies.' },
   runs: { basic: true, help: 'Streaks where the glaze flowed down in the kiln.' },
   runScale: { help: 'Width of the glaze streaks.' },
   sag: { help: 'How much the glaze has slumped towards the foot.' },
   gloss: { basic: true, help: 'How mirror-smooth the glaze is. Low gives a satin surface.' },
   peel: { label: 'Surface ripple', help: 'Fine waviness of the fired surface.' },
+  wave: { help: 'Long, shallow waves where the glaze slumped as it melted. They bend the reflections of the lamps.' },
   crackle: { basic: true, help: 'A net of fine cracks in the glaze.' },
   crackleSize: { help: 'Size of the cells between cracks.' },
   crackleStain: { help: 'How dark the cracks are stained.' },
   pinholes: { help: 'Tiny pits where bubbles burst through the glaze.' },
+  dust: { help: 'Dust that has settled on the shoulders and the plinth. Seen close up only.' },
+  wear: { help: 'A duller bloom where hands have held the piece.' },
+  grit: { help: 'Coarse grog, kiln sand and wear on the bare clay of the foot.' },
   glazeLine: { label: 'Bare foot · cm', help: 'Height of unglazed clay left at the foot.' },
   dripAmp: { help: 'How far the drips run down past the glaze line.' },
   dripCount: { help: 'Number of drips around the foot. 0 for a level glaze line.' },
@@ -2453,10 +3264,14 @@ const META = {
   keyLock: { label: 'Spotlight at main lamp', help: 'Keeps the spotlight where the main lamp of the room is, so the shadow falls away from the brightest reflection. Off lets you aim it yourself.' },
   keyAz: { label: 'Spotlight turn · °', help: 'Moves the spotlight around the piece.' },
   keyEl: { label: 'Spotlight height · °', help: 'Raises or lowers the spotlight.' },
-  keySoft: { basic: true, label: 'Shadow softness · °', help: 'Size of the spotlight. A larger one gives a shadow that is crisp at the foot and blurs as it falls away.' },
+  keySoft: { label: 'Shadow softness · °', help: 'Size of the spotlight. A larger one gives a shadow that is crisp at the foot and blurs as it falls away.' },
   keySpec: { label: 'Spotlight glint', help: 'A sharp point of light on the glaze from the spotlight itself, on top of the lamps reflected from the room.' },
   roomRefl: { help: 'The glaze mirrors the plinth, the floor and the shadow it stands in, not only the lamps.' },
   reflDetail: { help: 'Sharpness of the lamps mirrored in the glaze. The page may lower it by itself to stay smooth.' },
+  backdrop: { basic: true, help: 'What stands behind the piece: a studio cove that sweeps up from the floor, or an empty dark void.' },
+  backdropTone: { help: 'How light the cove is painted, from near black to mid grey.' },
+  pool: { help: 'Gathers the light of the cove into a pool around the plinth, falling away outward and up the wall.' },
+  plinthMat: { basic: true, help: 'What the stand is made of: lacquer, veined black stone, turned ebonised wood or patinated bronze.' },
   plinthGloss: { basic: true, help: 'How polished the stand is. A polished stand mirrors the foot of the piece.' },
   floorGloss: { help: 'How polished the floor is. Without the plinth, a polished floor mirrors the piece.' },
   exposure: { basic: true, help: 'Overall brightness of the picture.' },
@@ -2464,6 +3279,16 @@ const META = {
   bloom: { help: 'Glow around the brightest highlights.' },
   vignette: { help: 'Darkens the corners of the picture, as a camera lens does.' },
   occlusion: { help: 'Soft shade in hollows, inside the piece and under handles, and the shadow where the foot meets the plinth.' },
+  focal: { basic: true, help: 'Focal length, as on a 35 mm frame. Long lenses flatten the piece, short ones make it loom; the camera steps back so the piece keeps its size.' },
+  fstop: { basic: true, help: 'Lens opening. A low number blurs what is in front of and behind the focus.' },
+  dof: { help: 'Lens blur away from the focus. Stills adds it once the picture rests; Always shows it while things move, too.' },
+  focusLevel: { lvl: true, label: 'Focus height · level', help: 'How far up the piece the lens is focused, on the wall nearest the camera. Shots and edits set it for you, and after a drag the focus stays on what the camera is aimed at until this is moved.' },
+  stillSamples: { help: 'Lens samples gathered once the picture rests. More gives smoother blur and cleaner edges, and takes longer.' },
+  look: { basic: true, help: 'The grade of the picture. Neutral shows the lustre colours exactly as the label measures them.' },
+  grain: { help: 'Fine film grain over the picture, strongest in the mid-tones.' },
+  chroma: { help: 'Colour fringes towards the corners of the picture, as a lens leaves them.' },
+  halation: { help: 'Warms the glow around highlights to red, as light scattered inside film does.' },
+  frame: { help: 'The picture format used by Present.' },
   spin: { basic: true, help: 'Turntable speed. 0 stops it.' },
   plinth: { help: 'Shows or hides the stand under the piece.' },
   detail: { help: 'Triangles in the mesh. The page may lower it by itself to stay smooth.' },
@@ -2471,9 +3296,18 @@ const META = {
   adaptive: { help: 'Lets the page trade resolution and mesh detail for a steady frame rate.' },
 };
 
+// part = the region of the piece a control is about (REGIONS): while it is edited the view goes there (focusOn).
+for (const [part, keys] of Object.entries({
+  foot: 'footRadius footHeight waistRadius glazeLine dripAmp dripCount grit plinthMat plinthGloss', belly: 'bellyRadius bellyPos', shoulder: 'shoulderRadius shoulderPos',
+  neck: 'neckRadius neckPos', rim: 'lipRadius lipBead rimWaves rimHeight rimFrom', inside: 'wall innerLustre', lid: 'lid lidRise lidOverhang finial finialSize',
+  rings: 'rings ringHeight ringPos', lobes: 'lobeDepth lobeProfile lobeStart lobeEnd', relief: 'relief reliefHeight reliefCount reliefRows reliefStart reliefEnd',
+  handle: 'handles handleLow handleHigh handleReach handleArch handleThick handleFlat handleBlend handleTaper handleRibs',
+  macro: 'peel wave crackle crackleSize crackleStain pinholes mosaic thickScale dust wear breaking breakTone',
+})) for (const k of keys.split(' ')) (META[k] ||= {}).part = part;
+
 // A preset chip restores every parameter of its groups, so a pressed chip always shows the same piece as its #link.
 const presetKeys = (name) => GUI_DEF.filter((g) => g.preset === name).flatMap((g) => g.items.map((it) => it.key));
-const LUSTRE_KEYS = presetKeys('lustre').filter((k) => k !== 'spectral');   // the sample count is render quality, not glaze
+const LUSTRE_KEYS = presetKeys('lustre').filter((k) => !['spectral', 'dust', 'wear', 'grit'].includes(k));   // render quality and the life of this one piece, not glaze
 const FORM_KEYS = presetKeys('form');
 const presetState = (keys, set) => ({ ...Object.fromEntries(keys.map((k) => [k, DEFAULTS[k]])), ...set });
 
@@ -2486,7 +3320,11 @@ const DEPENDS = [
   [['reliefCount', 'reliefRows', 'reliefStart', 'reliefEnd'], reliefOn, 'Needs a Relief motif with a height other than 0.'],
   [['ringHeight', 'ringPos'], () => P.rings > 0, 'Add Collar rings first.'],
   [['rimHeight', 'rimFrom'], () => P.rimWaves > 0, 'Add Rim waves first.'],
-  [['handleLow', 'handleHigh', 'handleReach', 'handleArch', 'handleThick', 'handleFlat', 'handleBlend'], () => P.handles > 0, 'Add Handles first.'],
+  [['handleLow', 'handleHigh', 'handleReach', 'handleArch', 'handleThick', 'handleFlat', 'handleBlend', 'handleTaper', 'handleRibs'], () => P.handles > 0, 'Add Handles first.'],
+  [['lid'], () => P.rimWaves === 0, 'A lid needs a level rim: set Rim waves to 0.'],
+  [['lidRise', 'lidOverhang', 'finial'], () => P.lid !== 'None' && P.rimWaves === 0, 'Choose a Lid first.'],
+  [['finialSize'], () => P.lid !== 'None' && P.rimWaves === 0 && P.finial !== 'None', 'Choose a Lid and a Finial first.'],
+  [['breakTone'], () => P.breaking > 0, 'Raise Thin on edges first.'],
   [['crackleSize', 'crackleStain', 'mosaic'], () => P.crackle > 0, 'Raise Crackle first.'],
   [['dripAmp'], () => P.dripCount > 0, 'Add Drips first.'],
   [['flashScale', 'flashWarp', 'flashStretch'], () => P.flash > 0, 'Raise Flame marks first.'],
@@ -2497,7 +3335,10 @@ const DEPENDS = [
   [['decoCount'], () => ['Scales', 'Marbled veins', 'Whiplash vines'].includes(P.deco), 'This pattern has no repeat count.'],
   [['decoRows'], () => ['Bands', 'Scales', 'Whiplash vines'].includes(P.deco), 'This pattern has no rows.'],
   [['keyAz', 'keyEl'], () => !P.keyLock, 'Switch Spotlight at main lamp off first.'],
-  [['plinthGloss'], () => P.plinth, 'Switch the Plinth on first.'],
+  [['plinthGloss', 'plinthMat'], () => P.plinth, 'Switch the Plinth on first.'],
+  [['backdropTone', 'pool'], () => P.backdrop === 'Cove', 'Choose the Cove backdrop first.'],
+  [['fstop', 'focusLevel', 'stillSamples'], () => P.dof !== 'Off', 'Switch Depth of field on first.'],
+  [['halation'], () => P.bloom > 0, 'Raise Highlight bloom first.'],
 ];
 
 // Panel preferences outlive the visit where the browser lets them; where storage is blocked they last for the session.
@@ -2544,7 +3385,7 @@ function changed(kind) {
 // --- tool bar: pinned above the list, so mode, undo and the session actions are in reach whatever is scrolled or open
 const embedded = !!document.querySelector('meta[name="eozin:embedded"]');
 const controlsEl = $('#controls');
-const MENU = ['Copy parameters', 'Paste parameters…', 'Save PNG', 'Restore shape', 'Restore lustre', 'Reset everything'].filter((n) => !(embedded && n === 'Save PNG'));
+const MENU = ['Copy parameters', 'Paste parameters…', 'Save PNG', 'Follow edits', 'Restore shape', 'Restore lustre', 'Reset everything'].filter((n) => !(embedded && n === 'Save PNG'));
 controlsEl.insertAdjacentHTML('afterbegin', `
   <div class="qbar" role="toolbar" aria-label="Design tools">
     <div class="seg" role="group" aria-label="How many controls to show">
@@ -2556,7 +3397,7 @@ controlsEl.insertAdjacentHTML('afterbegin', `
     <button type="button" id="more" class="ico" aria-label="More actions" aria-haspopup="true" aria-expanded="false">⋯</button>
   </div>
   <div class="qmenu" id="qmenu" hidden>
-    <div class="qitems">${MENU.map((n) => `<button type="button" data-run="${n}">${n}</button>`).join('')}</div>
+    <div class="qitems">${MENU.map((n) => `<button type="button" data-run="${n}"${n === 'Follow edits' ? ' role="switch" aria-checked="true" title="While a control is changed, the view goes to the part of the piece it belongs to"' : ''}>${n}</button>`).join('')}</div>
     <div class="qpaste" hidden>
       <textarea id="paste-box" rows="4" aria-label="Paste parameter JSON here" placeholder="Paste copied parameters here"></textarea>
       <div class="qrow"><button type="button" id="paste-cancel">Cancel</button><button type="button" id="paste-apply">Apply</button></div>
@@ -2574,14 +3415,14 @@ for (const group of GUI_DEF) {
     const kind = it.kind || group.kind, m = META[it.key] || {};
     SCHEMA[it.key] = { ...it, kind, ...m };
     const c = it.color ? folder.addColor(P, it.key) : it.options ? folder.add(P, it.key, it.options) : it.min === undefined ? folder.add(P, it.key) : folder.add(P, it.key, it.min, it.max, it.step);
-    c.name(m.label || it.label).onChange(() => { changed(kind); if (group.preset && it.key !== 'spectral') rematch(group.preset); });
+    c.name(m.label || it.label).onChange(() => { changed(kind); if (group.preset) rematch(group.preset); focusOn(it.key); if (it.key === 'focusLevel') lens.aim = null; });
     ctl[it.key] = c;
     keyOf.set(c.domElement, it.key);
   }
   folder.$title.addEventListener('click', () => {    // phone sheet: one folder at a time, its title brought to the top of the list
     if (!sheetLayout.matches || folder._closed) return;
     for (const f of gui.folders) if (f !== folder) f.close();
-    setTimeout(() => { scroller.scrollTop += folder.domElement.getBoundingClientRect().top - scroller.getBoundingClientRect().top; }, window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 320);   // once lil-gui's opening transition is through
+    setTimeout(() => { scroller.scrollTop += folder.domElement.getBoundingClientRect().top - scroller.getBoundingClientRect().top; }, reduceMotion.matches ? 0 : 320);   // once lil-gui's opening transition is through
   });
 }
 for (const k in META) if (!SCHEMA[k]) console.warn('META: unknown key', k);
@@ -2596,6 +3437,10 @@ function applyParams(values, { silent } = {}) {
   if (values && typeof values.rimDepth === 'number' && !('rimHeight' in values)) values = { ...values, rimHeight: values.rimDepth / 5 };
   // a set saved before the spotlight could follow the main lamp: one that was aimed by hand stays where it was put
   if (values && !('keyLock' in values) && ['keyAz', 'keyEl'].some((k) => typeof values[k] === 'number' && values[k] !== DEFAULTS[k])) values = { ...values, keyLock: false };
+  // a set saved before handles were pulled: its straps stay even and smooth
+  if (values && typeof values.handles === 'number' && values.handles > 0 && !('handleTaper' in values)) values = { ...values, handleTaper: 0, handleRibs: 0 };
+  // a whole state saved before there were lids describes an open piece
+  if (values && typeof values.height === 'number' && 'glazeColor' in values && 'env' in values && !('lid' in values)) values = { ...values, lid: 'None' };
   for (const [key, value] of Object.entries(values || {})) {
     const it = SCHEMA[key];
     if (!it) continue;
@@ -2628,6 +3473,7 @@ function markPreset(id, group) {
   if (!chipEls[group]) return;
   for (const [key, el] of Object.entries(chipEls[group])) el.setAttribute('aria-pressed', String(key === id));
   if (group === 'lustre' && !id) setHash(null);      // an edited glaze is no longer the one the link names
+  updateSlate();
 }
 function rematch(group) {                            // no group: both; returns the matching preset id, or null
   if (!group) return { lustre: rematch('lustre'), form: rematch('form') };
@@ -2669,7 +3515,7 @@ function step(from, to) {
 }
 const undo = () => step(hist.past, hist.future), redo = () => step(hist.future, hist.past);
 const undoAction = { label: 'Undo', run: undo };
-gui.onFinishChange(() => commit());                  // a slider released, a number entered, a choice made
+gui.onFinishChange(() => { commit(); focusEnd(); }); // a slider released, a number entered, a choice made
 window.addEventListener('keydown', (ev) => {
   const key = ev.key.toLowerCase(), mod = ev.ctrlKey || ev.metaKey, t = ev.target;
   if (!mod || ev.altKey || !(key === 'z' || (key === 'y' && ev.ctrlKey))) return;
@@ -2731,7 +3577,8 @@ const IDLE = 'Pick a shape and a lustre below, then fine-tune here. Drag the ves
 function showHelp(key) {
   helpKey = key;
   let html = IDLE;
-  if (key) {
+  if (state.capture) html = `<b>Exposing</b> <span class="rng">${Math.min(acc.n, state.capture.N)}/${state.capture.N}</span><br>Gathering lens samples for the saved picture. Esc cancels.`;
+  else if (key) {
     const it = SCHEMA[key], c = ctl[key], base = BASE[key];
     const range = (it.min !== undefined ? `${it.min}–${it.max} · ` : '') + `preset ${base === true ? 'on' : base === false ? 'off' : base}` + (it.lvl ? `<span class="lvl"> · ${Math.round(P[key] * 100)}% of the height</span>` : '');
     html = `<b>${c._name}</b> <span class="rng">${range}</span>`
@@ -2824,6 +3671,7 @@ const actions = {
       for (const k of ['height', 'bellyRadius', 'shoulderRadius', 'neckRadius', 'lipRadius']) s[k] *= 0.92 + 0.16 * r();
       if (r() < 0.3) { s.lobes = 5 + Math.floor(r() * 5); s.lobeDepth = 0.05 + 0.08 * r(); s.twist = Math.round(r() * 90); }
       if (r() < 0.5) s.relief = pick(Object.keys(RELIEFS));
+      if (s.lid === 'None' && s.rimWaves === 0 && s.lipRadius >= 2.5 && s.lipRadius <= 9 && r() < 0.25) { s.lid = pick(['Domed', 'Flat', 'Conical']); s.finial = pick(Object.keys(FINIALS).slice(1)); }
       state.framed = state.userMoved = false;
     }
     applyParams({ ...s, ...randomLustre() });
@@ -2839,32 +3687,47 @@ const actions = {
       toast('Copying is blocked here. Copy the text from the box instead.');
     }
   },
-  'Save PNG': () => {
-    const v = camera.view && camera.view.enabled ? { ...camera.view } : null;
-    camera.clearViewOffset();                        // a picture of the piece, not of the page layout
-    renderMirror();
-    composer.render();
-    if (v) camera.setViewOffset(v.fullWidth, v.fullHeight, v.offsetX, v.offsetY, v.width, v.height);
-    invalidate();
-    renderer.domElement.toBlob((blob) => {
-      if (!blob) return;
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = `eozin-${Date.now()}.png`;
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(a.href), 2000);
-    });
+  'Save PNG': () => {                                // an exposure: the still is gathered in full, then saved as it stands on the canvas
+    if (state.capture) return;
+    const N = Math.max(8, Math.max(P.stillSamples, 32) >> (state.fx >= 3 ? 2 : state.fx >= 1 ? 1 : 0));
+    state.capture = { N, done() {
+      let cv = renderer.domElement;
+      const c = state.present && state.crop, k = cv.width / Math.max(1, cv.clientWidth);
+      if (c && (c[2] < cv.clientWidth - 1 || c[3] < cv.clientHeight - 1)) {   // presenting in a frame: the picture without its bars
+        const cut = document.createElement('canvas');
+        cut.width = Math.round(c[2] * k); cut.height = Math.round(c[3] * k);
+        cut.getContext('2d').drawImage(cv, Math.round(c[0] * k), Math.round(c[1] * k), cut.width, cut.height, 0, 0, cut.width, cut.height);
+        cv = cut;
+      }
+      cv.toBlob((blob) => {
+        if (!blob) return;
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `eozin-${Date.now()}.png`;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+      });
+      toast('Picture saved.');
+    } };
+    layoutDirty = true; invalidate();
+    toast('Exposing the picture…', { label: 'Cancel', run: cancelCapture });
   },
   'Reset': () => {                                   // back to the state the page opens in, camera included
     commit();
     applyParams(START); markPreset('zold', 'lustre'); markPreset('baluster', 'form'); setHash(null);
     Object.assign(BASE, START);
     state.framed = state.posed = state.userMoved = false;
+    releaseShot();
     commit();
     toast('Back to the opening piece.', undoAction);
   },
 };
 
+function cancelCapture() {
+  if (!state.capture) return;
+  state.capture = null; layoutDirty = true; invalidate(); showHelp(helpKey);
+  toast('Exposure cancelled.');
+}
 // Restores a parameter set from JSON text (as Copy parameters writes it); false if the text is not one.
 function restoreText(text) {
   let data;
@@ -2898,6 +3761,7 @@ const menuRuns = {
   'Save PNG': () => actions['Save PNG'](),
   'Restore shape': () => { state.framed = false; restoreKeys(FORM_KEYS, 'Shape restored.'); },
   'Restore lustre': () => restoreKeys(LUSTRE_KEYS, 'Lustre restored.'),
+  'Follow edits': () => { setFollow(!follow.on); toast(follow.on ? 'The view follows what you edit.' : 'The view stays where you put it while you edit.'); },
   'Reset everything': () => actions.Reset(),
 };
 moreBtn.addEventListener('click', () => openMenu(qmenu.hidden));
@@ -2955,6 +3819,20 @@ function buildChips() {
   }
 }
 buildChips();
+Object.keys(SHOTS).forEach((id, i) => {              // the View row: named shots, and the presentation
+  const b = document.createElement('button');
+  b.type = 'button'; b.className = 'chip plain view'; b.id = `shot-${id}`; b.textContent = SHOTS[id].name;
+  b.title = `${SHOTS[id].name} shot: ${SHOTS[id].focal} mm at f/${SHOTS[id].fstop} (key ${i + 1})`; b.setAttribute('aria-pressed', 'false');
+  b.addEventListener('click', () => takeShot(id));
+  $('#view-chips').append(b); shotEls[id] = b;
+});
+{
+  const b = document.createElement('button');
+  b.type = 'button'; b.className = 'chip plain view'; b.id = 'present-btn'; b.textContent = 'Present'; b.title = 'Show the piece alone, with its caption (key P)'; b.setAttribute('aria-pressed', 'false');
+  b.addEventListener('click', () => setPresent(!state.present));
+  $('#view-chips').append(b);
+}
+setFollow(prefs.get('eozin:follow') !== 'off');
 markPreset('zold', 'lustre'); markPreset('baluster', 'form');
 const fromHash = Object.hasOwn(LUSTRES, location.hash.slice(1)) ? LUSTRES[location.hash.slice(1)] : null;
 if (fromHash) {
@@ -2976,12 +3854,34 @@ function setPanel(id) {                              // 'label', 'controls', or 
   }
 }
 for (const id of ['label', 'controls']) $(`#tab-${id}`).addEventListener('click', () => setPanel($(`#${id}`).classList.contains('open') ? null : id));
-window.addEventListener('keydown', (ev) => {         // Escape closes the menu, or else the open small-screen panel
+window.addEventListener('keydown', (ev) => {         // Escape closes the menu, or else stops an exposure, leaves the presentation, closes the open small-screen panel
   if (ev.key !== 'Escape') return;
   const panel = narrowLayout.matches ? $('.label.open, .controls.open') : null;
   if (!qmenu.hidden) { openMenu(false); moreBtn.focus(); }
+  else if (state.capture) cancelCapture();
+  else if (state.present) setPresent(false);
   else if (panel) { setPanel(null); $(`#tab-${panel.id}`).focus(); }
 }, true);
+window.addEventListener('keydown', (ev) => {         // 1 to 5 take the shots, P presents; not while a field is being typed in
+  if (state.present && ev.key !== 'Escape') peek();  // before the focus moves: Tab then lands on the shelf
+  const t = ev.target;
+  if (ev.ctrlKey || ev.metaKey || ev.altKey || ev.key.length !== 1 || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName || '')) return;
+  const i = '12345'.indexOf(ev.key);
+  if (i >= 0) takeShot(Object.keys(SHOTS)[i]);
+  else if (ev.key === 'p' || ev.key === 'P') setPresent(!state.present);
+  else return;
+  ev.preventDefault();
+}, true);
+window.addEventListener('pointermove', (ev) => { if (state.present && ev.pointerType !== 'touch' && !ev.buttons) peek(); });
+window.addEventListener('focusin', () => { if (state.present) peek(); });
+{ // touch: a tap on the stage brings the shelf back, another sends it away
+  let down = null;
+  stageEl.addEventListener('pointerdown', (ev) => { down = ev.pointerType === 'touch' ? [ev.clientX, ev.clientY, ev.timeStamp] : null; });
+  stageEl.addEventListener('pointerup', (ev) => {
+    if (state.present && down && Math.hypot(ev.clientX - down[0], ev.clientY - down[1]) < 10 && ev.timeStamp - down[2] < 400) peek(!$('#app').classList.contains('peek'));
+    down = null;
+  });
+}
 
 /* --------------------------------------------------------------------------
    Run
@@ -3023,34 +3923,71 @@ function adapt(now, dt) {
 }
 document.addEventListener('visibilitychange', () => { state.settle = Math.max(state.settle, 3); invalidate(); });
 
-let last = performance.now(), first = true;
+let last = performance.now(), first = true, curtain = true;
+function opened() {                                  // the first pictures are drawn and the room is captured: lift the curtain, and let the camera settle into its place
+  const done = () => statusEl.remove();
+  if (reduceMotion.matches) { done(); return; }
+  statusEl.classList.add('out');
+  setTimeout(done, state.userMoved ? 1250 : 2450);   // gone once the opening move has landed
+  if (state.userMoved) return;
+  const p = fitPose();
+  camera.position.setFromSpherical(sph1.set(p.r * 1.2, p.phi, p.theta - 0.44)).add(controls.target);
+  flyCamera(p, 2400, true);
+}
 function tick(now) {
   requestAnimationFrame(tick);
-  const dt = Math.min(0.1, (now - last) / 1000), measured = state.drew;   // dt spans the previous frame: a measurement only if that one was drawn
+  const gap = now - last, dt = Math.min(0.1, gap / 1000), measured = state.live;   // dt spans the previous frame: a measurement only if that one was drawn for a change
   last = now;
+  // The curtain lifts once the costly first frames (programs, the room capture) are through: a quick frame, or none
+  // left to draw. The opening move then starts on time and does not begin with a jump.
+  if (curtain && !first && (!state.drew || gap < 300 || state.frames > 6)) { curtain = false; opened(); }
   if (geoDirty) { const level = geoDirty; geoDirty = null; rebuildGeometry(level); updateStage(); state.settle = Math.max(state.settle, 2); }
   resize();
-  if (!state.framed && stageEl.clientWidth > 2) { frameCamera(); state.framed = true; resize(); }   // the fit may change the view offset: apply it before this frame is drawn
-  if (P.spin) { vesselGroup.rotation.y += P.spin * TAU / 60 * dt; shadowDirty(); stale = true; }
+  if (!state.framed && stageEl.clientWidth > 2) {    // the fit may change the view offset: apply it before this frame is drawn
+    releaseShot();                                   // the fitted view replaces a shot
+    if (!first && !reduceMotion.matches) flyCamera(fitPose(), 700); else frameCamera();
+    state.framed = true; resize();
+  }
+  const cap = state.capture, want = cap || hold.shot || follow.hold ? 0 : 1;
+  if (hold.k !== want) {                             // the turntable slows to a stop for a close view, and picks up again after it
+    hold.k = cap || !P.spin || reduceMotion.matches ? want : hold.k + (want - hold.k) * Math.min(1, dt * 6);
+    if (Math.abs(hold.k - want) < 0.002) hold.k = want;
+  }
+  if (P.spin && hold.k) { vesselGroup.rotation.y += P.spin * hold.k * TAU / 60 * dt; shadowDirty(); stale = true; }
+  if (camLeg) camStep(now);
   controls.update();
-  const fogNear = clamp(camera.position.distanceTo(controls.target) + 3, 13, 33);   // the fog stays behind the vessel at every zoom
-  scene.fog.near = fogNear; scene.fog.far = fogNear + 31;
+  if (P.backdrop === 'Void') {
+    const fogNear = clamp(camera.position.distanceTo(controls.target) + 3, 13, controls.maxDistance + 3);   // the fog stays behind the vessel at every zoom
+    scene.fog.near = fogNear; scene.fog.far = fogNear + 31;
+  }
   if (labelDirty) { labelDirty = false; updateLabel(); tintDirty = true; }
   if (tintDirty && now - tintAt > 150) { tintDirty = false; tintAt = now; paintTracks(); }   // a few times a second at most while a slider is dragged
   if (markDirty) { markDirty = false; markChanged(); }
-  state.drew = stale;
-  if (stale) {                                       // nothing moved, nothing changed: the frame on screen is still right
+  // A picture at rest is refined: N more frames, each through another point of the lens, summed. Then nothing is drawn.
+  const N = cap ? cap.N : stillN();
+  if (stale) { acc.n = 0; state.movedAt = now; }
+  const refine = !stale && !first && (cap || (P.dof !== 'Off' && now - state.movedAt > 120)) && acc.n < N;
+  state.drew = stale || refine; state.live = stale;
+  if (stale || refine) {                             // nothing moved, nothing changed, the still is complete: the frame on screen is still right
     stale = false;
     if (localDirty && Math.abs(now - lastCapture) > 100) captureLocal(now); else if (localDirty) stale = true;   // a drag asks for many captures: a few a second, and one when it rests
+    if (!refine && !reduceMotion.matches && !cap) post.uGrainSeed.value = (post.uGrainSeed.value + 1) % 61;   // the grain moves with the picture and rests with it
+    lensBegin(refine, N);
     renderMirror();
     composer.render(dt);
-    if (first) { first = false; statusEl.remove(); state.tuned = now; }
+    lensEnd();
+    state.frames++;
+    if (cap) {
+      if (refine && acc.n >= N) { state.capture = null; cap.done(); layoutDirty = true; state.settle = Math.max(state.settle, 3); invalidate(); }
+      showHelp(helpKey);
+    }
+    if (first) { first = false; state.tuned = now; }
   }
-  if (P.adaptive && measured) adapt(now, dt);
+  if (P.adaptive && measured && state.live && !cap) adapt(now, dt);
 }
 requestAnimationFrame(tick);
 
-window.eozin = { P, applyParams, state, renderer, scene, camera, controls, gui, invalidate, actions, setMode, undo, redo, rematch };   // handle for the console
+window.eozin = { P, applyParams, state, renderer, scene, camera, controls, gui, invalidate, actions, setMode, undo, redo, rematch, takeShot, setPresent, setFollow, follow, fitPose, flyCamera, acc, post, composer };   // handle for the console
 </script>
 </body>
 </html>
