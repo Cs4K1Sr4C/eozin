@@ -2018,7 +2018,7 @@ scene.add(floor, cycWall);
 // about the piece, so the camera always stands on its floor with the wall behind it. The pool of light is laid out in
 // world space and stays as it is. The room capture takes the set at its own size (captureLocal).
 function fitCove(own = false) {
-  const cove = P.backdrop === 'Cove', s = !cove ? VOID_SCALE : own ? 1 : Math.max(1, (Math.hypot(camera.position.x, camera.position.z) + 1) / COVE_R);
+  const cove = P.backdrop === 'Cove', least = cove ? 1 : VOID_SCALE, s = own ? least : Math.max(least, (Math.hypot(camera.position.x, camera.position.z) + 1) / COVE_R);
   if (floor.scale.x !== s) floor.scale.setScalar(s);
   if (cycWall.scale.x !== (cove ? s : 1)) cycWall.scale.setScalar(cove ? s : 1);
 }
@@ -2312,9 +2312,10 @@ if (uPlinthMat == 0) {
   szRo = 0.10 * szSpk - 0.08 * szVein;
 } else if (uPlinthMat == 2) {
   float szR = length(szP.xz); vec2 szC = szP.xz / max(szR, 1e-3);            // the direction round the axis as a point on a circle: no seam where the angle wraps
-  float szG = szF(mix(vec3(szR * 0.25 + szC.x * 1.5, szP.y * 9.0, szC.y * 1.5), vec3(szR * 3.2 + 2.0 * szN(vec3(szC.x * 3.0, szC.y * 3.0, 1.0)) + szC.x * 0.8, 0.0, szC.y * 0.8), szUp) + 4.0);   // lathe lines on the side, growth rings on top
+  float szK = mix(1.5, 0.8, szUp);
+  float szG = szF(vec3(szC.x * szK, mix(szP.y * 9.0, szR * 3.2 + 2.0 * szN(vec3(szC.x * 3.0, szC.y * 3.0, 1.0)), szUp), szC.y * szK) + 4.0);   // lathe lines on the side, growth rings on top
   float szLine = 0.5 + 0.5 * sin(mix(szP.y * 46.0, szR * 9.0, szUp) + 5.0 * szG);
-  float szPore = smoothstep(0.62, 0.8, szF(vec3(szR * mix(1.0, 6.0, szUp) + szC.x * 14.0, szP.y * mix(24.0, 1.0, szUp), szC.y * 14.0))) * (1.0 - smoothstep(0.1, 0.3, szFw));
+  float szPore = smoothstep(0.62, 0.8, szF(vec3(szC.x * 14.0, mix(szP.y * 24.0, szR * 6.0, szUp), szC.y * 14.0))) * (1.0 - smoothstep(0.1, 0.3, szFw));
   diffuseColor.rgb = vec3(0.0075, 0.0056, 0.0047) * (0.7 + 0.5 * szG + 0.25 * szLine) * (1.0 - 0.45 * szPore);
   szRo = 0.06 * (szLine - 0.5) + 0.14 * szPore;
 } else {
@@ -2840,13 +2841,14 @@ function setPresent(on) {
   const b = $('#present-btn'); b.setAttribute('aria-pressed', String(on)); b.textContent = on ? 'Exit' : 'Present';
   if (!on) {                                         // the focus goes back where it was when the presentation began, unless it has since been put elsewhere
     const at = document.activeElement;
-    if (presentFrom && presentFrom.isConnected && (!at || at === document.body)) presentFrom.focus({ preventScroll: true });
+    const back = presentFrom && presentFrom.isConnected && presentFrom.getClientRects().length ? presentFrom : $('#present-btn');
+    if (!at || at === document.body || at.id === 'save-btn') back.focus({ preventScroll: true });
     presentFrom = null;
   }
   layoutDirty = true; state.fit = '';
   if (!state.userMoved) state.framed = false;
   invalidate();
-  const save = actions['Save PNG'] ? [' S saves the picture.', ' Save is on it.'] : ['', ''];
+  const save = !embedded ? [' S saves the picture.', ' Save is on it.'] : ['', ''];
   if (on) toast(window.matchMedia('(pointer: fine)').matches ? `Presenting. Move the pointer for the shelf; Esc or P returns.${save[0]}` : `Presenting. Tap for the shelf.${save[1]}`);
 }
 
@@ -3458,7 +3460,7 @@ for (const group of GUI_DEF) {
     const kind = it.kind || group.kind, m = META[it.key] || {};
     SCHEMA[it.key] = { ...it, kind, ...m };
     const c = it.color ? folder.addColor(P, it.key) : it.options ? folder.add(P, it.key, it.options) : it.min === undefined ? folder.add(P, it.key) : folder.add(P, it.key, it.min, it.max, it.step);
-    c.name(m.label || it.label).onChange(() => { changed(kind); if (group.preset) rematch(group.preset); focusOn(it.key); if (it.key === 'focusLevel') lens.aim = null; });
+    c.name(m.label || it.label).onChange(() => { changed(kind); if (group.preset) rematch(group.preset); focusOn(it.key); if (hold.id && (it.key === 'focal' || it.key === 'fstop' || it.key === 'focusLevel')) releaseShot(); else if (it.key === 'focusLevel') lens.aim = null; });
     ctl[it.key] = c;
     keyOf.set(c.domElement, it.key);
   }
@@ -3552,7 +3554,7 @@ function step(from, to) {
   applyParams(JSON.parse(e.s));
   Object.assign(BASE, JSON.parse(e.b));
   if (snap() !== before) state.framed = false;       // another vessel: fit it, from the same side
-  if (lensOf() !== lens0) releaseShot();             // a shot's lens values taken back or changed: it is no longer that shot, the turntable and the focus are free
+  if (hold.id && lensOf() !== lens0) releaseShot();             // a shot's lens values taken back or changed: it is no longer that shot, the turntable and the focus are free
   rematch();
   markDirty = true;
   syncHist();
@@ -3875,7 +3877,7 @@ Object.keys(SHOTS).forEach((id, i) => {              // the View row: named shot
   b.type = 'button'; b.className = 'chip plain view'; b.id = 'present-btn'; b.textContent = 'Present'; b.title = 'Show the piece alone, with its caption (key P)'; b.setAttribute('aria-pressed', 'false');
   b.addEventListener('click', () => setPresent(!state.present));
   $('#view-chips').append(b);
-  if (actions['Save PNG']) {                         // on the shelf only while presenting: the picture as presented, cropped to its frame
+  if (!embedded) {                                   // on the shelf only while presenting: the picture as presented, cropped to its frame
     const s = document.createElement('button');
     s.type = 'button'; s.className = 'chip plain view'; s.id = 'save-btn'; s.textContent = 'Save'; s.title = 'Save the picture as presented (key S)';
     s.addEventListener('click', () => actions['Save PNG']());
@@ -3917,7 +3919,7 @@ window.addEventListener('keydown', (ev) => {         // 1 to 5 take the shots, P
   const t = ev.target;
   if (ev.ctrlKey || ev.metaKey || ev.altKey || ev.key.length !== 1 || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName || '')) return;
   const i = '12345'.indexOf(ev.key), k = ev.key.toLowerCase();
-  if (i < 0 && k !== 'p' && !(k === 's' && state.present && actions['Save PNG'])) return;
+  if (i < 0 && k !== 'p' && !(k === 's' && state.present && !embedded)) return;
   ev.preventDefault();
   if (ev.repeat) return;                             // a key held down acts once
   if (i >= 0) takeShot(Object.keys(SHOTS)[i]);
