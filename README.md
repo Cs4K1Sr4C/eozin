@@ -71,14 +71,32 @@ turned collar rings with coved roots, a waved petal rim, six relief motifs (leav
 vines, spiral ribs, hammered, cabochons), up to four pulled handles, an optional lid, and
 an unglazed foot with a dripped glaze line that ends in a bead.
 
+- The *foot* is turned (*Turned foot*, `footTurn`): the trimming tool leaves a cut line
+  where the glaze stops, the ring below it stands a hair inside the wall, the bare clay
+  carries fine turning marks, and the glaze gathers in a fatter bead on the cut. At 0 it
+  is the plain foot of earlier versions.
+- *Spiral ribs* are reeded: a narrow crest on a hollow flank, so each rib carries its own
+  highlight and shadow. Vines are narrow cords, a little wider on the Draft mesh, which
+  cannot carry the narrow one; cabochons sit in a higher collar. A saved piece with spiral
+  ribs keeps its count and height and gets the new crest shape.
+- The glaze is pulled thin on the crest of the *lip*: with *Thin on edges* above zero a
+  fine line of the break colour runs round the rim.
+
 - *Handles* are pulled, not extruded: heavier at the top where the pull began and thinner
   towards the lower joint (*Pulled taper*), with the ridges the fingers leave down the
   back (*Finger ribs*), and smeared onto the wall in a skirt of clay at both joints
   (*Joint blend*).
 - *Lids* are a third turned part: a domed, flat or conical cover that rests on the rim
   with a bare-clay flange inside the mouth, and a finial (ball, bud, acorn or disc) on a
-  short stem. A lobed mouth gets a lobed lid; a waved rim cannot carry one. Under a lid
-  the upper joint of a handle stays below the lip, clear of the brim.
+  short stem. A conical lid is turned to a rounded apex, and the cap sweeps up into the
+  stem in a small fillet. The lid rides a hair above the lip, which reads as a dark seat
+  line, and with *Hand of the maker* above zero it is set down a fraction of a millimetre
+  off centre and a fraction of a degree out of level (seeded). A lobed mouth gets a lobed
+  lid; a waved rim cannot carry one. Under a lid the upper joint of a handle stays below
+  the lip, clear of the brim.
+- At its buried tips a wide strap narrows to what the round wall can hide, so the root of
+  a very wide, thick handle no longer folds where it leaves the wall. At the shortest
+  reach with the thickest, widest strap a few folded triangles remain.
 
 **The set.** The floor sweeps up into a round studio cove, so every view has a graded
 backdrop and no horizon line; *Pool of light* gathers its brightness around the plinth
@@ -91,7 +109,11 @@ eased top edge) in lacquer, veined black stone, ebonised wood or patinated bronz
 
 **Light, shadow and reflections.** The piece stands in a small procedural studio:
 softboxes with a hot centre, a few bare bulbs for pin highlights and a black flag, rendered
-into a prefiltered environment. The *Atelier softboxes* rig has two low fills, warm and
+into a prefiltered environment. A softbox is a lamp with a shape, not a glow: a crisp
+face with rounded corners, shaded by its own lip, the inner baffle showing through the
+diffuser, on a black stand; at *Reflection detail: High* the seams of its panels show
+too. Each face is sized to send the same light as the feathered panel of earlier
+versions, so the exposure of every rig is unchanged. The *Atelier softboxes* rig has two low fills, warm and
 cool, so the underside of a belly and a foot reflect lamps and not a black floor, and a
 key softbox with a gentler core that keeps colour in its reflection. The close shots
 (Lip, Foot, Detail) open up the exposure by a fraction of a stop while they are held;
@@ -105,14 +127,41 @@ when the camera is moved.
 - *Soft shadow.* The key shadow hardens towards contact: crisp at the foot and the plinth
   edge, wider and softer as it falls across the floor (*Shadow softness* is the angular
   size of the light). The shadow map is fitted to the piece and redrawn only when the
-  piece or the light moves.
+  piece or the light moves. In the picture at rest the key lamp is a true area light:
+  from the second lens sample on, each sample is lit from another point of a disc of
+  that angular size with a hard shadow, and their mean is the penumbra without the
+  grain of the moving frame's filter.
+- *Lamp-by-lamp shade on the stand.* Most of the light on plinth and floor is image
+  light, which the key shadow alone does not block. Plinth and floor therefore ask, for
+  each of the four strongest lamps of the rig and for the dome, how much of it the
+  silhouette of the piece (body, lid and the reach of the handles, as twelve stacked
+  rings) and the plinth hide, with a penumbra as wide as that lamp is large, and dim
+  their light lamp by lamp. It is worked out in their shaders, with no extra pass, and
+  the room capture below sees it. *Contact shading* scales it; at 0 it is off.
+- *Lustre bounce.* The lit belly, and on a tall form the other swelling too, throws a
+  faint light of the lustre's own colour back onto the plinth and a rough glow onto the
+  floor, strongest on the side of the main lamp (*Lustre bounce*, `bounce`; 0 is off).
 - *Room reflections.* The studio is captured again from the middle of the vessel, with the
   lit plinth, the floor and the shadow in it, and looked up with a parallax correction: the
   foot mirrors the plinth it stands on, the lower belly the floor, the shoulders the lamps.
   In that capture the dark floor is a veil that glows a little and thins out towards its
   rim: the low fills show through it, so a wall that looks down (the lower belly in
   *Detail*, the outside of a bowl) carries glaze colour and not black, and no hard floor
-  edge is mirrored in the glaze.
+  edge is mirrored in the glaze. While *Detail* or *Foot* is held, that floor and the
+  plinth glow more, as if a white card lay in front of the piece: the lower half of a
+  close view of a dark lustre is no longer black. The card belongs to the view, not to
+  the parameters, and goes when the shot is left.
+- *Self-reflections, traced.* The glaze also mirrors the piece itself (*Self-reflections*,
+  `selfRefl`). For every pixel one ray is followed along the mirror direction through a
+  height field of the piece: outer radius and cavity radius over angle and height, with
+  their slopes and occlusion, built from the meshes whenever the shape changes (lobes,
+  twist, relief, a waved rim and the lid as it sits are in it), plus a chain of capsules
+  for each handle. Where the ray meets the piece, the room's reflection gives way to
+  the light of that spot: the wall inside a bowl mirrors the opposite wall, a flaring
+  neck the shoulder, body and handles each other, and the mirror lobe no longer sees
+  lamps through the pot. While the picture moves the ray takes 12 steps; each sample of
+  a still takes 24, starts at another offset and leaves in another direction of the
+  glaze's lobe, so the still has glossy self-reflections with soft borders.
 - *Polished stand.* The plinth (or, without it, the floor) mirrors the vessel: sharp at the
   contact line and dissolving with distance. *Plinth polish* and *Floor polish* set how
   much.
@@ -171,16 +220,16 @@ The groups of the parameter model, as the configurator shows them:
 
 | Group | Parameters |
 | --- | --- |
-| Shape, Sculpting | profile radii and heights, wall, *Hand of the maker* (hand-made irregularity), lobes, twist, relief, rings, rim waves |
+| Shape, Sculpting | profile radii and heights, wall, *Hand of the maker* (hand-made irregularity), *Turned foot* (`footTurn`, 0–1), lobes, twist, relief, rings, rim waves |
 | Handles & lid | handle count, joints, reach, arch, thickness, flatness, *Joint blend* (how far a handle flares and spreads into the wall), *Pulled taper* (`handleTaper`, 0–1), *Finger ribs* (`handleRibs`, 0–3); *Lid* (`lid`: None, Domed, Flat, Conical), *Lid rise* (`lidRise`), *Lid overhang* (`lidOverhang`, cm), *Finial* (`finial`: None, Ball, Bud, Acorn, Disc), *Finial size* (`finialSize`, cm) |
 | Glaze | colour, clay body, thickness, dark in hollows, thin on edges and its *Break colour* (`breakTone`), runs, gloss, surface ripple, *Slump waves* (`wave`), crackle, pinholes, *Dust* (`dust`), *Handling bloom* (`wear`), *Foot grit* (`grit`), bare foot and drips |
 | Lustre metals | copper, silver, gold, bismuth, paste coat, coverage |
 | Firing | temperature, soak, smoke (reduction), air on cooling (re-oxidation), glaze resistance (diffusion barrier), flame marks |
 | Film optics | refractive index, dispersion, thickness variation, direct trims (layer depth, metal amount, clear skin) |
 | Painted decoration | second-lustre pattern and how its film differs |
-| Lighting | lighting rig (Atelier softboxes, North window, Vitrine spots, Kiln glow, and the low-key *Chiaroscuro*), room light, spotlight (aim, shadow softness, glint), *Backdrop* (`backdrop`: Cove, Void), *Backdrop tone* (`backdropTone`), *Pool of light* (`pool`), plinth on/off, *Plinth material* (`plinthMat`: Lacquer, Black stone, Ebonised wood, Bronze), plinth and floor polish, *Contact shading* (ambient occlusion and the contact shadow) |
+| Lighting | lighting rig (Atelier softboxes, North window, Vitrine spots, Kiln glow, and the low-key *Chiaroscuro*), room light, spotlight (aim, shadow softness, glint), *Lustre bounce* (`bounce`, 0–2, default 1), *Backdrop* (`backdrop`: Cove, Void), *Backdrop tone* (`backdropTone`), *Pool of light* (`pool`), plinth on/off, *Plinth material* (`plinthMat`: Lacquer, Black stone, Ebonised wood, Bronze), plinth and floor polish, *Contact shading* (ambient occlusion, the contact shadow and the lamp-by-lamp shade on the stand) |
 | Camera & film | *Lens · mm* (`focal`, 24–135, default 45), *Aperture · f/* (`fstop`: 1.4 to 16, default 4), *Depth of field* (`dof`: Off, Stills, Always), *Focus height* (`focusLevel`, a level, default 0.5), *Still quality* (`stillSamples`: 16, 32, 64), *Look* (`look`: Neutral, Print, Catalogue, Nocturne), *Film grain* (`grain`), *Lens fringing* (`chroma`), *Halation* (`halation`), exposure, tone curve, bloom, vignette, *Presentation frame* (`frame`: Free, 2.39:1, 16:9, 1:1) |
-| Rendering | turntable, room reflections and their detail, mesh detail, pixel ratio, adaptive quality, colour sample count |
+| Rendering | turntable, room reflections and their detail, *Self-reflections* (`selfRefl`, on by default; needs room reflections), mesh detail, pixel ratio, adaptive quality, colour sample count |
 
 Positions along the piece are *levels*: a share of the height, 0 at the foot and 1 at the
 rim. Sizes of surface patterns (flame size, run width, variation scale, crackle cell) are
@@ -190,7 +239,8 @@ in centimetres.
 glaze recipe: lustre presets leave them alone. A parameter set saved before handles had
 a taper is restored with even, smooth straps, as it was drawn then. A whole set saved
 before the film had flame fronts, halo rings, fine streaks and the scatter lobe is
-restored without them.
+restored without them. A whole set saved before the foot was turned keeps its plain foot
+(`footTurn` 0) and its own glaze line and drips.
 
 ### Views
 
@@ -201,7 +251,8 @@ Along the foot of the plate are five views, worked out from the piece as it is, 
   and level, 105 mm at f/8. *Lip*: from above into the mouth, or onto the finial of a
   lidded piece, 70 mm at f/8. *Foot*: low, on the foot ring and its reflection, 60 mm at
   f/2.8. *Detail*: close on the middle of the relief band, or of the body where there is
-  no relief, 85 mm at f/4. A shot sets lens, aperture and focus height as one undo step
+  no relief, 85 mm at f/4; on a wall that leans out (a bowl) it takes in the whole band
+  from low down, turned so that two repeats of the motif stand side by side. A shot sets lens, aperture and focus height as one undo step
   and flies the camera there; the three close shots hold the turntable until the vessel
   is dragged or another view is chosen (a plain click or tap leaves the shot as it is).
   The camera pose itself is not a parameter: undoing a shot puts the lens values back,
@@ -232,7 +283,7 @@ Along the foot of the plate are five views, worked out from the piece as it is, 
 
 ### The configurator
 
-The panel with all 149 controls is not part of the page an ordinary visitor sees, and
+The panel with all 152 controls is not part of the page an ordinary visitor sees, and
 nothing on the page leads to it. It is fetched and built only on request:
 
 - `index.html?configurator=1` opens it as a drawer over the left of the stage;
@@ -293,23 +344,29 @@ stays pressed exactly while all of them have the preset's values. A lustre prese
 linked directly with its hash, for example `index.html#labrador`; the hash is dropped as
 soon as the glaze is edited and comes back when the edit is undone. The six are fired as
 coloured films over dark glass rather than as metal plate: Zöld emerald, Hajnal ruby red,
-Labrador deep blue breaking towards cyan where the film is thick (its glaze pools and breaks less, so rims keep their lustre), Ibolya a plum blue-violet, Bronz a warm gilt bronze whose even film deepens towards
-copper where it thickens and pales towards olive where it thins. Gyöngyház is the
+Labrador deep blue breaking towards cyan where the film is thick (its glaze pools and breaks less, so rims keep their lustre), Ibolya a plum blue-violet, Bronz a warm olive-brown bronze with no gold in the paste, a
+little satin, its even film turning copper-red where it thickens. Gyöngyház is the
 exception: no metal at all, only a clear bismuth film of uneven depth on a pale, glossy,
 crackled glaze, so the piece stays pearl white and its colour (rose, pale green, pale
 blue, a little gold) lives in the highlights and the sheen around them, shifting with
-the angle; it is plainest on relief and quiet on a smooth wall. The painted second
+the angle; it is plainest on relief and stays quiet on a smooth wall. Its glaze is a
+near-neutral white, so the body no longer reads ivory-grey. The painted second
 lustre is the same film laid on about a quarter thicker, so the motif reads tone on
 tone, in the next colours of the series; on Bronz it is only a few per cent thicker and
-leaner in metal, a darker, redder bronze, because a quarter more would carry gold into
-magenta, and on Gyöngyház it is a soft veining an eighth thicker. A lustre tile's swatch
+fuller in metal, which turns the relief copper-red; a quarter more would carry the brown
+into magenta, and on Gyöngyház it is a soft veining an eighth thicker. A lustre tile's swatch
 shows what the film reflects plus what the glaze returns through it.
 
 **Adaptive quality** keeps the frame rate usable on slower GPUs: it first renders fewer
-pixels, then gives up stage extras one at a time (the plinth mirror at lower resolution
-with fewer blur taps and half the lens samples of a still; the mirror and the blur of
-moving frames; a smaller shadow map and 8 lens samples; a smaller studio capture), then
-falls back to a lighter mesh, and tries the finer setting again from time to time. The
+pixels, then gives up stage extras one at a time (1: the plinth mirror at lower
+resolution with fewer blur taps and half the lens samples of a still; 2: the mirror, the
+blur and the traced self-reflections of moving frames, and two of the four lamps that
+shade the stand; 3: a smaller shadow map, 8 lens samples, no traced self-reflections and
+no area-light shadow in stills; 4: a smaller studio capture, and the stand shaded by the
+dome alone, without bounce), then
+falls back to a lighter mesh, and tries the finer setting again from time to time. All
+of these are uniform values, never another shader. On a phone-sized screen the traced
+self-reflections are kept for the picture at rest from the start. The
 frames that refine a still are not counted as a measure of speed. A scene in which
 nothing moves is not redrawn at all once its still is complete.
 
@@ -323,3 +380,10 @@ At those fractions (Bronz, for instance) the lustre layer is opaque, so its
 thickness and the glaze colour beneath only show where the film thins: on relief edges,
 in flame-lean patches and in pinholes. The fired-film data say whether the film is opaque.
 Colours are computed for a D65-like white and are clipped to sRGB.
+
+The traced self-reflection is one bounce against a height field of body and lid and round
+capsules for the handles: undercuts are filled in, relief is as fine as the map (128 x 256
+cells, 64 x 256 at Draft), a strap is as round as its mean section, and the spot that is
+hit is shaded with the film colour of the spot that reflects it, not its own. The shade
+on the stand treats the piece as a body of revolution, so two handles shade it as a ring
+would. Softbox shapes, the card and the bounce are stage dressing, not measurements.
