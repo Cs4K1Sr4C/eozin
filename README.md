@@ -293,9 +293,17 @@ stays pressed exactly while all of them have the preset's values. A lustre prese
 linked directly with its hash, for example `index.html#labrador`; the hash is dropped as
 soon as the glaze is edited and comes back when the edit is undone. The six are fired as
 coloured films over dark glass rather than as metal plate: Zöld emerald, Hajnal ruby red,
-Labrador deep blue breaking towards cyan where the film is thick (its glaze pools and breaks less, so rims keep their lustre), Ibolya a plum blue-violet, Bronz gilt bronze with a soft rose swing in the body and the motif, Gyöngyház a pearl white with rose veins (a trace of gold and an uneven film) over
-a pale crackled glaze. Their painted second lustre is the same film laid on about a
-quarter thicker, so the motif reads tone on tone, in the next colours of the series.
+Labrador deep blue breaking towards cyan where the film is thick (its glaze pools and breaks less, so rims keep their lustre), Ibolya a plum blue-violet, Bronz a warm gilt bronze whose even film deepens towards
+copper where it thickens and pales towards olive where it thins. Gyöngyház is the
+exception: no metal at all, only a clear bismuth film of uneven depth on a pale, glossy,
+crackled glaze, so the piece stays pearl white and its colour (rose, pale green, pale
+blue, a little gold) lives in the highlights and the sheen around them, shifting with
+the angle; it is plainest on relief and quiet on a smooth wall. The painted second
+lustre is the same film laid on about a quarter thicker, so the motif reads tone on
+tone, in the next colours of the series; on Bronz it is only a few per cent thicker and
+leaner in metal, a darker, redder bronze, because a quarter more would carry gold into
+magenta, and on Gyöngyház it is a soft veining an eighth thicker. A lustre tile's swatch
+shows what the film reflects plus what the glaze returns through it.
 
 **Adaptive quality** keeps the frame rate usable on slower GPUs: it first renders fewer
 pixels, then gives up stage extras one at a time (the plinth mirror at lower resolution
