@@ -156,8 +156,9 @@ when the camera is moved.
   plinth glow more, as if a white card lay in front of the piece: the lower half of a
   close view of a dark lustre is no longer black. The card lies around the plinth and
   fades out well before the floor's horizon, so it leaves no line in the glaze; it is laid
-  out in world units, the same size on the *Void* backdrop (whose floor is five times as
-  large) as in the cove. It belongs to the view, not to the parameters, and goes when the
+  out in world units, and the capture takes the floor at the cove's size on either
+  backdrop: the *Void*'s floor, five times as wide, met the room at a horizon which the
+  picture itself hides in fog, a straight crease across the belly. It belongs to the view, not to the parameters, and goes when the
   shot is left. A piece whose wall leans out over the floor (an open bowl) gets a weaker
   card in every view, by how much of its outer wall looks down: under a dark floor such a
   wall mirrors nothing else and its lustre went out. Upright forms are lit as before. The

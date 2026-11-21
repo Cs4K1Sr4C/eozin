@@ -2711,9 +2711,9 @@ const cycWall = new THREE.Mesh(lathe((() => {
 scene.add(floor, cycWall);
 // Seen from further out than the floor of the cove reaches (a long lens, a small window, the wheel), the whole set grows
 // about the piece, so the camera always stands on its floor with the wall behind it. The pool of light is laid out in
-// world space and stays as it is. The room capture takes the set at its own size (captureLocal).
-function fitCove(own = false) {
-  const cove = P.backdrop === 'Cove', least = cove ? 1 : VOID_SCALE, s = own ? least : Math.max(least, (Math.hypot(camera.position.x, camera.position.z) + 1) / COVE_R);
+// world space and stays as it is. The room capture takes the floor at the cove's size (captureLocal).
+function fitCove() {
+  const cove = P.backdrop === 'Cove', least = cove ? 1 : VOID_SCALE, s = Math.max(least, (Math.hypot(camera.position.x, camera.position.z) + 1) / COVE_R);
   if (floor.scale.x !== s) floor.scale.setScalar(s);
   if (cycWall.scale.x !== (cove ? s : 1)) cycWall.scale.setScalar(cove ? s : 1);
 }
@@ -2929,9 +2929,9 @@ const hiddenMat = new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: f
 // its rim, the floor's horizon would show in the glaze as a straight crease across the belly.
 const floorVeil = new THREE.DataTexture(new Uint8Array([0, 0.3, 0.45, 0.5, 0.5, 0.5].flatMap((a) => [255, Math.round(a * 255), 255, 255])), 1, 6);
 floorVeil.minFilter = floorVeil.magFilter = THREE.LinearFilter; floorVeil.needsUpdate = true;
-// The card is laid out in world units: fitCove() makes the floor five times as large for the Void, and a card in the
-// floor's own (u, v) would grow with it, feather out at the horizon and put that crease back. The floor always wears
-// the card's map in the capture (all white without a card), so a close view is no new program to compile.
+// The card is laid out in world units, whatever the floor's scale: in the floor's own (u, v) it would grow with the
+// floor, feather out at the horizon and put that crease back. The floor always wears the card's map in the capture
+// (all white without a card), so a close view is no new program to compile.
 const CARD_N = 64, FLOOR_R = [COVE_R, 10, 6, 3, 1.5, 0];
 const floorCard = new THREE.DataTexture(new Uint8Array(CARD_N * 4).fill(255), 1, CARD_N);
 floorCard.minFilter = floorCard.magFilter = THREE.LinearFilter; floorCard.colorSpace = THREE.NoColorSpace; floorCard.needsUpdate = true;
@@ -2970,7 +2970,10 @@ function captureLocal(now) {
   const fog = scene.fog, bg = scene.background, rp = plinth.material.roughness, rf = floor.material.roughness, mp = reflOnPlinth.value, mf = reflOnFloor.value;
   scene.background = envTarget.texture; scene.backgroundRotation.copy(scene.environmentRotation); scene.backgroundIntensity = P.envInt; scene.fog = null;
   contactMesh.visible = cycWall.visible = false;     // the lamps are the capture's background: a wall around the piece would hide them
-  fitCove(true);                                     // the same floor whatever the camera's distance; tick() sets it again before the picture
+  // the same floor whatever the camera's distance and whatever the backdrop: the Void's floor, five times as wide, would
+  // meet the room at a horizon that the picture itself hides in fog, a straight crease across every belly. Cove-sized,
+  // the veil runs out to nothing before it gets there. tick() sets the floor again before the picture.
+  if (floor.scale.x !== 1) floor.scale.setScalar(1);
   vesselMesh.material = handleMesh.material = lidMesh.material = hiddenMat;
   plinth.material.roughness = 0.7; floor.material.roughness = 0.96;        // the capture serves every view direction
   reflOnPlinth.value = reflOnFloor.value = 0;
