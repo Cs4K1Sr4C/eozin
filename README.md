@@ -27,7 +27,8 @@ one is hidden (see *The configurator*).
 **English and Hungarian.** The page opens in Hungarian for a browser whose language list
 puts Hungarian before English, otherwise in English. The EN / HU switch in the masthead
 changes every word at once, without a reload, and the choice is remembered.
-`index.html?lang=hu` or `?lang=en` sets the language for one visit. Numbers follow the
+`index.html?lang=hu` or `?lang=en` sets the language for one visit (a region tag such as
+`hu-HU` or `en-GB` is read as its language). Numbers follow the
 language (a decimal comma in Hungarian); stored parameter values and option names stay
 English, so a parameter set copied in one language pastes in the other.
 
@@ -108,6 +109,10 @@ when the camera is moved.
 - *Room reflections.* The studio is captured again from the middle of the vessel, with the
   lit plinth, the floor and the shadow in it, and looked up with a parallax correction: the
   foot mirrors the plinth it stands on, the lower belly the floor, the shoulders the lamps.
+  In that capture the dark floor is a veil that glows a little and thins out towards its
+  rim: the low fills show through it, so a wall that looks down (the lower belly in
+  *Detail*, the outside of a bowl) carries glaze colour and not black, and no hard floor
+  edge is mirrored in the glaze.
 - *Polished stand.* The plinth (or, without it, the floor) mirrors the vessel: sharp at the
   contact line and dissolving with distance. *Plinth polish* and *Floor polish* set how
   much.
@@ -183,7 +188,9 @@ in centimetres.
 
 *Dust*, *Handling bloom* and *Foot grit* belong to the one piece on the stand, not to a
 glaze recipe: lustre presets leave them alone. A parameter set saved before handles had
-a taper is restored with even, smooth straps, as it was drawn then.
+a taper is restored with even, smooth straps, as it was drawn then. A whole set saved
+before the film had flame fronts, halo rings, fine streaks and the scatter lobe is
+restored without them.
 
 ### Views
 
@@ -286,7 +293,7 @@ stays pressed exactly while all of them have the preset's values. A lustre prese
 linked directly with its hash, for example `index.html#labrador`; the hash is dropped as
 soon as the glaze is edited and comes back when the edit is undone. The six are fired as
 coloured films over dark glass rather than as metal plate: Zöld emerald, Hajnal ruby red,
-Labrador deep blue (its glaze pools and breaks less, so rims keep their lustre), Ibolya blue-violet, Bronz gilt bronze, Gyöngyház iridescent white over
+Labrador deep blue breaking towards cyan where the film is thick (its glaze pools and breaks less, so rims keep their lustre), Ibolya a plum blue-violet, Bronz gilt bronze with a soft rose swing in the body and the motif, Gyöngyház a pearl white with rose veins (a trace of gold and an uneven film) over
 a pale crackled glaze. Their painted second lustre is the same film laid on about a
 quarter thicker, so the motif reads tone on tone, in the next colours of the series.
 

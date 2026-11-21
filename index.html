@@ -46,6 +46,9 @@ html, body { height: 100%; margin: 0; }
 body { background: var(--ground); color: var(--ink); font: var(--fs)/1.5 var(--font-ui); -webkit-font-smoothing: antialiased; overflow: hidden; }
 button { font: inherit; color: inherit; }
 :focus-visible { outline: 2px solid var(--gilt); outline-offset: 2px; }
+/* tiles and views sit in strips that scroll sideways and clip an outer ring: theirs is drawn inside, and in ink on a pressed one (its border is gilt already) */
+.tile:focus-visible, .shot:focus-visible { outline-offset: -3px; }
+.tile[aria-pressed="true"]:focus-visible, .shot[aria-pressed="true"]:focus-visible { outline-color: var(--ink); }
 
 /* ---------- grid: stack (default: phones and anything taller than wide) ---------- */
 .app {
@@ -89,7 +92,12 @@ button { font: inherit; color: inherit; }
 .caption { margin: 0; padding: 0 max(var(--pad), var(--sr)) 8px max(var(--pad), var(--sl)); pointer-events: none; align-self: end; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 1px 10px rgba(0, 0, 0, 0.7); min-width: 0; }
 .caption b { display: inline; font: 400 19px/1.15 var(--font-display); letter-spacing: 0.14em; text-transform: uppercase; }
 .caption .c1 { display: inline; margin-left: 10px; color: var(--ink-2); font-size: 12.5px; }
-.caption .c2 { display: none; font: 400 10.5px/1.4 var(--font-data); color: var(--ink-3); margin-top: 3px; }
+.caption .c2 { display: none; font: 400 10.5px/1.4 var(--font-data); color: var(--ink-2); margin-top: 3px; }
+@media (max-width: 699px) and (max-aspect-ratio: 9999/10000), (max-width: 559px) {   /* stack layout: a long name sends form and height to a line of their own */
+  .app:not(.present) .caption { display: flex; flex-wrap: wrap; align-items: baseline; gap: 1px 10px; }
+  .app:not(.present) .caption b, .app:not(.present) .caption .c1 { min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+  .app:not(.present) .caption .c1 { margin-left: 0; }
+}
 .shots {
   display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; scroll-padding: 0 var(--pad);
   padding: 2px max(var(--pad), var(--sr)) 10px max(var(--pad), var(--sl));
@@ -141,6 +149,7 @@ button { font: inherit; color: inherit; }
 .tile.lustre .sw { grid-row: 1 / 3; width: 30px; height: 30px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.45), inset 0 3px 6px rgba(255, 255, 255, 0.28); }
 .tile.lustre .n { font: 400 15.5px/1.15 var(--font-display); letter-spacing: 0.05em; color: var(--ink); align-self: end; }
 .tile.lustre .t { font-size: 11.5px; line-height: 1.2; color: var(--ink-3); align-self: start; white-space: nowrap; }
+.tile.lustre[aria-pressed="true"] .t { color: var(--ink-2); }   /* on the lighter well the third ink is too faint */
 .tile.form { display: grid; justify-items: center; align-content: end; gap: 5px; width: 76px; min-height: 76px; padding: 8px 4px 7px; text-align: center; font-size: 11.5px; line-height: 1.15; }
 .tile.form svg { opacity: 0.8; }
 .tile.form span { min-height: 2.3em; display: grid; place-items: center; }
@@ -152,6 +161,7 @@ button { font: inherit; color: inherit; }
 }
 .surprise:hover { background: #dfb56c; }
 .surprise:active { transform: translateY(1px); }
+.app.loading .set, .app.loading .facts { visibility: hidden; }   /* until the page is built there is nothing to pick and nothing listens; the words stay readable */
 .hint { margin: 7px 0 0; font-size: 11.5px; color: var(--ink-3); text-align: center; }
 @media (pointer: coarse) {
   .hint.keys { display: none; }
@@ -241,16 +251,19 @@ button { font: inherit; color: inherit; }
   .mast { padding-top: max(24px, var(--st)); padding-bottom: 4px; }
   .mast .eyebrow { display: block; margin-bottom: 8px; }
   .wordmark { font-size: clamp(52px, 4.6vw, 88px); line-height: 0.9; }
-  .app { grid-template-areas: ". mast" ". rail" "shots rail"; }
+  /* the foot of the plate is two tracks: the views take what they need, the caption what they leave */
+  .app { grid-template-columns: minmax(0, 1fr) auto var(--rail-w); grid-template-areas: ". . mast" ". . rail" "caption shots rail"; }
+  .stage, .status, .controls, .toast { grid-column: 1 / 3; }
   .rail { padding-top: 14px; row-gap: 24px; padding-bottom: max(28px, var(--sb)); }
   .rail > .set, .rail > .facts { row-gap: 24px; }
   .rail .intro { display: block; margin: 0; color: var(--ink-2); font-size: 1.04em; line-height: 1.55; max-width: 44ch; text-wrap: pretty; }
   .story .lede { display: none; }          /* shown as the intro under the wordmark */
-  .caption { grid-area: shots; align-self: end; justify-self: start; padding: 0 0 max(22px, var(--sb)) max(var(--pad), var(--sl)); max-width: 42%; white-space: normal; }
+  .caption { align-self: end; justify-self: start; padding: 0 4px max(22px, var(--sb)) max(var(--pad), var(--sl)); max-width: 100%; white-space: normal; }
   .shots { justify-self: end; justify-content: flex-end; align-self: end; padding-bottom: max(22px, var(--sb)); padding-right: var(--pad); }
   .caption b { display: block; font-size: 22px; }
   .caption .c1 { display: block; margin: 6px 0 0; font-size: 13px; }
   .caption .c2 { display: block; }
+  .caption b, .caption .c1, .caption .c2 { overflow: hidden; text-overflow: ellipsis; }   /* each line ends in an ellipsis of its own */
   .shots { overflow: visible; }
   .shot kbd { display: inline; }
   .shot.present { order: 0; margin-left: 10px; padding: 0 14px; }
@@ -265,9 +278,12 @@ button { font: inherit; color: inherit; }
   .tile.lustre { min-height: 52px; }
 }
 @media (min-aspect-ratio: 1/1) and (min-width: 1000px) and (max-width: 1279px) and (min-height: 600px) {   /* a narrow plate: the caption gives way to the shots */
-  .caption { max-width: 30%; white-space: nowrap; }
+  .caption { white-space: nowrap; }
   .caption .c2 { display: none; }
   .shot kbd { display: none; }
+  .shots { padding-left: 8px; }
+  .app:not(.present) .shot.present { padding: 0; margin-left: 4px; }          /* the icon alone again: its width goes to the caption */
+  .app:not(.present) .shot.present span { position: absolute; width: 1px; height: 1px; clip-path: inset(50%); }
 }
 @media (min-aspect-ratio: 1/1) and (min-width: 1500px) and (min-height: 600px) {
   .tiles.lustres { grid-template-columns: repeat(3, minmax(0, 1fr)); }
@@ -365,6 +381,7 @@ button { font: inherit; color: inherit; }
 .app.present .mast, .app.present .rail { display: none; }
 .app.present .stage, .app.present .status, .app.present .toast { grid-area: 1 / 1 / 2 / 2; }
 .app.present .toast { margin-bottom: 132px; }                 /* clear of the caption, and of the views when they are back */
+@media (max-height: 520px) { .app.present .toast { align-self: start; margin-top: max(12px, var(--st)); margin-bottom: 0; } }   /* a low window: at the top, not across the piece */
 .app.present .caption {
   position: absolute; grid-area: auto; z-index: 2; left: max(5%, var(--sl)); bottom: max(5%, var(--sb)); max-width: 60%;
   padding: 0; white-space: normal; overflow: visible;
@@ -374,7 +391,7 @@ button { font: inherit; color: inherit; }
 .app.present .caption .c1 { display: block; margin: 5px 0 0; font-size: 12.5px; }
 .app.present .caption .c2 { display: block; }
 .app.present .shots {
-  position: absolute; grid-area: auto; z-index: 3; left: 0; right: 0; bottom: 0; justify-content: center; overflow-x: auto;
+  position: absolute; grid-area: auto; z-index: 3; left: 0; right: 0; bottom: 0; justify-self: stretch; justify-content: center; overflow-x: auto;
   padding: 2px max(var(--pad), var(--sr)) max(14px, var(--sb)) max(var(--pad), var(--sl));
   -webkit-mask-image: none; mask-image: none; opacity: 0; pointer-events: none;
 }
@@ -494,6 +511,8 @@ button { font: inherit; color: inherit; }
   .controls .lil-gui .lil-gui > .title { height: 40px; line-height: 40px; }
   .qbar button, .qmenu .qitems button, .qmenu .qrow button { height: 40px; }
   .qbar .ico { width: 38px; }
+  .qbar { gap: 4px; padding-left: 8px; padding-right: 8px; }   /* the wider icon buttons leave the one button that gives way its whole label */
+  .qbar button { padding: 0 6px; }
   .qmenu { top: 53px; }
   .qmenu textarea { font-size: 16px; }
 }
@@ -507,7 +526,7 @@ button { font: inherit; color: inherit; }
 </style>
 </head>
 <body>
-<div class="app" id="app">
+<div class="app loading" id="app">
   <header class="mast">
     <div class="brand">
       <p class="eyebrow" data-i18n="ui.eyebrow"></p>
@@ -721,7 +740,7 @@ const EN = {
 const HU = {
 "doc.title":"Eozin lüszterműhely","doc.description":"Az eozin, a Zsolnay-kerámiák redukciós égetésű, fémfényű lüsztermázának parametrikus THREE.js-szimulációja.",
 "stage.aria":"Eozinmázas kerámiaedény interaktív 3D-s nézete",
-"ui.eyebrow":"Parametrikus lüsztermáz-szimuláció","ui.lede":"Az eozin a Zsolnay-kerámia fémfényű lüsztermáza; a pécsi gyár 1893-ban állt elő vele. A füstös, redukciós égetésben a réz- és ezüstionok a mázba vándorolnak, és ott fém nanorészecskékként válnak ki.","ui.story.h":"Az eozinról","ui.story.p":"Ez a néhány száz nanométer vastag réteg plazmonelnyeléssel és vékonyréteg-interferenciával színezi a fényt; ezért változik a szín, ahogy a darab elfordul.","ui.section.lustre":"Lüszter","ui.section.shape":"Forma","ui.section.views":"Kameranézetek","ui.surprise":"Lepj meg!","ui.surprise.hint":"Shift-kattintásra a forma marad, csak a lüszter változik.","ui.film.h":"A kiégett réteg","ui.spec.h":"Fényvisszaverés hullámhossz szerint","ui.chart.table":"Táblázat","ui.chart.chart":"Grafikon","ui.legend.faceon":"0° szemből","ui.angles.h":"Szín a nézőszög szerint","ui.angles.aria":"A lüszter színe a szemből nézettől a súroló nézetig","ui.colophon.fine":"Húzással forgathatod a darabot, görgetéssel vagy csippentéssel közelebb hozhatod. Az 1–5 billentyű nézetet vált, a P a bemutatót indítja.","ui.colophon.touch":"Húzással forgathatod a darabot, csippentéssel közelebb hozhatod.","ui.lang.aria":"Nyelv","ui.controls.aria":"A szimuláció paraméterei","ui.status":"Begyújtjuk a kemencét…",
+"ui.eyebrow":"Parametrikus lüsztermáz-szimuláció","ui.lede":"Az eozin a Zsolnay-kerámia fémfényű lüsztermáza; a pécsi gyár 1893-ban állt elő vele. A füstös, redukciós égetésben a réz- és ezüstionok a mázba vándorolnak, és ott fém nanorészecskékként válnak ki.","ui.story.h":"Az eozinról","ui.story.p":"Ez a néhány száz nanométer vastag réteg plazmonelnyeléssel és vékonyréteg-interferenciával színezi a fényt; ezért változik a szín, ahogy a darab elfordul.","ui.section.lustre":"Lüszter","ui.section.shape":"Forma","ui.section.views":"Kameranézetek","ui.surprise":"Lepj meg!","ui.surprise.hint":"Shift+kattintásra a forma marad, csak a lüszter változik.","ui.film.h":"A kiégett réteg","ui.spec.h":"Fényvisszaverés hullámhossz szerint","ui.chart.table":"Táblázat","ui.chart.chart":"Grafikon","ui.legend.faceon":"0° szemből","ui.angles.h":"Szín a nézőszög szerint","ui.angles.aria":"A lüszter színe a szemből nézettől a súroló nézetig","ui.colophon.fine":"Húzással forgathatod a darabot, görgetéssel vagy csippentéssel közelebb hozhatod. Az 1–5 billentyűk nézetet váltanak, a P a bemutatót indítja.","ui.colophon.touch":"Húzással forgathatod a darabot, csippentéssel közelebb hozhatod.","ui.lang.aria":"Nyelv","ui.controls.aria":"A szimuláció paraméterei","ui.status":"Begyújtjuk a kemencét…",
 "err.three":"A three.js nem töltődött be. Az oldalhoz import mapet ismerő böngésző (Safari 16.4+, Firefox 108+, Chrome 93+) és a cdn.jsdelivr.net elérése szükséges.","err.webgl":"A szimulációhoz WebGL 2 kell, de ez a böngésző vagy eszköz nem biztosítja.","err.panel":"A konfigurátor nem töltődött be.",
 "toast.follow.on":"A nézet követi, amit szerkesztesz.","toast.follow.off":"Szerkesztés közben a nézet ott marad, ahová állítottad.","toast.follow.turnOff":"Kikapcsolás",
 "present.on":"Bemutató","present.exit":"Kilépés","present.title":"Csak a darab látszik, a feliratával (billentyű: P)","present.toast.fine":"Bemutató mód. Az egér mozdítására előjönnek a nézetek; kilépés: Esc vagy P.","present.toast.fineSave":" Az S menti a képet.","present.toast.touch":"Bemutató mód. Koppintásra előjönnek a nézetek.","present.toast.touchSave":" Köztük van a Mentés is.",
@@ -738,27 +757,27 @@ const HU = {
 "toast.newPiece":"Új darab: {form}, {lustre} lüszter.","toast.newFiring":"Új égetés: {lustre} lüszter.","toast.copied":"Paraméterek kimásolva. A visszaállításhoz illeszd be őket ezen az oldalon.","toast.copyBlocked":"Itt a másolás le van tiltva. Másold ki a szöveget a mezőből.","toast.saved":"A kép elmentve.","toast.exposing":"A kép exponálása…","toast.cancelled":"Az exponálás megszakítva.","toast.reset":"Vissza a nyitó darabhoz.","toast.restored":"{n} paraméter visszaállítva.","toast.notSet":"Ez nem Eozin-paraméterkészlet.","toast.shapeRestored":"A forma visszaállítva.","toast.lustreRestored":"A lüszter visszaállítva.","toast.applied":"{name} beállítva.",
 "shot.title":"{name} – {focal} mm, f/{fstop} (billentyű: {key})",
 "grp.Shape":"Forma",
-"p.height":"Magasság · cm","p.height.help":"A darab magassága a talptól a peremig.","p.footRadius":"Talp sugara · cm","p.footRadius.help":"A talpgyűrű sugara, amelyen a darab áll.","p.footHeight":"Talp magassága · cm","p.footHeight.help":"Milyen magasan van a talapzat fölött a talp feletti keskeny derék.","p.waistRadius":"Derék sugara · cm","p.waistRadius.help":"A közvetlenül a talp fölötti elkeskenyedés sugara.","p.bellyRadius":"Has sugara · cm","p.bellyRadius.help":"Milyen széles a test a legöblösebb pontján.","p.bellyPos":"Legszélesebb pont · szint","p.bellyPos.help":"Milyen magasan van a legszélesebb pont. Alacsonyan körte forma, magasan vállas edény lesz belőle.","p.shoulderRadius":"Váll sugara · cm","p.shoulderRadius.help":"A sugár ott, ahol a test a nyak felé befordul.","p.shoulderPos":"Váll · szint","p.shoulderPos.help":"Milyen magasan ül a váll.","p.neckRadius":"Nyak sugara · cm","p.neckRadius.help":"A nyak szélessége. Keskenyen palack lesz, szélesen kinyílik a darab.","p.neckPos":"Nyak · szint","p.neckPos.help":"Milyen magasan a legkeskenyebb a nyak.","p.lipRadius":"Száj sugara · cm","p.lipRadius.help":"A száj szélessége. Ha szélesebb a nyaknál, a perem kihajlik.","p.lipBead":"Peremgyűrű · cm","p.lipBead.help":"Visszahajtott, megvastagított gyűrű a perem körül.","p.wall":"Falvastagság · cm","p.wall.help":"Az agyagfal vastagsága; a peremen és a darab belsejében látszik.","p.softness":"Profil lágysága","p.softness.help":"Lekerekíti a profilt a megadott sugarak között.","p.handmade":"A kéz nyoma","p.handmade.help":"A korongozott darab jegyei: enyhe dőlés, egyenetlen perem, elkalandozó minták, halvány korongozási nyomok. 0-nál gépi pontosságú.","p.squash":"Ovális lapítás","p.squash.help":"A kerek alaprajzot oválissá nyomja az egyik vagy a másik irányban.",
+"p.height":"Magasság · cm","p.height.help":"A darab magassága a talptól a peremig.","p.footRadius":"Talp sugara · cm","p.footRadius.help":"A talpgyűrű sugara, amelyen a darab áll.","p.footHeight":"Talp magassága · cm","p.footHeight.help":"Milyen magasan van a talapzat fölött a talp feletti keskeny derék.","p.waistRadius":"Derék sugara · cm","p.waistRadius.help":"A közvetlenül a talp fölötti elkeskenyedés sugara.","p.bellyRadius":"Has sugara · cm","p.bellyRadius.help":"Milyen széles a test a legöblösebb pontján.","p.bellyPos":"Legszélesebb pont · szint","p.bellyPos.help":"Milyen magasan van a legszélesebb pont. Alacsonyan körteforma, magasan vállas edény lesz belőle.","p.shoulderRadius":"Váll sugara · cm","p.shoulderRadius.help":"A sugár ott, ahol a test a nyak felé befordul.","p.shoulderPos":"Váll · szint","p.shoulderPos.help":"Milyen magasan ül a váll.","p.neckRadius":"Nyak sugara · cm","p.neckRadius.help":"A nyak szélessége. Keskenyen palack lesz, szélesen kinyílik a darab.","p.neckPos":"Nyak · szint","p.neckPos.help":"Milyen magasan a legkeskenyebb a nyak.","p.lipRadius":"Száj sugara · cm","p.lipRadius.help":"A száj szélessége. Ha szélesebb a nyaknál, a perem kihajlik.","p.lipBead":"Peremgyűrű · cm","p.lipBead.help":"Visszahajtott, megvastagított gyűrű a perem körül.","p.wall":"Falvastagság · cm","p.wall.help":"Az agyagfal vastagsága; a peremen és a darab belsejében látszik.","p.softness":"Profil lágysága","p.softness.help":"Lekerekíti a profilt a megadott sugarak között.","p.handmade":"A kéz nyoma","p.handmade.help":"A korongozott darab jegyei: enyhe dőlés, egyenetlen perem, elkalandozó minták, halvány korongozási nyomok. 0-nál gépi pontosságú.","p.squash":"Ovális lapítás","p.squash.help":"A kerek alaprajzot oválissá nyomja az egyik vagy a másik irányban.",
 "grp.Sculpting":"Plasztika",
 "p.lobes":"Gerezdek","p.lobes.help":"Függőleges gerezdekre osztja a testet, mint egy dinnyét. 0-nál kerek marad.","p.lobeDepth":"Gerezdmélység","p.lobeDepth.help":"Milyen mélyek a gerezdek közötti barázdák.","p.lobeProfile":"Gerezd profilja","p.lobeProfile.help":"A gerezd keresztmetszete: lágy hullám, domború borda vagy homorú hornyolat.",
 "opt.Sine":"Hullám","opt.Gadroon":"Domború borda","opt.Flute":"Hornyolat",
-"p.lobeStart":"Gerezdek kezdete · szint","p.lobeStart.help":"Ahol a gerezdek elindulnak.","p.lobeEnd":"Gerezdek vége · szint","p.lobeEnd.help":"Ahol a gerezdek elsimulnak.","p.twist":"Csavarás · °","p.twist.help":"Spirálba csavarja a gerezdeket és a domborművet. Csak gerezdekkel vagy domborművel látszik.","p.relief":"Domborminta","p.relief.help":"A máz alatt az agyagba mintázott díszítés. A lüszter megcsillan rajta.",
+"p.lobeStart":"Gerezdek kezdete · szint","p.lobeStart.help":"Ahol a gerezdek elindulnak.","p.lobeEnd":"Gerezdek vége · szint","p.lobeEnd.help":"Ahol a gerezdek elsimulnak.","p.twist":"Csavarás · °","p.twist.help":"Spirálba csavarja a gerezdeket és a dombormintát. Csak gerezdekkel vagy dombormintával látszik.","p.relief":"Domborminta","p.relief.help":"A máz alatt az agyagba mintázott díszítés. A lüszter megcsillan rajta.",
 "opt.None":"Nincs","opt.Leaves":"Levelek","opt.Scales":"Pikkelyek","opt.Vines":"Indák","opt.Spiral ribs":"Csavart bordák","opt.Hammered":"Kalapált","opt.Cabochons":"Kabosonok",
-"p.reliefHeight":"Dombormű magassága · cm","p.reliefHeight.help":"Mennyire emelkedik ki a dombormű. Nulla alatt bemélyed.","p.reliefCount":"Ismétlés körben","p.reliefCount.help":"Hányszor ismétlődik a minta a darab körül.","p.reliefRows":"Sorok","p.reliefRows.help":"Hány sor minta kerül egymás fölé a sávban.","p.reliefStart":"Sáv alja · szint","p.reliefStart.help":"A domborműves sáv alsó széle.","p.reliefEnd":"Sáv teteje · szint","p.reliefEnd.help":"A domborműves sáv felső széle.","p.rings":"Gyűrűk","p.rings.help":"Esztergált gyűrűk a darab körül. 0-nál nincs.","p.ringHeight":"Gyűrű magassága · cm","p.ringHeight.help":"Mennyire állnak ki a gyűrűk.","p.ringPos":"Gyűrűk helye · szint","p.ringPos.help":"Hol ül a gyűrűcsoport.","p.rimWaves":"Peremhullámok","p.rimWaves.help":"Ennyi sziromra tagolja a peremet. 0-nál egyenes marad.","p.rimHeight":"Peremhullám magassága","p.rimHeight.help":"Mennyire emelkednek és süllyednek a szirmok.","p.rimFrom":"Hullámok kezdete · szint","p.rimFrom.help":"A perem alatt honnan indulnak a sziromhullámok.",
+"p.reliefHeight":"Domborminta magassága · cm","p.reliefHeight.help":"Mennyire emelkedik ki a domborminta. Nulla alatt bemélyed.","p.reliefCount":"Ismétlés körben","p.reliefCount.help":"Hányszor ismétlődik a minta a darab körül.","p.reliefRows":"Sorok","p.reliefRows.help":"Hány sor minta kerül egymás fölé a sávban.","p.reliefStart":"Sáv alja · szint","p.reliefStart.help":"A dombormintás sáv alsó széle.","p.reliefEnd":"Sáv teteje · szint","p.reliefEnd.help":"A dombormintás sáv felső széle.","p.rings":"Gyűrűk","p.rings.help":"Esztergált gyűrűk a darab körül. 0-nál nincs.","p.ringHeight":"Gyűrű magassága · cm","p.ringHeight.help":"Mennyire állnak ki a gyűrűk.","p.ringPos":"Gyűrűk helye · szint","p.ringPos.help":"Hol ül a gyűrűcsoport.","p.rimWaves":"Peremhullámok","p.rimWaves.help":"Ennyi sziromra tagolja a peremet. 0-nál egyenes marad.","p.rimHeight":"Peremhullám magassága","p.rimHeight.help":"Mennyire emelkednek és süllyednek a szirmok.","p.rimFrom":"Hullámok kezdete · szint","p.rimFrom.help":"A perem alatt honnan indulnak a sziromhullámok.",
 "grp.Handles & lid":"Fülek és fedő",
-"p.handles":"Fülek","p.handles.help":"A fülek száma. 0-nál nincs fül.","p.handleLow":"Alsó csatlakozás · szint","p.handleLow.help":"Ahol a fül alul a testhez ér.","p.handleHigh":"Felső csatlakozás · szint","p.handleHigh.help":"Ahol a fül felül a nyakhoz ér.","p.handleReach":"Kiállás · cm","p.handleReach.help":"Mennyire állnak el a fülek a faltól.","p.handleArch":"Ívelés","p.handleArch.help":"Mennyire ível a fül a felső csatlakozása fölé.","p.handleThick":"Vastagság · cm","p.handleThick.help":"A fül szalagjának vastagsága.","p.handleFlat":"Szalag lapossága","p.handleFlat.help":"A szalag keresztmetszete a széles, lapostól a vaskosig.","p.handleBlend":"Csatlakozás elsimítása","p.handleBlend.help":"Mennyire terül szét a fül ott, ahol a falhoz illeszkedik. 0-nál egyszerű tompa illesztés.","p.handleTaper":"Húzott elvékonyodás","p.handleTaper.help":"A húzott fül ott vaskos, ahol a húzás indult, vagyis felül, és az alsó csatlakozás felé elvékonyodik. 0-nál egyenletes szalag.","p.handleRibs":"Ujjbordák","p.handleRibs.help":"Bordák, amelyeket az ujjak hagynak a húzott fül hátán. 0-nál sima a szalag.","p.lid":"Fedő","p.lid.help":"A peremen ülő fedő, amelynek pereme a szájba illeszkedik. A „Nincs” nyitva hagyja a darabot.",
+"p.handles":"Fülek","p.handles.help":"A fülek száma. 0-nál nincs fül.","p.handleLow":"Alsó csatlakozás · szint","p.handleLow.help":"Ahol a fül alul a testhez ér.","p.handleHigh":"Felső csatlakozás · szint","p.handleHigh.help":"Ahol a fül felül a nyakhoz ér.","p.handleReach":"Kinyúlás · cm","p.handleReach.help":"Mennyire állnak el a fülek a faltól.","p.handleArch":"Ívelés","p.handleArch.help":"Mennyire ível a fül a felső csatlakozása fölé.","p.handleThick":"Vastagság · cm","p.handleThick.help":"A fül szalagjának vastagsága.","p.handleFlat":"Szalag lapossága","p.handleFlat.help":"A szalag keresztmetszete a széles, lapostól a vaskosig.","p.handleBlend":"Csatlakozás elsimítása","p.handleBlend.help":"Mennyire terül szét a fül ott, ahol a falhoz illeszkedik. 0-nál egyszerű tompa illesztés.","p.handleTaper":"Húzott fül vékonyodása","p.handleTaper.help":"A húzott fül ott vaskos, ahol a húzás indult, vagyis felül, és az alsó csatlakozás felé elvékonyodik. 0-nál egyenletes szalag.","p.handleRibs":"Ujjbordák","p.handleRibs.help":"Bordák, amelyeket az ujjak hagynak a húzott fül hátán. 0-nál sima a szalag.","p.lid":"Fedő","p.lid.help":"A peremen ülő fedő, amelynek pereme a szájba illeszkedik. A „Nincs” nyitva hagyja a darabot.",
 "opt.Domed":"Domború","opt.Flat":"Lapos","opt.Conical":"Kúpos",
 "p.lidRise":"Fedő domborulata","p.lidRise.help":"Milyen magasra emelkedik a fedő a saját sugarához képest.","p.lidOverhang":"Fedő túlnyúlása · cm","p.lidOverhang.help":"Mennyire nyúlik túl a fedő karimája a peremen.","p.finial":"Fedőgomb","p.finial.help":"Az esztergált gomb, amelynél fogva a fedőt felemelik.",
 "opt.Ball":"Gömb","opt.Bud":"Bimbó","opt.Acorn":"Makk","opt.Disc":"Korong",
 "p.finialSize":"Fedőgomb mérete · cm","p.finialSize.help":"A fedőgomb mérete.",
 "grp.Glaze":"Máz",
-"p.glazeColor":"Máz színe","p.glazeColor.help":"A lüszter alatti üveges máz színe. Ott látszik, ahol a fémes réteg vékony.","p.bodyColor":"Cserép színe","p.bodyColor.help":"A kiégett agyag színe; a mázatlan talpon látszik, és ott, ahol a máz elvékonyodik.","p.glazeThick":"Mázvastagság","p.glazeThick.help":"Milyen vastagon fekszik a máz. A vastag máz elmossa a domborművet, és hosszabban megfolyik.","p.pooling":"Sötétebb a mélyedésekben","p.pooling.help":"A máz megül a mélyedésekben, és ott sötétebb.","p.breaking":"Vékony az éleken","p.breaking.help":"Az éles peremeken a máz elvékonyodik, és átengedi az alatta lévő színt.","p.breakTone":"Áttörő szín","p.breakTone.help":"Az a szín, amely az éleken az elvékonyodó máz alól előtűnik: a legtöbb cserépen vasbarna.","p.runs":"Mázfolyások","p.runs.help":"Csíkok ott, ahol a máz a kemencében megfolyt.","p.runScale":"Folyás szélessége · cm","p.runScale.help":"A mázcsíkok szélessége.","p.sag":"Megcsúszás","p.sag.help":"Mennyire csúszott le a máz a talp felé.","p.gloss":"Fényesség","p.gloss.help":"Mennyire tükörsima a máz. Alacsony értéknél selyemfényű a felület.","p.peel":"Felületi hullámosság","p.peel.help":"A kiégett felület finom hullámossága.","p.wave":"Olvadási hullámok","p.wave.help":"Hosszú, lapos hullámok ott, ahol a máz olvadás közben megereszkedett. Meggörbítik a lámpák tükörképét.","p.crackle":"Repesztés","p.crackle.help":"Finom hajszálrepedések hálója a mázban.","p.crackleSize":"Repedéscella · cm","p.crackleSize.help":"A repedések közötti cellák mérete.","p.crackleStain":"Repedések színezése","p.crackleStain.help":"Milyen sötétre színeződtek a repedések.","p.pinholes":"Tűszúrások","p.pinholes.help":"Apró gödrök ott, ahol a buborékok áttörték a mázat.","p.dust":"Por","p.dust.help":"A vállakra és a talapzatra leülepedett por. Csak közelről látszik.","p.wear":"Fogásnyom","p.wear.help":"Tompább fátyol ott, ahol kézbe szokták venni a darabot.","p.grit":"Talp szemcséssége","p.grit.help":"Durva samott, kemencehomok és kopás a talp mázatlan cserepén.","p.glazeLine":"Mázatlan talp · cm","p.glazeLine.help":"A talpnál mázatlanul hagyott cserép magassága.","p.dripAmp":"Cseppek hossza · cm","p.dripAmp.help":"Meddig futnak le a cseppek a mázhatár alá.","p.dripCount":"Mázcseppek","p.dripCount.help":"A cseppek száma a talp körül. 0-nál egyenes a mázhatár.",
+"p.glazeColor":"Máz színe","p.glazeColor.help":"A lüszter alatti üveges máz színe. Ott látszik, ahol a fémes réteg vékony.","p.bodyColor":"Cserép színe","p.bodyColor.help":"A kiégett agyag színe; a mázatlan talpon látszik, és ott, ahol a máz elvékonyodik.","p.glazeThick":"Mázvastagság","p.glazeThick.help":"Milyen vastagon fekszik a máz. A vastag máz elmossa a dombormintát, és hosszabban megfolyik.","p.pooling":"Sötétebb a mélyedésekben","p.pooling.help":"A máz megül a mélyedésekben, és ott sötétebb.","p.breaking":"Vékony az éleken","p.breaking.help":"Az éles peremeken a máz elvékonyodik, és átengedi az alatta lévő színt.","p.breakTone":"Átütő szín","p.breakTone.help":"Az a szín, amely az éleken az elvékonyodó máz alól átüt: a legtöbb cserépen vasbarna.","p.runs":"Mázfolyások","p.runs.help":"Csíkok ott, ahol a máz a kemencében megfolyt.","p.runScale":"Folyás szélessége · cm","p.runScale.help":"A mázcsíkok szélessége.","p.sag":"Megcsúszás","p.sag.help":"Mennyire csúszott le a máz a talp felé.","p.gloss":"Fényesség","p.gloss.help":"Mennyire tükörsima a máz. Alacsony értéknél selyemfényű a felület.","p.peel":"Felületi hullámosság","p.peel.help":"A kiégett felület finom hullámossága.","p.wave":"Olvadási hullámok","p.wave.help":"Hosszú, lapos hullámok ott, ahol a máz olvadás közben megereszkedett. Meggörbítik a lámpák tükörképét.","p.crackle":"Repesztés","p.crackle.help":"Finom hajszálrepedések hálója a mázban.","p.crackleSize":"Repedéscella · cm","p.crackleSize.help":"A repedések közötti cellák mérete.","p.crackleStain":"Repedések színezése","p.crackleStain.help":"Milyen sötétre színeződtek a repedések.","p.pinholes":"Tűszúrások","p.pinholes.help":"Apró gödrök ott, ahol a buborékok áttörték a mázat.","p.dust":"Por","p.dust.help":"A vállakra és a talapzatra leülepedett por. Csak közelről látszik.","p.wear":"Fogásnyom","p.wear.help":"Tompább fátyol ott, ahol kézbe szokták venni a darabot.","p.grit":"Talp szemcséssége","p.grit.help":"Durva samott, kemencehomok és kopás a talp mázatlan cserepén.","p.glazeLine":"Mázatlan talp · cm","p.glazeLine.help":"A talpnál mázatlanul hagyott cserép magassága.","p.dripAmp":"Cseppek hossza · cm","p.dripAmp.help":"Meddig futnak le a cseppek a mázhatár alá.","p.dripCount":"Mázcseppek","p.dripCount.help":"A cseppek száma a talp körül. 0-nál egyenes a mázhatár.",
 "grp.Lustre metals":"Lüszterfémek",
 "p.cu":"Réz","p.cu.help":"Réz a lüszterpasztában: meleg vörös, barna és zöldarany tónusok.","p.ag":"Ezüst","p.ag.help":"Ezüst a pasztában: halványsárga, kék és gyöngyházas tónusok.","p.au":"Arany","p.au.help":"Arany a pasztában: rózsaszín és rubinvörös tónusok.","p.bi":"Bizmut (színjáték)","p.bi.help":"A bizmut sűrűbbé teszi a fém fölötti átlátszó fedőréteget, ettől eltolódik a lüszter színe.","p.coat":"Pasztaréteg","p.coat.help":"Milyen vastagon vitték fel ecsettel a lüszterpasztát.","p.coverage":"Fedettség","p.coverage.help":"A felület mekkora részén van lüszter. Kisebb értéknél sima mázfoltok maradnak.","p.innerLustre":"Belső lüszter","p.innerLustre.help":"Mennyi lüszter jutott a darab belsejébe.",
 "grp.Firing":"Égetés",
 "p.kilnTemp":"Kemencehőmérséklet · °C","p.kilnTemp.help":"A forróbb kemence több fémet hajt a mázba. A színsáv megmutatja, melyik hőmérséklet milyen színt ad.","p.soak":"Hőntartás · perc","p.soak.help":"Ennyi percig áll a kemence csúcshőmérsékleten. Hosszabb hőntartás alatt vastagabb réteg alakul ki, de csak egy határig.","p.reduction":"Füst (redukció)","p.reduction.help":"Mennyire füstös a kemence. A füst fémmé alakítja az oldott rezet és ezüstöt; kevés füsttel alig lesz lüszter.","p.reox":"Levegő hűléskor","p.reox.help":"A hűlő kemencébe engedett levegő eltünteti a fémet a réteg tetejéről. Ez az átlátszó fedőréteg adja a szivárványos színjátékot.","p.activation":"A máz ellenállása · kJ/mol","p.activation.help":"Mennyire áll ellen a máz a belé vándorló fémnek. Nagyobb értéknél vékonyabb a réteg.","p.flash":"Lángnyomok","p.flash.help":"Az egyenetlenül nyaldosó láng eltérő színű, felhős foltokat hagy.","p.flashScale":"Láng mérete · cm","p.flashScale.help":"A lángfoltok mérete.","p.flashWarp":"Kavargás","p.flashWarp.help":"Mennyire kavarognak a lángfoltok.","p.flashStretch":"Láng nyúlása","p.flashStretch.help":"Felfelé nyúló nyelvekké húzza a lángfoltokat.","p.flameBias":"Lángoldali eltérés","p.flameBias.help":"A darab láng felőli oldala másképp ég ki, mint a többi.","p.flameDir":"Láng iránya · °","p.flameDir.help":"A darab melyik oldala nézett a láng felé.","p.seed":"Égetés sorszáma","p.seed.help":"Újrakeveri a lángok és a cseppek véletlen mintázatát.","p.front":"Lángnyelvek","p.front.help":"A lángnyomokat néhány éles szélű nyelvbe gyűjti az egyenletes felhősödés helyett.","p.halo":"Holdudvar","p.halo.help":"A szomszédos interferenciaszínek gyűrűje, amelyet a láng a nyoma széle körül hagy.","p.streak":"Rétegcsíkok","p.streak.help":"Finom, elnyújtott csíkok a réteg vastagságában, mintha ecset vagy huzat húzta volna őket.",
 "grp.Film optics":"A réteg optikája",
-"p.glassIndex":"A máz törésmutatója","p.glassIndex.help":"Milyen erősen töri meg a fényt a máz üvege.","p.dispersion":"Diszperzió","p.dispersion.help":"Mennyire tér el ez a fénytörés a vörös és a kék fényre.","p.thickVar":"Vastagságingadozás","p.thickVar.help":"Mennyire egyenetlen a réteg vastagsága helyről helyre.","p.thickScale":"Ingadozás léptéke · cm","p.thickScale.help":"A vastagabb és a vékonyabb foltok mérete.","p.lustrePool":"A lüszter megülése","p.lustrePool.help":"A mélyedésekben vastagabbá teszi a réteget, nulla alatt pedig a kiemelkedéseken.","p.mosaic":"Repedésmozaik","p.mosaic.help":"Minden repedéscellának enyhén eltérő színt ad.","p.trimThick":"Rétegmélység ×","p.trimThick.help":"Finomhangolás: közvetlenül a kiégett réteget skálázza, a kemencemodell után.","p.trimFill":"Fémmennyiség ×","p.trimFill.help":"Finomhangolás: közvetlenül a kiégett réteget skálázza, a kemencemodell után.","p.trimCover":"Fedőréteg ×","p.trimCover.help":"Finomhangolás: közvetlenül a kiégett réteget skálázza, a kemencemodell után.","p.scatter":"Kolloidszórás","p.scatter.help":"A lüszter fényének mekkora része érkezik vissza lágy derengésként a fémkolloidokról, az üveges felület éles tükröződése alatt.",
+"p.glassIndex":"A máz törésmutatója","p.glassIndex.help":"Milyen erősen töri meg a fényt a máz üvege.","p.dispersion":"Diszperzió","p.dispersion.help":"Mennyivel erősebben töri meg a máz a kék fényt, mint a vöröset.","p.thickVar":"Vastagságingadozás","p.thickVar.help":"Mennyire egyenetlen a réteg vastagsága helyről helyre.","p.thickScale":"Ingadozás léptéke · cm","p.thickScale.help":"A vastagabb és a vékonyabb foltok mérete.","p.lustrePool":"A lüszter megülése","p.lustrePool.help":"A mélyedésekben vastagabbá teszi a réteget, nulla alatt pedig a kiemelkedéseken.","p.mosaic":"Repedésmozaik","p.mosaic.help":"Minden repedéscellának enyhén eltérő színt ad.","p.trimThick":"Rétegmélység ×","p.trimThick.help":"Finomhangolás: közvetlenül a kiégett réteget skálázza, a kemencemodell után.","p.trimFill":"Fémmennyiség ×","p.trimFill.help":"Finomhangolás: közvetlenül a kiégett réteget skálázza, a kemencemodell után.","p.trimCover":"Fedőréteg ×","p.trimCover.help":"Finomhangolás: közvetlenül a kiégett réteget skálázza, a kemencemodell után.","p.scatter":"Kolloidszórás","p.scatter.help":"A lüszter fényének mekkora része érkezik vissza lágy derengésként a fémkolloidokról, az üveges felület éles tükröződése alatt.",
 "grp.Painted decoration":"Festett díszítés",
 "p.deco":"Festett minta","p.deco.help":"Az elsőre festett második lüszter. A „Nincs” kikapcsolja.",
 "opt.Relief motif":"Domborminta","opt.Bands":"Sávok","opt.Marbled veins":"Márványerek","opt.Whiplash vines":"Ostorcsapásos indák",
@@ -782,11 +801,11 @@ const HU = {
 "opt.Free":"Szabad","opt.2.39:1":"2,39:1","opt.16:9":"16:9","opt.1:1":"1:1",
 "grp.Rendering":"Megjelenítés",
 "p.spin":"Forgóasztal · ford./perc","p.spin.help":"A forgóasztal sebessége. 0-nál megáll.","p.roomRefl":"Terem tükröződése","p.roomRefl.help":"A máz nemcsak a lámpákat tükrözi, hanem a talapzatot, a padlót és az árnyékot is, amelyben áll.","p.reflDetail":"Tükröződés részletessége","p.reflDetail.help":"A mázban tükröződő lámpák élessége. Az oldal magától is csökkentheti, hogy a mozgás folyamatos maradjon.",
-"opt.Standard":"Normál","opt.High":"Magas",
+"opt.Standard":"Normál","opt.High":"Nagy",
 "p.detail":"Háló részletessége","p.detail.help":"A háló háromszögeinek száma. Az oldal magától is csökkentheti, hogy a mozgás folyamatos maradjon.",
 "opt.Draft":"Vázlat","opt.Fine":"Finom",
 "p.pixelRatio":"Legnagyobb képpontarány","p.pixelRatio.help":"A képernyő egy képpontjára jutó kiszámolt képpontok felső határa.","p.adaptive":"Alkalmazkodó minőség","p.adaptive.help":"Az oldal a felbontásból és a háló részletességéből enged, hogy a képfrissítés egyenletes maradjon.","p.spectral":"Színminták","p.spectral.help":"A képpontonként kiszámolt hullámhosszak száma. Több mintával hűbb és lassabb.",
-"dep.lobeDepth":"Előbb állítsd a Gerezdek számát 0 fölé.","dep.reliefHeight":"Előbb válassz dombormintát.","dep.reliefCount":"Ehhez 0-tól eltérő magasságú domborminta kell.","dep.ringHeight":"Előbb adj hozzá gyűrűket.","dep.rimHeight":"Előbb adj hozzá peremhullámokat.","dep.handleLow":"Előbb adj hozzá füleket.","dep.lid":"A fedőhöz egyenes perem kell: állítsd a Peremhullámokat 0-ra.","dep.lidRise":"Előbb válassz fedőt.","dep.finialSize":"Előbb válassz fedőt és fedőgombot.","dep.breakTone":"Előbb növeld a „Vékony az éleken” értékét.","dep.crackleSize":"Előbb növeld a Repesztést.","dep.dripAmp":"Előbb adj hozzá mázcseppeket.","dep.flashScale":"Előbb növeld a Lángnyomokat.","dep.flameDir":"Előbb növeld a Lángoldali eltérést.","dep.thickScale":"Előbb növeld a Vastagságingadozást.","dep.runScale":"Előbb növeld a Mázfolyásokat vagy a Vastagságingadozást.","dep.decoSoft":"Előbb válassz festett mintát.","dep.decoCount":"Ennek a mintának nincs ismétlésszáma.","dep.decoRows":"Ennek a mintának nincsenek sorai.","dep.keyAz":"Előbb kapcsold ki a „Spotlámpa a főlámpánál” kapcsolót.","dep.plinthGloss":"Előbb kapcsold be a Talapzatot.","dep.backdropTone":"Előbb válaszd a Háttérív hátteret.","dep.fstop":"Előbb kapcsold be a Mélységélességet.","dep.halation":"Előbb növeld a Csúcsfények ragyogását.",
+"dep.lobeDepth":"Előbb állítsd a „Gerezdek” értékét 0 fölé.","dep.reliefHeight":"Előbb válassz dombormintát.","dep.reliefCount":"Ehhez 0-tól eltérő magasságú domborminta kell.","dep.ringHeight":"Előbb adj hozzá gyűrűket.","dep.rimHeight":"Előbb adj hozzá peremhullámokat.","dep.handleLow":"Előbb adj hozzá füleket.","dep.lid":"A fedőhöz egyenes perem kell: állítsd a „Peremhullámok” értékét 0-ra.","dep.lidRise":"Előbb válassz fedőt.","dep.finialSize":"Előbb válassz fedőt és fedőgombot.","dep.breakTone":"Előbb növeld a „Vékony az éleken” értékét.","dep.crackleSize":"Előbb növeld a „Repesztés” értékét.","dep.dripAmp":"Előbb adj hozzá mázcseppeket.","dep.flashScale":"Előbb növeld a „Lángnyomok” értékét.","dep.flameDir":"Előbb növeld a „Lángoldali eltérés” értékét.","dep.thickScale":"Előbb növeld a „Vastagságingadozás” értékét.","dep.runScale":"Előbb növeld a „Mázfolyások” vagy a „Vastagságingadozás” értékét.","dep.decoSoft":"Előbb válassz festett mintát.","dep.decoCount":"Ennek a mintának nincs ismétlésszáma.","dep.decoRows":"Ennek a mintának nincsenek sorai.","dep.keyAz":"Előbb kapcsold ki a „Spotlámpa a főlámpánál” kapcsolót.","dep.plinthGloss":"Előbb kapcsold be a „Talapzat” kapcsolót.","dep.backdropTone":"Előbb válaszd a „Háttérív” hátteret.","dep.fstop":"Előbb kapcsold be a „Mélységélesség” beállítást.","dep.halation":"Előbb növeld a „Csúcsfények ragyogása” értékét.",
 "form.baluster":"Baluszter","form.bottle":"Palack","form.gourd":"Lopótök","form.tulip":"Tulipán","form.amphora":"Amfora","form.ginger":"Gyömbértartó","form.urn":"Fedeles urna","form.bowl":"Tál",
 "lustre.zold":"Zöld","lustre.zold.note":"smaragdzöld","lustre.hajnal":"Hajnal","lustre.hajnal.note":"rubinvörös","lustre.labrador":"Labrador","lustre.labrador.note":"mélykék","lustre.ibolya":"Ibolya","lustre.ibolya.note":"kékeslila","lustre.bronz":"Bronz","lustre.bronz.note":"aranybronz","lustre.gyongyhaz":"Gyöngyház","lustre.gyongyhaz.note":"irizáló fehér",
 "shot.hero":"Főnézet","shot.profile":"Profil","shot.lip":"Perem","shot.foot":"Talp","shot.detail":"Részlet",
@@ -795,12 +814,12 @@ const HU = {
 const LANGS = ['en', 'hu'];
 const urlQ = new URLSearchParams(location.search);
 let LANG = (() => {                                  // ?lang= for this visit, else the remembered choice, else the first language of the browser that the page speaks
-  const q = (urlQ.get('lang') || '').toLowerCase();
+  const q = (urlQ.get('lang') || '').trim().toLowerCase().split(/[-_]/)[0];   // hu-HU and hu_HU are hu
   if (LANGS.includes(q)) return q;
   const saved = prefs.get('eozin:lang');
   if (LANGS.includes(saved)) return saved;
   for (const l of (navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || 'en'])) {
-    const base = String(l).toLowerCase().split('-')[0];
+    const base = String(l).toLowerCase().split(/[-_]/)[0];
     if (LANGS.includes(base)) return base;
   }
   return 'en';
@@ -943,10 +962,10 @@ const FORMS = {
 const LUSTRES = {
   zold: { name: 'Zöld', note: 'emerald', set: { glazeColor: '#0b2a20', cu: 0.8, ag: 0, au: 0, bi: 0.88, trimThick: 2.04, trimCover: 1.49, kilnTemp: 588, soak: 66, reduction: 0.94, reox: 0.95, flash: 0.45, deco: 'Relief motif', decoThick: 1.25, decoFill: 1, decoSilver: 0, decoMatte: 0, crackle: 0 } },
   hajnal: { name: 'Hajnal', note: 'ruby red', set: { glazeColor: '#2a070b', cu: 1, ag: 0.16, au: 0, bi: 0.39, trimThick: 1.16, trimCover: 0.97, kilnTemp: 620, soak: 31, reduction: 0.99, reox: 0.23, flash: 0.5, deco: 'Relief motif', decoThick: 1.25, decoFill: 1, decoSilver: 0, decoMatte: 0, crackle: 0 } },
-  labrador: { name: 'Labrador', note: 'deep blue', set: { glazeColor: '#070f20', cu: 0, ag: 0.57, au: 0, bi: 0.34, trimThick: 0.61, trimCover: 0.96, trimFill: 0.65, kilnTemp: 636, soak: 21, reduction: 0.62, reox: 0.8, flash: 0.55, pooling: 0.4, breaking: 0.3, deco: 'Relief motif', decoThick: 1.25, decoFill: 0.8, decoSilver: -0.3, decoMatte: 0, crackle: 0 } },
-  ibolya: { name: 'Ibolya', note: 'blue-violet', set: { glazeColor: '#1a0c26', cu: 0.33, ag: 0.45, au: 0, bi: 0.49, trimThick: 1.24, trimCover: 1.15, kilnTemp: 592, soak: 44, reduction: 0.85, reox: 0.23, flash: 0.6, deco: 'Relief motif', decoThick: 1.25, decoFill: 1, decoSilver: 0, decoMatte: 0, crackle: 0 } },
-  bronz: { name: 'Bronz', note: 'gilt bronze', set: { glazeColor: '#3a2412', cu: 0.95, ag: 0.05, au: 0.75, bi: 0.75, trimThick: 2.15, trimCover: 1.08, trimFill: 0.6, kilnTemp: 631, soak: 26, reduction: 0.88, reox: 0.84, flash: 0.4, deco: 'Relief motif', decoThick: 1.2, decoFill: 1, decoSilver: 0, decoMatte: 0.25, crackle: 0 } },
-  gyongyhaz: { name: 'Gyöngyház', note: 'iridescent white', set: { glazeColor: '#ddd6c6', cu: 0, ag: 0.03, au: 0, bi: 1, trimThick: 1.38, trimCover: 2.4, kilnTemp: 600, soak: 30, reduction: 0.5, reox: 0.85, flash: 0.6, deco: 'Marbled veins', decoThick: 1.25, decoFill: 1.6, decoSilver: 0, decoMatte: 0, crackle: 0.55 } },
+  labrador: { name: 'Labrador', note: 'deep blue', set: { glazeColor: '#070f20', cu: 0, ag: 0.57, au: 0, bi: 0.34, trimThick: 0.67, trimCover: 0.96, trimFill: 0.65, thickVar: 0.5, kilnTemp: 636, soak: 21, reduction: 0.62, reox: 0.8, flash: 0.55, pooling: 0.4, breaking: 0.3, deco: 'Relief motif', decoThick: 1.25, decoFill: 0.8, decoSilver: -0.3, decoMatte: 0, crackle: 0 } },
+  ibolya: { name: 'Ibolya', note: 'blue-violet', set: { glazeColor: '#2a0c2e', cu: 0.5, ag: 0.3, au: 0, bi: 0.49, trimThick: 1.24, trimCover: 1.05, kilnTemp: 592, soak: 44, reduction: 0.85, reox: 0.23, flash: 0.6, deco: 'Relief motif', decoThick: 1.25, decoFill: 1, decoSilver: 0, decoMatte: 0, crackle: 0 } },
+  bronz: { name: 'Bronz', note: 'gilt bronze', set: { glazeColor: '#3a2412', cu: 0.95, ag: 0.05, au: 0.75, bi: 0.75, trimThick: 2.15, trimCover: 1.08, trimFill: 0.6, thickVar: 0.5, kilnTemp: 631, soak: 26, reduction: 0.88, reox: 0.84, flash: 0.4, deco: 'Relief motif', decoThick: 1.12, decoSoft: 0.6, decoFill: 1, decoSilver: 0, decoMatte: 0.25, crackle: 0 } },
+  gyongyhaz: { name: 'Gyöngyház', note: 'iridescent white', set: { glazeColor: '#d6d2d6', cu: 0, ag: 0.03, au: 0.02, bi: 1, trimThick: 1.38, trimCover: 2.4, thickVar: 0.9, kilnTemp: 600, soak: 30, reduction: 0.5, reox: 0.85, flash: 0.6, deco: 'Marbled veins', decoThick: 1.25, decoFill: 1.6, decoSilver: 0, decoMatte: 0, crackle: 0.55 } },
 };
 
 /* --------------------------------------------------------------------------
@@ -2597,6 +2616,13 @@ function setEnvironment(name) {
 // shadow on them, seen from the middle of the vessel. The glaze looks it up with a parallax correction (ezParallax),
 // so the foot mirrors the plinth it stands on and the lower belly the floor.
 const hiddenMat = new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false });   // unseen, but still a shadow caster
+// In the capture the dark floor is a veil, not a lid: the low fill lamps and the dome under the horizon show through it,
+// so a belly that looks down mirrors lamps and floor, not black; and it thins out to nothing at its rim, where a hard
+// edge against the bright studio would show in the glaze as a ragged line. Along the floor's radius: rim ... centre.
+// It also glows a little, as a floor does that the lamps bounce off: without that a close look at a lower wall is black.
+const floorVeil = new THREE.DataTexture(new Uint8Array([0, 0.3, 0.45, 0.5, 0.5, 0.5].flatMap((a) => [255, Math.round(a * 255), 255, 255])), 1, 6);
+floorVeil.minFilter = floorVeil.magFilter = THREE.LinearFilter; floorVeil.needsUpdate = true;
+const veilFloor = (on) => { const m = floor.material; m.alphaMap = on ? floorVeil : null; m.transparent = on; m.emissive.setRGB(...(on ? [0.4, 0.35, 0.31] : [0, 0, 0])); m.needsUpdate = true; };
 function captureLocal(now) {
   localDirty = false; lastCapture = now;
   if (!P.roomRefl) {
@@ -2613,12 +2639,14 @@ function captureLocal(now) {
   vesselMesh.material = handleMesh.material = lidMesh.material = hiddenMat;
   plinth.material.roughness = 0.7; floor.material.roughness = 0.96;        // the capture serves every view direction
   reflOnPlinth.value = reflOnFloor.value = 0;
+  veilFloor(true);
   const next = pmremLocal.fromScene(scene, 0, 0.05, 100, { size: phoneSized ? 128 : 256, position: C });
   scene.background = bg; scene.backgroundIntensity = 1; scene.fog = fog;
   contactMesh.visible = true; cycWall.visible = P.backdrop === 'Cove';
   vesselMesh.material = handleMesh.material = lidMesh.material = glaze;
   plinth.material.roughness = rp; floor.material.roughness = rf;
   reflOnPlinth.value = mp; reflOnFloor.value = mf;
+  veilFloor(false);
   if (localTarget) localTarget.dispose();
   localTarget = next;
   if (!glaze.envMap) glaze.needsUpdate = true;
@@ -4012,15 +4040,18 @@ function relabelPanel() {                            // every word of the panel,
 }
 // Shows or hides the configurator: a drawer over the left of the stage; the piece moves over (stageInsets). The first
 // call fetches lil-gui and builds the panel from the parameters as they stand. Resolves to whether it is open.
+let panelWanted = false;                             // the last call decides, also one made while the panel is still being fetched
 function configurator(on = true) {
+  panelWanted = !!on;
   const show = () => {
+    const on = panelWanted;
     controlsEl.classList.toggle('open', on); controlsEl.inert = !on || state.present;
     if (!on) { openMenu(false); if (follow.region) { clearTimeout(follow.timer); focusEndNow(); } }
     layoutDirty = markDirty = tintDirty = true; state.fit = '';
     invalidate();
     return on;
   };
-  if (!on) return Promise.resolve(show());
+  if (!panelWanted) return Promise.resolve(show());
   panelReady ||= import('three/addons/libs/lil-gui.module.min.js').then((m) => { GUI = m.GUI; buildPanel(); });
   return panelReady.then(show, (err) => { panelReady = null; console.warn(say('err.panel'), err); return false; });
 }
@@ -4037,6 +4068,11 @@ function applyParams(values, { silent } = {}) {
   if (values && typeof values.handles === 'number' && values.handles > 0 && !('handleTaper' in values)) values = { ...values, handleTaper: 0, handleRibs: 0 };
   // a whole state saved before there were lids describes an open piece
   if (values && typeof values.height === 'number' && 'glazeColor' in values && 'env' in values && !('lid' in values)) values = { ...values, lid: 'None' };
+  // a whole state saved before the film had flame fronts, halo rings, fine streaks and a second scatter lobe keeps the film it was saved with
+  if (values && typeof values.height === 'number' && 'glazeColor' in values && 'env' in values && 'flashScale' in values) {
+    const old = ['front', 'halo', 'streak', 'scatter'].filter((k) => !(k in values));
+    if (old.length) values = { ...values, ...Object.fromEntries(old.map((k) => [k, 0])) };
+  }
   for (const [key, value] of Object.entries(values || {})) {
     const it = SCHEMA[key];
     if (!it) continue;
@@ -4252,7 +4288,7 @@ function variedLustre(id, r) {
   return { ...base, glazeColor: '#' + pieceColor.getHexString(),
     cu: clamp(j(base.cu, 0.05), 0, 1), ag: clamp(j(base.ag, 0.05), 0, 1), bi: clamp(j(base.bi, 0.07), 0, 1),
     kilnTemp: Math.round(j(base.kilnTemp, 8)), soak: Math.round(base.soak * (0.88 + 0.24 * r())), reox: clamp(j(base.reox, 0.05), 0, 1), reduction: clamp(j(base.reduction, 0.04), 0.45, 1),
-    trimThick: +(base.trimThick * (0.95 + 0.1 * r())).toFixed(3), thickVar: clamp(j(base.thickVar, 0.15), 0.15, base.trimCover > 1.4 ? 0.35 : 0.6), thickScale: 5 + 4 * r(),   // a second-order film keeps its depth even
+    trimThick: +(base.trimThick * (0.95 + 0.1 * r())).toFixed(3), thickVar: clamp(j(base.thickVar, 0.15), 0.15, id === 'gyongyhaz' ? 0.9 : base.trimCover > 1.4 ? 0.35 : 0.6), thickScale: 5 + 4 * r(),   // a second-order film keeps its depth even; mother-of-pearl lives on its unevenness
     flash: 0.35 + 0.3 * r(), flashScale: 9 + 11 * r(), flashWarp: 0.5 + 1.1 * r(), flashStretch: 1 + 2.5 * r(), flameBias: 0.1 + 0.4 * r(), flameDir: Math.round(360 * r()), seed: Math.floor(r() * 100),
     runs: 0.2 + 0.45 * r(), pooling: 0.5 + 0.5 * r(), breaking: 0.3 + 0.4 * r(), crackle: id === 'gyongyhaz' ? 0.35 + 0.35 * r() : r() < 0.12 ? 0.2 + 0.3 * r() : 0 };
 }
@@ -4311,7 +4347,7 @@ const actions = {
     pieceHash = lustreOnly ? '' : 'piece-' + pc.seed.toString(36); setHash(null);
     adoptBase(); commit();
     akin(pc, lustreOnly);
-    toast(lustreOnly ? say('toast.newFiring', { lustre: say('lustre.' + pc.family) }) : say('toast.newPiece', { form: say('form.' + pc.form), lustre: say('lustre.' + pc.family) }), undoAction);
+    toast(lustreOnly ? say('toast.newFiring', { lustre: say('lustre.' + pc.family) }) : say('toast.newPiece', { form: LANG === 'hu' ? say('form.' + pc.form).toLocaleLowerCase('hu') : say('form.' + pc.form), lustre: say('lustre.' + pc.family) }), undoAction);
     showPressed();
     return pc;
   },
@@ -4500,6 +4536,7 @@ afterLang = () => {
   layoutDirty = true;
 };
 $('#surprise').addEventListener('click', (ev) => actions['Surprise me'](ev.shiftKey));
+$('#app').classList.remove('loading');               // the pickers are filled and listened to: the catalogue shows
 setFollow(prefs.get('eozin:follow') !== 'off');
 markPreset('zold', 'lustre'); markPreset('baluster', 'form');
 const fromHash = Object.hasOwn(LUSTRES, location.hash.slice(1)) ? LUSTRES[location.hash.slice(1)] : null;
