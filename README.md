@@ -62,8 +62,9 @@ brushed edge. The flashing gathers into a few tongues with an edge (*Flame front
 `front`); round the edge of a mark the cover film swells by some tens of nanometres and
 wears a ring of the neighbouring interference colours (*Flame-mark halo*, `halo`), and
 fine drawn-out streaks run through the film (*Film streaks*, `streak`). With all three at
-0 the flashing is the even mottle of earlier versions. The break of a thin glaze on an edge is ragged and has its own colour
-(*Break colour*).
+0 the flashing is the even mottle of earlier versions. Where a thin glaze breaks on an edge it stays glossy and goes darker and warmer than the wall:
+the piece's own glaze colour stained halfway towards *Break colour*, never paler. Its width wanders slowly along
+the edge, so it stays one line.
 
 **Vessel.** A monotone-spline meridian with foot ring, recessed base, wall thickness,
 rolled lip and glazed interior; lobes (sine, gadroon, flute), spiral twist, oval squash,
@@ -78,9 +79,13 @@ an unglazed foot with a dripped glaze line that ends in a bead.
 - *Spiral ribs* are reeded: a narrow crest on a hollow flank, so each rib carries its own
   highlight and shadow. Vines are narrow cords, a little wider on the Draft mesh, which
   cannot carry the narrow one; cabochons sit in a higher collar. A saved piece with spiral
-  ribs keeps its count and height and gets the new crest shape.
+  ribs keeps its count and height and gets the new crest shape. The ribs run out in a long
+  taper at both ends of their band (a blunt end held a dark drop of pooled glaze and shade).
 - The glaze is pulled thin on the crest of the *lip*: with *Thin on edges* above zero a
-  fine line of the break colour runs round the rim.
+  fine, continuous, glossy line of the break runs round the rim where it faces straight up,
+  wider as *Thin on edges* is raised. The rounded lip as a whole is no longer treated as a
+  ridge by the curvature field (it used to break over a centimetre of wall on either side,
+  a pale matte band); that field is faded out over the lip and back in down the wall.
 
 - *Handles* are pulled, not extruded: heavier at the top where the pull began and thinner
   towards the lower joint (*Pulled taper*), with the ridges the fingers leave down the
@@ -150,21 +155,38 @@ when the camera is moved.
   edge is mirrored in the glaze. While *Detail* or *Foot* is held, that floor and the
   plinth glow more, as if a white card lay in front of the piece: the lower half of a
   close view of a dark lustre is no longer black. The card lies around the plinth and
-  fades out well before the floor's horizon, so it leaves no line in the glaze. It
-  belongs to the view, not to the parameters, and goes when the shot is left.
+  fades out well before the floor's horizon, so it leaves no line in the glaze; it is laid
+  out in world units, the same size on the *Void* backdrop (whose floor is five times as
+  large) as in the cove. It belongs to the view, not to the parameters, and goes when the
+  shot is left. A piece whose wall leans out over the floor (an open bowl) gets a weaker
+  card in every view, by how much of its outer wall looks down: under a dark floor such a
+  wall mirrors nothing else and its lustre went out. Upright forms are lit as before. The
+  floor's capture material is the same program with or without a card, so entering
+  *Detail* or *Foot* compiles nothing.
 - *Self-reflections, traced.* The glaze also mirrors the piece itself (*Self-reflections*,
   `selfRefl`). For every pixel one ray is followed along the mirror direction through a
   height field of the piece: outer radius and cavity radius over angle and height, with
   their slopes and occlusion, built from the meshes whenever the shape changes (lobes,
   twist, relief, a waved rim and the lid as it sits are in it), plus a chain of capsules
-  for each handle (seen only by rays that start outside the piece, and fading in with
-  distance). The ray follows the smooth wall's mirror direction, not the micro-relief,
-  and a hit it only grazes fades out, so a reflected region has a soft outline. Where the ray meets the piece, the room's reflection gives way to
-  the light of that spot: the wall inside a bowl mirrors the opposite wall, a flaring
-  neck the shoulder, body and handles each other, and the mirror lobe no longer sees
-  lamps through the pot. While the picture moves the ray takes 12 steps; each sample of
-  a still takes 24, starts at another offset and leaves in another direction of the
-  glaze's lobe, so the still has glossy self-reflections with soft borders.
+  for each handle (seen only by rays that start outside the piece). A ray that starts in
+  the cavity is tested against the cavity wall alone, one that starts outside against the
+  outer wall alone, so each march looks for a single crossing, which is then bisected and
+  closed with a secant step. The ray follows the smooth wall's mirror direction, not the
+  micro-relief. No border of a reflected region is a yes or a no; each is a weight that
+  runs out: under the lip of an open mouth (the image of the far rim), where the ray only
+  clips an edge or pierces a rim thinner than the march's stride, where it grazes what it
+  hit, and where the image is squeezed past what a pixel resolves (a handle mirrored in a
+  convex wall would be a line of beads, and is left out; so is a handle's root where it
+  runs into the wall). Where the ray meets the piece, the room's reflection gives way to
+  the light of that spot: its body colour under the room's light and the key lamp, and
+  its own mirror image of the room where that is open to it (through the mouth, for a
+  spot inside), of more wall where it is not. So the wall inside a bowl mirrors the
+  opposite wall, a waisted neck the lip and the shoulder, and the mirror lobe no longer
+  sees lamps through the pot. Where the ray is not believed (it grazes its own wall, or
+  the hit is too near to place) the mirror lobe is dimmed by the profile's occlusion, as
+  it is without tracing. While the picture moves the ray takes 12 steps, the same for
+  every pixel, so a moving frame has no grain; each sample of a still takes 24, starts at
+  another offset and leaves in another direction of the glaze's lobe.
 - *Polished stand.* The plinth (or, without it, the floor) mirrors the vessel: sharp at the
   contact line and dissolving with distance. *Plinth polish* and *Floor polish* set how
   much.
@@ -347,7 +369,7 @@ stays pressed exactly while all of them have the preset's values. A lustre prese
 linked directly with its hash, for example `index.html#labrador`; the hash is dropped as
 soon as the glaze is edited and comes back when the edit is undone. The six are fired as
 coloured films over dark glass rather than as metal plate: Zöld emerald, Hajnal ruby red,
-Labrador deep blue breaking towards cyan where the film is thick (its glaze pools and breaks less, so rims keep their lustre), Ibolya a plum blue-violet, Bronz a warm olive-brown bronze with no gold in the paste, a
+Labrador deep blue breaking towards cyan where the film is thick (its glaze pools and breaks less, so rims keep their lustre; its motif is a thinner, fuller film, plum-violet, where a deeper one fell between two orders and read slate grey), Ibolya a plum blue-violet, Bronz a warm olive-brown bronze with no gold in the paste, a
 little satin, its even film turning copper-red where it thickens. Gyöngyház is the
 exception: no metal at all, only a clear bismuth film of uneven depth on a pale, glossy,
 crackled glaze, so the piece stays pearl white and its colour (rose, pale green, pale
@@ -390,7 +412,10 @@ Colours are computed for a D65-like white and are clipped to sRGB.
 The traced self-reflection is one bounce against a height field of body and lid and round
 capsules for the handles: undercuts are filled in, relief is as fine as the map (128 x 256
 cells, 64 x 256 at Draft), a strap is as round as its mean section, and the spot that is
-hit is shaded with the film colour of the spot that reflects it, not its own. The shade
+hit is shaded with the film colour of the spot that reflects it, not its own. Handles
+are mirrored only where their image is broad (a concave neck beside them, mostly); a
+thin overhanging rim is mirrored at rest sooner than in motion; a second bounce is an
+estimate, not a ray. The shade
 on the stand treats the piece as a body of revolution (an oval squash is followed and
 turns with the piece; lobes and lean are not), so two handles shade it as a ring
 would. Softbox shapes, the card and the bounce are stage dressing, not measurements.
