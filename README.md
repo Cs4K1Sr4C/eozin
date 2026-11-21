@@ -149,14 +149,17 @@ when the camera is moved.
   *Detail*, the outside of a bowl) carries glaze colour and not black, and no hard floor
   edge is mirrored in the glaze. While *Detail* or *Foot* is held, that floor and the
   plinth glow more, as if a white card lay in front of the piece: the lower half of a
-  close view of a dark lustre is no longer black. The card belongs to the view, not to
-  the parameters, and goes when the shot is left.
+  close view of a dark lustre is no longer black. The card lies around the plinth and
+  fades out well before the floor's horizon, so it leaves no line in the glaze. It
+  belongs to the view, not to the parameters, and goes when the shot is left.
 - *Self-reflections, traced.* The glaze also mirrors the piece itself (*Self-reflections*,
   `selfRefl`). For every pixel one ray is followed along the mirror direction through a
   height field of the piece: outer radius and cavity radius over angle and height, with
   their slopes and occlusion, built from the meshes whenever the shape changes (lobes,
   twist, relief, a waved rim and the lid as it sits are in it), plus a chain of capsules
-  for each handle. Where the ray meets the piece, the room's reflection gives way to
+  for each handle (seen only by rays that start outside the piece, and fading in with
+  distance). The ray follows the smooth wall's mirror direction, not the micro-relief,
+  and a hit it only grazes fades out, so a reflected region has a soft outline. Where the ray meets the piece, the room's reflection gives way to
   the light of that spot: the wall inside a bowl mirrors the opposite wall, a flaring
   neck the shoulder, body and handles each other, and the mirror lobe no longer sees
   lamps through the pot. While the picture moves the ray takes 12 steps; each sample of
@@ -350,7 +353,10 @@ exception: no metal at all, only a clear bismuth film of uneven depth on a pale,
 crackled glaze, so the piece stays pearl white and its colour (rose, pale green, pale
 blue, a little gold) lives in the highlights and the sheen around them, shifting with
 the angle; it is plainest on relief and stays quiet on a smooth wall. Its glaze is a
-near-neutral white, so the body no longer reads ivory-grey. The painted second
+near-neutral white, so the body no longer reads ivory-grey. Under so clear a film the
+body would return exactly the complement of the reflection and cancel its colour, so
+there (and only with no metal in the film) the glaze is tinted by the film's mean
+transmission alone: an approximation that keeps the pearl's play of colour. The painted second
 lustre is the same film laid on about a quarter thicker, so the motif reads tone on
 tone, in the next colours of the series; on Bronz it is only a few per cent thicker and
 fuller in metal, which turns the relief copper-red; a quarter more would carry the brown
@@ -385,5 +391,6 @@ The traced self-reflection is one bounce against a height field of body and lid 
 capsules for the handles: undercuts are filled in, relief is as fine as the map (128 x 256
 cells, 64 x 256 at Draft), a strap is as round as its mean section, and the spot that is
 hit is shaded with the film colour of the spot that reflects it, not its own. The shade
-on the stand treats the piece as a body of revolution, so two handles shade it as a ring
+on the stand treats the piece as a body of revolution (an oval squash is followed and
+turns with the piece; lobes and lean are not), so two handles shade it as a ring
 would. Softbox shapes, the card and the bounce are stage dressing, not measurements.

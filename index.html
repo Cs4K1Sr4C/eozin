@@ -2067,8 +2067,15 @@ vec3 ezParallax(vec3 r) {
   if (r.y < -1e-3) {
     float t = max(p.y - uEzGround.x, 0.0) / -r.y;
     h = p + t * r;
-    if (dot(h.xz, h.xz) < uEzGround.y * uEzGround.y) hit = true;
-    else { t = max(p.y - uEzGround.z, 0.0) / -r.y; h = p + t * r; vec3 q = h - uEzEnvC; hit = dot(q, q) < uEzGround.w * uEzGround.w; }
+    // near the plinth's rim the lookup eases over to the floor beyond it: a ray that lands a hair inside or outside the
+    // edge must not jump between the dark stand and the lit floor from one pixel to the next
+    float ezRim = dot(h.xz, h.xz) / max(uEzGround.y * uEzGround.y, 1e-6);
+    if (ezRim < 1.0) hit = true;
+    if (ezRim > 0.72) {
+      float t2 = max(p.y - uEzGround.z, 0.0) / -r.y; vec3 h2 = p + t2 * r, q = h2 - uEzEnvC;
+      bool hit2 = dot(q, q) < uEzGround.w * uEzGround.w;
+      if (ezRim >= 1.0) { h = h2; hit = hit2; } else if (hit2) h = mix(h, h2, smoothstep(0.72, 1.0, ezRim));
+    }
   }
   if (!hit) {
     vec3 o = p - uEzEnvC;
@@ -2090,6 +2097,8 @@ uniform mat4 uEzW2O;         // world -> vessel
 uniform float uEzSelf, uEzSteps, uEzHitR, uEzHand;
 uniform vec3 uEzJit, uEzKeyRad, uEzKeyDir;   // a still's sample: lobe radius and angle, march offset; the key light for a lit hit
 uniform vec4 uEzCap[EZ_CAPS * 4];
+uniform vec4 uEzHB[4];       // a bounding sphere per handle
+float ezCapW;                // a handle hit fades in with distance on its own: its capsules stand in poorly for the flared roots
 vec2 ezProfUv(vec3 p) { return vec2(atan(p.z, p.x + 1e-6) * 0.15915494 + 0.5, (p.y - uEzProfP.x) * uEzProfP.y); }
 int ezLab(vec3 p, out vec4 s) { s = textureLod(uEzProf, ezProfUv(p), 0.0); float r = length(p.xz); return r < s.g ? 2 : (r < s.r ? 1 : 0); }   // 0 outside, 1 clay, 2 cavity
 float ezCapHit(vec3 ro, vec3 rd, vec3 pa, vec3 pb, float ra) {
@@ -2106,8 +2115,11 @@ float ezCapHit(vec3 ro, vec3 rd, vec3 pa, vec3 pb, float ra) {
   return -1.0;
 }
 float ezTrace(vec3 o, vec3 d, float jit, out vec3 n, out float ao) {
-  n = vec3(0.0, 1.0, 0.0); ao = 1.0;
+  n = vec3(0.0, 1.0, 0.0); ao = 1.0; ezCapW = 1.0;
   float best = -1.0;
+  vec4 s0;
+  int c0 = ezLab(o, s0);       // where the ray starts: outside the piece or in its cavity
+  if (c0 == 1) c0 = abs(length(o.xz) - s0.g) < abs(length(o.xz) - s0.r) ? 2 : 0;
   // --- body and lid
   float a = dot(d.xz, d.xz), b = dot(o.xz, d.xz), c = dot(o.xz, o.xz) - uEzProfP.z * uEzProfP.z, t1 = 400.0;
   bool run = true;
@@ -2115,8 +2127,7 @@ float ezTrace(vec3 o, vec3 d, float jit, out vec3 n, out float ao) {
   if (d.y > 1e-5) t1 = min(t1, (uEzProfP.w - o.y) / d.y); else if (d.y < -1e-5) t1 = min(t1, (uEzProfP.x - o.y) / d.y);
   if (run && t1 > 0.0) {
     vec4 s;
-    int cur = ezLab(o, s);
-    if (cur == 1) cur = abs(length(o.xz) - s.g) < abs(length(o.xz) - s.r) ? 2 : 0;
+    int cur = c0;
     float tp = 0.0;
     for (int i = 0; i < 24; i++) {
       if (float(i) >= uEzSteps) break;
@@ -2143,14 +2154,17 @@ float ezTrace(vec3 o, vec3 d, float jit, out vec3 n, out float ao) {
       tp = t;
     }
   }
-  // --- handles
+  // --- handles: only for rays that start outside (the root capsules poke through the wall into the cavity)
   for (int k = 0; k < 4; k++) {
-    if (float(k) >= uEzHand) break;
+    if (float(k) >= uEzHand || c0 != 0) break;
+    vec3 hc = uEzHB[k].xyz - o;
+    float hb = dot(hc, d), hc2 = dot(hc, hc), hr2 = uEzHB[k].w * uEzHB[k].w;
+    if (hc2 - hb * hb > hr2 || (hb < 0.0 && hc2 > hr2)) continue;
     for (int q = 0; q < EZ_CAPS - 1; q++) {
       vec4 A = uEzCap[k * EZ_CAPS + q], B = uEzCap[k * EZ_CAPS + q + 1];
       float ra = 0.5 * (A.w + B.w), t = ezCapHit(o, d, A.xyz, B.xyz, ra);
-      if (t > 0.25 && (best < 0.0 || t < best)) {
-        best = t;
+      if (t > 0.1 && (best < 0.0 || t < best)) {
+        best = t; ezCapW = smoothstep(0.25, 0.8, t);
         vec3 pa = o + t * d - A.xyz, ba = B.xyz - A.xyz;
         n = (pa - clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0) * ba) / ra; ao = 0.85;
       }
@@ -2360,10 +2374,12 @@ float ezLow = ezFbm(ezP * uThickScale + vec3(uSeed * 1.7, 4.1, 2.3));
 float ezGT = max(0.03, uGlazeThick * (1.0 + uPool * 1.4 * ezCav + uRuns * 1.5 * (ezRunN - 0.5) + uSag * (0.5 - ezHN)));
 float ezBreak = 1.0 - smoothstep(0.15 * uBreak, 0.85 * uBreak + 1e-3, ezGT);
 // on the crest of the lip the glaze is pulled thin as it runs off to both sides: a fine line of the body colour, a fat roll below it
-ezBreak = min(1.0, ezBreak + 0.75 * uBreak * smoothstep(1.5, 1.9, ezReg) * (1.0 - smoothstep(2.1, 2.5, ezReg)) * smoothstep(0.55, 1.0, normalize(vObjNormal).y));
+// (kept out of the ragged break below, which would cut so thin a line into beads; only the crest itself qualifies)
+float ezLipThin = 0.75 * uBreak * smoothstep(1.5, 1.9, ezReg) * (1.0 - smoothstep(2.1, 2.5, ezReg)) * smoothstep(0.85, 1.0, normalize(vObjNormal).y);
 // the break is ragged: its width and depth wander along an arris, as a dipped glaze thins unevenly over an edge
 float ezBn = 0.0;
 if (ezBreak > 0.0) { ezBn = clamp(ezBreak * (0.55 + 0.9 * ezNoise(ezP * 5.0)), 0.0, 1.0); ezBn *= ezBn * (3.0 - 2.0 * ezBn); }
+ezBn = max(ezBn, ezLipThin * (0.85 + 0.3 * ezNoise(ezP * 1.5)));
 
 float ezCrack = 0.0, ezCell = 0.5, ezPit = 0.0, ezLost = 0.0, ezSand = 0.0, ezWorn = 0.0, ezTurn = 0.0;
 vec3 ezG = vec3(0.0), ezGc = vec3(0.0);
@@ -2439,7 +2455,11 @@ normal = normalize(normalMatrix * (ezNo - (ezG - ezNo * dot(ezNo, ezG)))) * face
 if (ezLustre > 0.001) {
   float ezNV = clamp(dot(normal, normalize(vViewPosition)), 0.04, 1.0);
   ezLustreEval(ezNV, ezFill, ezDC, ezDM, ezR, ezT);
-  diffuseColor.rgb *= mix(vec3(1.0), ezT, ezLustre);       // light reaching the glaze passes the film twice
+  // light reaching the glaze passes the film twice. Under a clear film (no metal: T = 1 - R) the body would hand back
+  // exactly the complement of the reflection and cancel its colour; taken as an approximation, what scatters in the
+  // glaze leaves over all angles and its fringes average out, so only the film's mean transmission tints the body
+  float ezClear = 1.0 - smoothstep(0.0, 0.03, uFill.x + uFill.y + uFill.z);
+  diffuseColor.rgb *= mix(vec3(1.0), mix(ezT, vec3(dot(ezT, vec3(0.3333))), ezClear), ezLustre);
   // the sharp lobe keeps the glass surface's own roughness; what the colloids scatter leaves in a broad second lobe
   ezScat = ezLustre * clamp(uScatter * (0.22 + 3.2 * uHaze + 0.25 * ezBn), 0.0, 0.85);
   // the glaze is coloured glass: a slanting ray has further to go through it and comes back deeper
@@ -2452,7 +2472,9 @@ if (ezLustre > 0.001) {
 // room from where it is, its body colour under the room's light and under the key lamp.
 const GLSL_FRAG_SELF = /* glsl */`
 if (uEzSelf > 0.001) {
-  vec3 ezRV = reflect(-geometryViewDir, geometryNormal);
+  // traced along the smooth wall's mirror direction: hit or miss is a yes or no, and with the micro-relief in it every
+  // edge of a reflected region would be a ragged comb
+  vec3 ezRV = reflect(-geometryViewDir, nonPerturbedNormal);
   if (uEzJit.x > 0.0) {                                 // a sample of a still: somewhere in the lobe, so the mean is a glossy reflection
     vec3 ezT1 = normalize(cross(ezRV, abs(ezRV.y) < 0.9 ? vec3(0.0, 1.0, 0.0) : vec3(1.0, 0.0, 0.0))), ezT2 = cross(ezRV, ezT1);
     float ezRj = material.roughness * material.roughness * 1.5 * sqrt(uEzJit.x), ezAj = 6.2831853 * uEzJit.y;
@@ -2463,7 +2485,8 @@ if (uEzSelf > 0.001) {
   float ezAOH, ezT = -1.0, ezGz = dot(ezD, ezNO);
   if (ezGz > 0.02) ezT = ezTrace(vObjPos + ezNO * 0.12, ezD, fract(fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715)))) + uEzJit.z), ezNH, ezAOH);
   if (ezT > 0.0) {
-    float ezW = smoothstep(0.1, 0.5, ezT) * smoothstep(0.02, 0.2, ezGz) * min(uEzSelf, 1.0);   // fades in with distance and off the grazing edge
+    // fades in with distance, off the grazing edge, and where the ray only grazes what it hit (its silhouette)
+    float ezW = smoothstep(0.1, 0.5, ezT) * smoothstep(0.02, 0.2, ezGz) * smoothstep(0.02, 0.3, -dot(ezNH, ezD)) * ezCapW * min(uEzSelf, 1.0);
     vec3 ezNW = normalize(ezNH * mat3(uEzW2O)), ezNV = normalize((viewMatrix * vec4(ezNW, 0.0)).xyz);
     ezOrg = vEzWorld + ezRW * (ezT * uUnit);
     float ezC = clamp(dot(ezNV, -ezRV), 0.0, 1.0);
@@ -2661,7 +2684,7 @@ const U = {
   uScatter: { value: 1 }, uScatRough: { value: 0.42 }, uDepth: { value: 1 }, uHalo: { value: 0 }, uFront: { value: 0 }, uStreak: { value: 0 },
   uEzProf: { value: null }, uEzProfN: { value: null }, uEzProfP: { value: new THREE.Vector4(0, 1, 1, 1) }, uEzW2O: { value: new THREE.Matrix4() }, uEzSelf: { value: 0 }, uEzSteps: { value: 12 },
   uEzHitR: { value: 0.12 }, uEzJit: { value: new THREE.Vector3() }, uEzKeyRad: { value: new THREE.Color() }, uEzKeyDir: { value: new THREE.Vector3(0, 1, 0) },
-  uEzCap: { value: new Float32Array(144) }, uEzHand: { value: 0 },
+  uEzCap: { value: new Float32Array(144) }, uEzHB: { value: new Float32Array(16) }, uEzHand: { value: 0 },
   uEzEnvC: { value: new THREE.Vector3(0, 1.5, 0) }, uEzGround: { value: new THREE.Vector4(PLINTH_H, 1, 0, 12) }, uEzPar: { value: 0 },
 };
 const glaze = makeGlazeMaterial(U);
@@ -2827,10 +2850,17 @@ const hiddenMat = new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: f
 // It also glows a little, as a floor does that the lamps bounce off: without that a close look at a lower wall is black.
 // In the close views of wall and foot it glows more (k), and the plinth with it: a white card laid on the floor in
 // front of the piece, as a photographer would. A matter of the view, not of the piece: no parameter holds it.
+// The card lies around the plinth and feathers out well before the horizon (floorCard, along the same radius): lit to
+// its rim, the floor's horizon would show in the glaze as a straight crease across the belly.
 const floorVeil = new THREE.DataTexture(new Uint8Array([0, 0.3, 0.45, 0.5, 0.5, 0.5].flatMap((a) => [255, Math.round(a * 255), 255, 255])), 1, 6);
 floorVeil.minFilter = floorVeil.magFilter = THREE.LinearFilter; floorVeil.needsUpdate = true;
+const floorCard = new THREE.DataTexture(new Uint8Array(6 * 4).fill(255), 1, 6);
+floorCard.minFilter = floorCard.magFilter = THREE.LinearFilter; floorCard.colorSpace = THREE.NoColorSpace;
 const veilFloor = (on, k = 1) => {
-  const m = floor.material; m.alphaMap = on ? floorVeil : null; m.transparent = on; m.emissive.setRGB(...(on ? [0.4 * k, 0.35 * k, 0.31 * k] : [0, 0, 0])); m.needsUpdate = true;
+  const m = floor.material; m.alphaMap = on ? floorVeil : null; m.transparent = on; m.emissive.setRGB(...(on ? [0.4 * k, 0.35 * k, 0.31 * k] : [0, 0, 0]));
+  const card = on && k > 1;
+  if (card) { [0, 0, 0.3, 0.85, 1, 1].forEach((c, i) => { const v = Math.round(255 * (1 + (k - 1) * c) / k); floorCard.image.data.set([v, v, v, 255], i * 4); }); floorCard.needsUpdate = true; }
+  m.emissiveMap = card ? floorCard : null; m.needsUpdate = true;
   const g = on && k > 1 ? 0.12 * k : 0; plinth.material.emissive.setRGB(0.4 * g, 0.35 * g, 0.31 * g);
 };
 const CARD = { detail: 3.2, foot: 1.8 };
@@ -2882,19 +2912,22 @@ const reflOnPlinth = { value: 0 }, reflOnFloor = { value: 0 };
 const EZ_NS = 12;
 const UG = { uGProf: { value: new Float32Array(EZ_NS) }, uGY: { value: new THREE.Vector2(0, 1) }, uGL: { value: [0, 1, 2, 3].map(() => new THREE.Vector4(0, 1, 0, 0.3)) },
   uGW: { value: new THREE.Vector4() }, uGAmb: { value: 1 }, uGOn: { value: 0 }, uGPl: { value: new THREE.Vector2(1, 0) }, uGB: { value: new THREE.Vector3() },
-  uGBs: { value: [new THREE.Vector2(1, 0), new THREE.Vector2(1, 0)] }, uGKey: { value: new THREE.Vector3(0, 1, 0) } };
+  uGBs: { value: [new THREE.Vector2(1, 0), new THREE.Vector2(1, 0)] }, uGKey: { value: new THREE.Vector3(0, 1, 0) },
+  uGXf: { value: new THREE.Vector4(1, 0, 1, 1) } };    // an oval piece: the turn of the turntable (cos, sin) and 1 / its squash in x and z
 const GROUND_PARS = /* glsl */`
 #define EZ_NS ${EZ_NS}
-uniform float uGProf[EZ_NS]; uniform vec2 uGY, uGPl; uniform vec2 uGBs[2]; uniform vec4 uGL[4]; uniform vec4 uGW; uniform float uGAmb, uGOn, uGSelf; uniform vec3 uGB, uGKey;
+uniform float uGProf[EZ_NS]; uniform vec2 uGY, uGPl; uniform vec2 uGBs[2]; uniform vec4 uGL[4]; uniform vec4 uGW; uniform float uGAmb, uGOn, uGSelf; uniform vec3 uGB, uGKey; uniform vec4 uGXf;
 float ezSegD(vec2 p, vec2 a, vec2 b, out float h) { vec2 pa = p - a, ba = b - a; h = clamp(dot(pa, ba) / max(dot(ba, ba), 1e-8), 0.0, 1.0); return length(pa - ba * h); }
 float ezVis(vec3 p, vec3 L, float s, float self) {
   float vis = 1.0, il = 1.0 / max(L.y, 0.08), h; vec2 k = L.xz * il;
+  // the stack is round in the piece's own frame: turned with it and, for an oval plan, with the squash taken out
+  vec2 pq = vec2(uGXf.x * p.x - uGXf.y * p.z, uGXf.y * p.x + uGXf.x * p.z) * uGXf.zw, kq = vec2(uGXf.x * k.x - uGXf.y * k.y, uGXf.y * k.x + uGXf.x * k.y) * uGXf.zw;
   float dy = (uGY.y - uGY.x) / float(EZ_NS - 1);
   for (int i = 0; i < EZ_NS - 1; i++) {
     float ya = uGY.x + dy * float(i), yb = ya + dy;
     if (yb > p.y + 0.002) {
       float f = clamp((p.y - ya) / dy, 0.0, 1.0), ta = max(ya - p.y, 0.0), tb = yb - p.y;
-      float d = ezSegD(p.xz, -k * ta, -k * tb, h);
+      float d = ezSegD(pq, -kq * ta, -kq * tb, h);
       float r = mix(mix(uGProf[i], uGProf[i + 1], f), uGProf[i + 1], h), w = 0.012 + s * mix(ta, tb, h) * il;
       vis = min(vis, smoothstep(-w, w, d - r));
     }
@@ -3638,16 +3671,23 @@ function fitShadow() {
   keyLight.shadow.radius = Math.tan(P.keySoft * Math.PI / 180) * (cam.far - cam.near) / (2 * ext);
 }
 function groundProfile() {                           // the silhouette of body, lid and handles at EZ_NS heights, in world units
-  const top = (P.height + state.rise) || 1, pr = UG.uGProf.value.fill(0);
+  // An oval plan (squash) is taken out of the radii and put back in the shader (uGXf), so the shade is oval and turns
+  // with the piece; a round piece keeps the identity. Handles count all the way round, lobes and lean are not followed.
+  const top = (P.height + state.rise) || 1, pr = UG.uGProf.value.fill(0), sx = 1 + P.squash, sz = 1 - P.squash, wide = new Float32Array(EZ_NS);
   for (const m of [vesselMesh, lidMesh, handleMesh]) {
     if (!m.visible || !m.geometry.attributes.position) continue;
     const a = m.geometry.attributes.position.array;
-    for (let i = 0; i < a.length; i += 3) { const q = clamp(Math.round(a[i + 1] / top * (EZ_NS - 1)), 0, EZ_NS - 1), r = Math.hypot(a[i], a[i + 2]) * UNIT; if (r > pr[q]) pr[q] = r; }
+    for (let i = 0; i < a.length; i += 3) { const q = clamp(Math.round(a[i + 1] / top * (EZ_NS - 1)), 0, EZ_NS - 1), r = Math.hypot(a[i] / sx, a[i + 2] / sz) * UNIT, w = Math.hypot(a[i], a[i + 2]) * UNIT; if (r > pr[q]) pr[q] = r; if (w > wide[q]) wide[q] = w; }
   }
-  for (let i = 1; i < EZ_NS; i++) if (!pr[i]) pr[i] = pr[i - 1];
-  const widest = (a, b) => { let m = a; for (let i = a; i < b; i++) if (pr[i] > pr[m]) m = i; return m; };
+  for (let i = 1; i < EZ_NS; i++) { if (!pr[i]) pr[i] = pr[i - 1]; if (!wide[i]) wide[i] = wide[i - 1]; }
+  groundTurn();
+  const widest = (a, b) => { let m = a; for (let i = a; i < b; i++) if (wide[i] > wide[m]) m = i; return m; };
   const b = widest(0, EZ_NS), h = EZ_NS >> 1, c = b < h ? widest(h, EZ_NS) : widest(0, h);     // the belly, and the widest level of the other half
-  state.gSwell = [b, c].map((i) => [i / (EZ_NS - 1) * top * UNIT, pr[i]]); state.gTop = top * UNIT;
+  state.gSwell = [b, c].map((i) => [i / (EZ_NS - 1) * top * UNIT, wide[i]]); state.gTop = top * UNIT;
+}
+function groundTurn() {                               // uniforms only
+  const q = P.squash ? vesselGroup.rotation.y : 0;
+  UG.uGXf.value.set(Math.cos(q), Math.sin(q), 1 / (1 + P.squash), 1 / (1 - P.squash));
 }
 function groundLights() {                            // which lamps light a level surface, and how much each
   const cfg = ENVS[P.env] || ENVS['Atelier softboxes'], rot = P.envRot * Math.PI / 180, y0 = P.plinth ? PLINTH_H : 0, c = new THREE.Color();
@@ -3764,7 +3804,7 @@ function buildSelfMap(v, hd, ld, level) {
   }
   selfTex.needsUpdate = selfTexN.needsUpdate = true;
   // handles: nine points along each strap, with the mean radius of its section there
-  const caps = U.uEzCap.value.fill(0), nh = hd ? Math.min(hd.n, 4) : 0;
+  const caps = U.uEzCap.value.fill(0), hbs = U.uEzHB.value.fill(0), nh = hd ? Math.min(hd.n, 4) : 0;
   let reach = 0;
   if (hd) {
     const pos = hd.geometry.attributes.position.array, A = hd.A1 - 1, per = pos.length / 3 / hd.n, NS = per / hd.A1 - 1;
@@ -3775,6 +3815,12 @@ function buildSelfMap(v, hd, ld, level) {
       for (let j = 0; j < A; j++) { const o = (b + j) * 3; rad += Math.hypot(pos[o] - cx, pos[o + 1] - cy, pos[o + 2] - cz); }
       rad /= A;
       caps.set([cx, cy, cz, rad], (h * 9 + q) * 4); reach = Math.max(reach, Math.hypot(cx, cz) + rad);
+    }
+    for (let h = 0; h < nh; h++) {                                           // a sphere round each handle: most rays miss it and skip its capsules
+      let cx = 0, cy = 0, cz = 0, r = 0;
+      for (let q = 0; q < 9; q++) { const o = (h * 9 + q) * 4; cx += caps[o] / 9; cy += caps[o + 1] / 9; cz += caps[o + 2] / 9; }
+      for (let q = 0; q < 9; q++) { const o = (h * 9 + q) * 4; r = Math.max(r, Math.hypot(caps[o] - cx, caps[o + 1] - cy, caps[o + 2] - cz) + caps[o + 3]); }
+      hbs.set([cx, cy, cz, r + 0.05], h * 4);
     }
   }
   U.uEzHand.value = nh;
@@ -5137,7 +5183,7 @@ function tick(now) {
     hold.k = cap || !P.spin || reduceMotion.matches ? want : hold.k + (want - hold.k) * Math.min(1, dt * 6);
     if (Math.abs(hold.k - want) < 0.002) hold.k = want;
   }
-  if (P.spin && hold.k) { vesselGroup.rotation.y += P.spin * hold.k * TAU / 60 * dt; shadowDirty(); stale = true; }
+  if (P.spin && hold.k) { vesselGroup.rotation.y += P.spin * hold.k * TAU / 60 * dt; groundTurn(); shadowDirty(); stale = true; }
   if (camLeg) camStep(now);
   controls.update();
   if (P.backdrop === 'Void') {
