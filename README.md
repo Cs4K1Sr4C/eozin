@@ -83,7 +83,9 @@ an unglazed foot with a dripped glaze line that ends in a bead.
   taper at both ends of their band (a blunt end held a dark drop of pooled glaze and shade).
 - The glaze is pulled thin on the crest of the *lip*: with *Thin on edges* above zero a
   fine, continuous, glossy line of the break runs round the rim where it faces straight up,
-  wider as *Thin on edges* is raised. The rounded lip as a whole is no longer treated as a
+  wider as *Thin on edges* is raised. That line stains the glass only; the lustre on it
+  is left as on the wall (thinned there, it turned the crest's highlight grey-cream). The
+  highlight on the crest itself stays: it is the lamp overhead, not the glaze. The rounded lip as a whole is no longer treated as a
   ridge by the curvature field (it used to break over a centimetre of wall on either side,
   a pale matte band); that field is faded out over the lip and back in down the wall.
 
@@ -168,17 +170,18 @@ when the camera is moved.
   `selfRefl`). For every pixel one ray is followed along the mirror direction through a
   height field of the piece: outer radius and cavity radius over angle and height, with
   their slopes and occlusion, built from the meshes whenever the shape changes (lobes,
-  twist, relief, a waved rim and the lid as it sits are in it), plus a chain of capsules
-  for each handle (seen only by rays that start outside the piece). A ray that starts in
+  twist, relief, a waved rim and the lid as it sits are in it). Handles are not in it: the
+  piece does not mirror its handles (their image in a wall was a hairline or a
+  hard-edged patch, never a handle), though a handle's own glaze mirrors the body. A ray that starts in
   the cavity is tested against the cavity wall alone, one that starts outside against the
   outer wall alone, so each march looks for a single crossing, which is then bisected and
   closed with a secant step. The ray follows the smooth wall's mirror direction, not the
   micro-relief. No border of a reflected region is a yes or a no; each is a weight that
   runs out: under the lip of an open mouth (the image of the far rim), where the ray only
   clips an edge or pierces a rim thinner than the march's stride, where it grazes what it
-  hit, and where the image is squeezed past what a pixel resolves (a handle mirrored in a
-  convex wall would be a line of beads, and is left out; so is a handle's root where it
-  runs into the wall). Where the ray meets the piece, the room's reflection gives way to
+  hit, and where the image is squeezed past what a pixel resolves (a shoulder mirrored in
+  a waisted neck is given up where a pixel takes in most of it, sooner the flatter the
+  ray meets it: under a lid's brim the far edge of that image was a dark band). Where the ray meets the piece, the room's reflection gives way to
   the light of that spot: its body colour under the room's light and the key lamp, and
   its own mirror image of the room where that is open to it (through the mouth, for a
   spot inside), of more wall where it is not. So the wall inside a bowl mirrors the
@@ -255,7 +258,7 @@ The groups of the parameter model, as the configurator shows them:
 | Painted decoration | second-lustre pattern and how its film differs |
 | Lighting | lighting rig (Atelier softboxes, North window, Vitrine spots, Kiln glow, and the low-key *Chiaroscuro*), room light, spotlight (aim, shadow softness, glint), *Lustre bounce* (`bounce`, 0–2, default 1), *Backdrop* (`backdrop`: Cove, Void), *Backdrop tone* (`backdropTone`), *Pool of light* (`pool`), plinth on/off, *Plinth material* (`plinthMat`: Lacquer, Black stone, Ebonised wood, Bronze), plinth and floor polish, *Contact shading* (ambient occlusion, the contact shadow and the lamp-by-lamp shade on the stand) |
 | Camera & film | *Lens · mm* (`focal`, 24–135, default 45), *Aperture · f/* (`fstop`: 1.4 to 16, default 4), *Depth of field* (`dof`: Off, Stills, Always), *Focus height* (`focusLevel`, a level, default 0.5), *Still quality* (`stillSamples`: 16, 32, 64), *Look* (`look`: Neutral, Print, Catalogue, Nocturne), *Film grain* (`grain`), *Lens fringing* (`chroma`), *Halation* (`halation`), exposure, tone curve, bloom, vignette, *Presentation frame* (`frame`: Free, 2.39:1, 16:9, 1:1) |
-| Rendering | turntable, room reflections and their detail, *Self-reflections* (`selfRefl`, on by default; needs room reflections), mesh detail, pixel ratio, adaptive quality, colour sample count |
+| Rendering | turntable, room reflections and their detail, *Self-reflections* (`selfRefl`, on by default; needs room reflections), mesh detail, pixel ratio, adaptive quality, *Upscaling* (`upscale`: Off, Auto, Native, Quality, Balanced, Performance; default Auto), *Sharpening* (`sharpen`, 0–1, default 0.4; needs Upscaling), colour sample count |
 
 Positions along the piece are *levels*: a share of the height, 0 at the foot and 1 at the
 rim. Sizes of surface patterns (flame size, run width, variation scale, crackle cell) are
@@ -309,7 +312,7 @@ Along the foot of the plate are five views, worked out from the piece as it is, 
 
 ### The configurator
 
-The panel with all 152 controls is not part of the page an ordinary visitor sees, and
+The panel with all 154 controls is not part of the page an ordinary visitor sees, and
 nothing on the page leads to it. It is fetched and built only on request:
 
 - `index.html?configurator=1` opens it as a drawer over the left of the stage;
@@ -386,18 +389,180 @@ fuller in metal, which turns the relief copper-red; a quarter more would carry t
 into magenta, and on Gyöngyház it is a soft veining an eighth thicker. A lustre tile's swatch
 shows what the film reflects plus what the glaze returns through it.
 
-**Adaptive quality** keeps the frame rate usable on slower GPUs: it first renders fewer
-pixels, then gives up stage extras one at a time (1: the plinth mirror at lower
+**Adaptive quality** keeps the frame rate usable on slower GPUs: it first draws fewer
+pixels (with *Upscaling* on Auto, the default, the scene is drawn at 0.77, then 0.67,
+then 0.5 of the canvas, which keeps its resolution, and the picture at rest is rebuilt
+in full: see *Reconstruction*; with Upscaling Off the canvas itself shrinks in steps of
+0.82 down to half and stays stretched, as it always did; the fixed modes skip this
+step), then gives up stage extras one at a time (1: the plinth mirror at lower
 resolution with fewer blur taps and half the lens samples of a still; 2: the mirror, the
 blur and the traced self-reflections of moving frames, and two of the four lamps that
 shade the stand; 3: a smaller shadow map, 8 lens samples, no traced self-reflections and
 no area-light shadow in stills; 4: a smaller studio capture, and the stand shaded by the
 dome alone, without bounce), then
-falls back to a lighter mesh, and tries the finer setting again from time to time. All
-of these are uniform values, never another shader. On a phone-sized screen the traced
+falls back to a lighter mesh, and tries the finer setting again from time to time, in
+the reverse order. A change of the drawn scale links no program, and rungs 1 to 3 are
+uniform values only. Rung 4 is not, although this file used to say so: the smaller
+studio capture changes the defines of the materials that read it, and nine programs
+are linked again on the way down and nine more on the way back (measured: 32 linked
+after load, 41 after rung 4, 50 after returning; the number of live programs does not
+change). That was so before upscaling existed and is recorded here, not fixed. On a
+phone-sized screen the traced
 self-reflections are kept for the picture at rest from the start. The
 frames that refine a still are not counted as a measure of speed. A scene in which
 nothing moves is not redrawn at all once its still is complete.
+
+**Start-up.** The import map sits in the head, followed by a preconnect and thirteen
+`modulepreload` links: the whole three.js module graph of the page, flat, so that it is
+fetched in one wave while the HTML is still arriving, not in two (the second used to wait
+for the first to be parsed). The list has to follow the three.js version; a browser
+without `modulepreload` ignores it, and the configurator's lil-gui is still fetched on
+demand. The caption is written before the first layout measurement, so the first frame
+is drawn into the final view and no refit follows it. The programs of the picture are
+handed to the driver before the mesh is built (`warmPrograms`: one `renderer.compile` for
+the picture and one for the state of the room capture, the glaze against a stand-in of
+the capture's shape), so a driver that compiles on its own threads works while the main
+thread makes the geometry. The room capture parks the fog beyond its far plane where it
+used to remove it, which saved compiling the stand and the unseen piece a second time:
+a load links 32 programs where it linked 34, and 23 are live where 25 were. The loading
+curtain lifts when the GPU reports the first complete frame finished (a fence sync
+behind it; two drawn frames count as well, should a driver never signal), not after up
+to seven frames, and a still's samples are drawn in sight, not behind the curtain.
+Measured only in headless Chromium on a software rasteriser (460 by 420 pixels): one
+frame drawn before the curtain where there were seven, the curtain up after about 9 s
+where it took about 29 s. On a real GPU the gain is expected to be about one frame;
+no real-GPU timings exist.
+
+Two changes in the glaze shader are exact, not approximations. What the film optics
+need per colour sample and not per pixel (the squared indices of glass and cover,
+4π/λ, and the Clausius-Mossotti term of each metal in the glass) is worked out once on
+the CPU when the material changes, in single precision and in the shader's own order of
+operations, which removes three complex divisions per colour sample and pixel. And
+noise whose result is multiplied by zero or lands in a saturated step is not asked:
+the two glaze-line noises farther than 0.16 cm from the line, the streak noise when
+streaks are off or the pixel is too coarse to show them, each orange-peel octave once
+it has faded out, and the run, thickness and flame fields when no parameter that uses
+them is non-zero. With both, the resting picture was identical pixel for pixel to the
+one before in every comparison made (default view, a view turned 45 degrees, flame,
+streaks and runs each alone, all off, all on; Cove and Void). When the room is captured
+again and the shadow map is not due in the same frame, the piece is left out of the
+capture, not drawn unseen through its six faces; an edit from a control asks for the
+shadow map as well, so this applies only to a capture that was put off to a later frame.
+
+### Reconstruction
+
+The page can draw the scene at a reduced scale while the canvas keeps its full
+resolution, and rebuild the full picture from several frames. This is a temporal
+super-resolution with a sharpening step, written for this page: jittered frames, a
+history at canvas resolution, reprojection from depth. No neural network and no
+downloaded weights are involved, and it is not DLSS, FSR or any vendor's upscaler and
+does not match one. Its limits on the lustre in motion are measured below.
+
+Two parameters in the configurator's Rendering group control it: *Upscaling* (`upscale`)
+and *Sharpening* (`sharpen`, 0 to 1, default 0.4, available unless Upscaling is Off).
+
+| `upscale` | Scale the scene is drawn at | Adaptive ladder | Picture at rest |
+|---|---|---|---|
+| Off | 1; a lowered rung shrinks the canvas itself, as before | resolution of the canvas (steps of 0.82 down to half), stage extras, mesh | exactly as before this feature |
+| Auto (default) | starts at 1; the ladder lowers it to 0.77, 0.67, 0.5 | drawn scale first, then stage extras, then mesh | at scale 1 as Native; below it rebuilt at full resolution |
+| Native | 1 always | stage extras, then mesh | with lens blur off: finished with 16 jittered samples; with lens blur on: the still as before |
+| Quality / Balanced / Performance | 0.77 / 0.67 / 0.5, fixed | stage extras, then mesh | rebuilt at full resolution |
+
+With the defaults (Auto, lens blur on) nothing changes until the ladder lowers the
+scale: the completed still is the same picture, pixel for pixel, as before the feature
+existed, and the history targets are not even allocated. A device that cannot draw
+into the history targets falls back to Off for the session, with one console warning.
+The gathering pass is one more program, linked the first time the scene is drawn below
+scale 1 (24 live and 33 linked where a default load has 23 and 32); a load with the
+defaults links none.
+
+**At rest.** Every frame is moved aside by a part of a drawn pixel (a Halton sequence,
+longer the lower the scale). At a reduced scale each canvas pixel keeps a running mean
+of the nearest samples that fell on it, each weighted by how close it fell
+(exp(-4 d²), d in canvas pixels). The still takes as many more frames as there are fewer
+pixels in each (27, 36 or 64 frames for 16 full frames' worth at 0.77, 0.67, 0.5; with
+lens blur on, the still's own sample count divided by the square of the scale, at most
+64), with the lens samples, the area-light shadow and the traced self-reflections of a
+still as before, and then nothing is drawn. At scale 1 with lens blur Off, a resting
+picture used to be a single frame; with Upscaling on (Auto, Native) it is now finished
+like a still without an aperture, 16 samples, through the existing accumulation. An
+exposure (Save PNG) is always drawn at full scale. Away from scale 1 the glaze's
+footprint estimate is scaled by the drawn scale on the frames of a still, so the still
+resolves the canvas pixel, not the drawn one.
+
+**In motion.** There is no velocity buffer: each pixel's world position comes from the
+depth buffer (nearest of 3×3) and is carried to the previous frame, inside the piece's
+bounding cylinder through the turntable's previous pose as well. History is rejected
+where the depth it was seen at disagrees (what was hidden a frame ago) and outside the
+frame, clipped to the colour range of the new frame's 3×3 neighbourhood (mean ± 1.25
+standard deviations, in YCoCg of a reversibly tone-mapped colour), and blended with the
+new frame by how near its sample fell. Away from the piece the history may grow to 8
+frames' worth. On the piece it may only grow to the number of frames the view of the
+piece (camera and turntable together) takes to turn by 0.1 degrees, which at any
+visible speed is a fraction of one frame: the lustre's colour depends on the view, and
+a history carried across a turn is a picture of another colour.
+
+**Sharpening** is contrast-adaptive (the RCAS lobe), applied in the output pass to the
+rebuilt moving picture only, and clamped channel by channel, in scene-linear values, to
+the range of the five texels it reads, so edges steepen with next to no overshoot (in
+the one moving frame examined, 9 of 144,000 displayed pixels left the local range of
+the unsharpened frame by more than 2/255, by 4/255 at most: the tone curve mixes the
+channels after the clamp; that frame's PSNR was 37.2 dB sharpened and 37.1 dB not). It
+fades out over the first
+half of a still and is zero in the completed picture, in Off and at scale 1; it is never
+written into the history.
+
+**Measured** in headless Chromium on a software rasteriser, 400 by 360 pixels in
+presentation mode, the default piece on the Draft mesh with traced self-reflections on,
+no grain, turntable stopped. PSNR against a reference of 16 jittered full-resolution
+frames without aperture at the same pose; "lustre" is a box on the piece's wall only.
+One piece, one view, one size: these are not general figures, and no real-GPU timings or
+pictures exist.
+
+| Picture | PSNR |
+|---|---|
+| one full-resolution frame (the resting picture before, lens blur off) | 38.7 dB |
+| Auto or Native at scale 1, lens blur off, at rest | identical to the reference |
+| Off with the canvas lowered to 0.67 and stretched by the browser | 36.1 dB |
+| Quality (0.77) at rest, 27 frames | 45.6 dB |
+| Balanced (0.67) at rest, 36 frames | 43.5 dB |
+| Performance (0.5) at rest, 64 frames | 39.1 dB |
+| Performance, one frame upscaled bilinearly (no history) | 33.9 dB |
+| Performance, 8 frames at rest after a move | 38.1 dB |
+| Balanced at rest, Void backdrop / plinth hidden (floor mirror) | 43.2 / 42.8 dB (one frame: 38.4 / 39.0) |
+
+| Moving (sharpening off) | rebuilt | one frame, bilinear |
+|---|---|---|
+| orbit 0.25°/frame, 8 frames, Performance, whole picture | 34.9 dB | 33.9 dB |
+| the same, Balanced | 37.6 dB | 35.8 dB |
+| the same, Balanced, lustre only | 34.4 dB | 34.3 dB |
+| orbit 1°/frame, 8 frames, Performance, lustre only | 31.3 dB | 31.0 dB |
+| turntable 0.2°/frame, 16 frames, Balanced, whole picture | 37.3 dB | 35.9 dB |
+| the same, lustre only | 34.4 dB | 34.0 dB |
+
+So at rest the method works (Balanced ends well above a single full-resolution frame;
+Performance only about level with one), and in motion it helps silhouettes, the stand
+and the backdrop by one to two decibels. **On the lustre in motion it does not
+reconstruct anything**: it is level with a plain upscale of the current frame, by
+design. A longer history there was tried and is worse: with 0.75 degrees of turn allowed,
+the turntable's lustre fell to 31.3 dB against 34.0 for the plain upscale. Fine relief
+and thin-film fringes therefore still shimmer between jittered low-resolution frames
+while the piece turns, and settle only when it rests. Two of the designers' bounds were
+missed on this piece: Performance at rest (39.1 dB where 39.5 was asked) and 8 rest
+frames after a move (38.1 where 39 was asked).
+
+Other known limits. The stand's mirror image of the piece moves with the mirrored piece
+while the stand's surface stands still, and only the colour clip protects it (the stand
+is rough, so the image is soft). Bloom is computed from one jittered low-resolution
+frame and can flicker on pin highlights. The lens fringing reads its red and blue
+unsharpened; where the fringe is under a pixel they take the sharpening of the texel
+they are drawn at, farther out they stay unsharpened. Lens blur *Always* in motion at a
+reduced scale was compared with the full-resolution moving frame once (35.7 dB, no
+trails seen) and not otherwise examined. A specular anti-aliasing of the mirror lobe on
+moving frames (roughness widened by the screen-space change of the normal) was built
+and left out: it lowered the frame-to-frame difference on the lustre by 1.4 % where
+10 % was the bar, and cost 0.33 dB. Index lists of lower detail for moving frames were
+not built. Firefox, Safari and every real GPU are untested.
 
 ## Limits of the model
 
@@ -410,11 +575,11 @@ thickness and the glaze colour beneath only show where the film thins: on relief
 in flame-lean patches and in pinholes. The fired-film data say whether the film is opaque.
 Colours are computed for a D65-like white and are clipped to sRGB.
 
-The traced self-reflection is one bounce against a height field of body and lid and round
-capsules for the handles: undercuts are filled in, relief is as fine as the map (128 x 256
-cells, 64 x 256 at Draft), a strap is as round as its mean section, and the spot that is
+The traced self-reflection is one bounce against a height field of body and lid:
+undercuts are filled in, relief is as fine as the map (128 x 256
+cells, 64 x 256 at Draft), and the spot that is
 hit is shaded with the film colour of the spot that reflects it, not its own. Handles
-are mirrored only where their image is broad (a concave neck beside them, mostly); a
+are not mirrored at all: a neck beside a handle shows the room where the handle's image would be; a
 thin overhanging rim is mirrored at rest sooner than in motion; a second bounce is an
 estimate, not a ray. The shade
 on the stand treats the piece as a body of revolution (an oval squash is followed and

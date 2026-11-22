@@ -6,6 +6,29 @@
 <title>Eozin Lustre Studio</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <meta name="description" content="Parametric THREE.js simulation of eozin, the reduction-fired metallic lustre glaze of Zsolnay ceramics.">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.min.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
+  }
+}
+</script>
+<!-- The whole module graph of the page, flat, so that it is fetched in one wave: this list must follow the three.js version. -->
+<link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.min.js">
+<link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.core.min.js">
+<link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/controls/OrbitControls.js">
+<link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/postprocessing/EffectComposer.js">
+<link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/postprocessing/RenderPass.js">
+<link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/postprocessing/UnrealBloomPass.js">
+<link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/postprocessing/OutputPass.js">
+<link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/postprocessing/Pass.js">
+<link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/postprocessing/ShaderPass.js">
+<link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/postprocessing/MaskPass.js">
+<link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/shaders/CopyShader.js">
+<link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/shaders/OutputShader.js">
+<link rel="modulepreload" href="https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/shaders/LuminosityHighPassShader.js">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link id="webfonts" rel="stylesheet" media="print" href="https://fonts.googleapis.com/css2?family=Federo&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
@@ -619,14 +642,6 @@ button { font: inherit; color: inherit; }
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 </div>
 
-<script type="importmap">
-{
-  "imports": {
-    "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.min.js",
-    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/"
-  }
-}
-</script>
 <script type="module">
 /* ==========================================================================
    Eozin Lustre Studio
@@ -818,10 +833,13 @@ const HU = {
 "p.bloom":"Csúcsfények ragyogása","p.bloom.help":"Ragyogás a legfényesebb csúcsfények körül.","p.vignette":"Vignettálás","p.vignette.help":"Elsötétíti a kép sarkait, ahogy egy fényképezőgép objektívje.","p.frame":"Bemutató képaránya","p.frame.help":"A Bemutató módban használt képformátum.",
 "opt.Free":"Szabad","opt.2.39:1":"2,39:1","opt.16:9":"16:9","opt.1:1":"1:1",
 "grp.Rendering":"Megjelenítés",
-"p.spin":"Forgóasztal · ford./perc","p.spin.help":"A forgóasztal sebessége. 0-nál megáll.","p.roomRefl":"Terem tükröződése","p.roomRefl.help":"A máz nemcsak a lámpákat tükrözi, hanem a talapzatot, a padlót és az árnyékot is, amelyben áll.","p.selfRefl":"Öntükröződés","p.selfRefl.help":"A máz magát a tárgyat is tükrözi, képpontonként egy követett sugárral: a tál belsejében a szemközti falat, a kihajló nyakban a vállat, a füleket és a fedőt. Lassabb gépen csak az álló képen marad meg, vagy kimarad.","p.reflDetail":"Tükröződés részletessége","p.reflDetail.help":"A mázban tükröződő lámpák élessége. Az oldal magától is csökkentheti, hogy a mozgás folyamatos maradjon.",
+"p.spin":"Forgóasztal · ford./perc","p.spin.help":"A forgóasztal sebessége. 0-nál megáll.","p.roomRefl":"Terem tükröződése","p.roomRefl.help":"A máz nemcsak a lámpákat tükrözi, hanem a talapzatot, a padlót és az árnyékot is, amelyben áll.","p.selfRefl":"Öntükröződés","p.selfRefl.help":"A máz magát a tárgyat is tükrözi, képpontonként egy követett sugárral: a tál belsejében a szemközti falat, a kihajló nyakban a vállat és a fedőt. A fülek nem tükröződnek. Lassabb gépen csak az álló képen marad meg, vagy kimarad.","p.reflDetail":"Tükröződés részletessége","p.reflDetail.help":"A mázban tükröződő lámpák élessége. Az oldal magától is csökkentheti, hogy a mozgás folyamatos maradjon.",
 "opt.Standard":"Normál","opt.High":"Nagy",
 "p.detail":"Háló részletessége","p.detail.help":"A háló háromszögeinek száma. Az oldal magától is csökkentheti, hogy a mozgás folyamatos maradjon.",
 "opt.Draft":"Vázlat","opt.Fine":"Finom",
+"p.upscale":"Felskálázás","p.upscale.help":"Mozgás közben kevesebb képpontot rajzol, és néhány képkocka alatt építi fel a teljes képet; nyugalomban a kép addig finomodik, amíg el nem készül. Az Automatikus csak akkor csökkenti a rajzolt felbontást, ha a képfrissítés megkívánja. A Ki visszaadja az egyszerű működést.",
+"opt.Auto":"Automatikus","opt.Native":"Natív","opt.Quality":"Minőség","opt.Balanced":"Kiegyensúlyozott","opt.Performance":"Teljesítmény",
+"p.sharpen":"Élesítés","p.sharpen.help":"Mozgás közben visszaadja az újraépített kép élkontrasztját. Ahogy az állókép elkészül, fokozatosan megszűnik, így a kész kép nincs élesítve.","dep.sharpen":"Előbb kapcsold be a felskálázást.",
 "p.pixelRatio":"Legnagyobb képpontarány","p.pixelRatio.help":"A képernyő egy képpontjára jutó kiszámolt képpontok felső határa.","p.adaptive":"Alkalmazkodó minőség","p.adaptive.help":"Az oldal a felbontásból és a háló részletességéből enged, hogy a képfrissítés egyenletes maradjon.","p.spectral":"Színminták","p.spectral.help":"A képpontonként kiszámolt hullámhosszak száma. Több mintával hűbb és lassabb.",
 "dep.lobeDepth":"Előbb állítsd a „Gerezdek” értékét 0 fölé.","dep.reliefHeight":"Előbb válassz dombormintát.","dep.reliefCount":"Ehhez 0-tól eltérő magasságú domborminta kell.","dep.ringHeight":"Előbb adj hozzá gyűrűket.","dep.rimHeight":"Előbb adj hozzá peremhullámokat.","dep.handleLow":"Előbb adj hozzá füleket.","dep.lid":"A fedőhöz egyenes perem kell: állítsd a „Peremhullámok” értékét 0-ra.","dep.lidRise":"Előbb válassz fedőt.","dep.finialSize":"Előbb válassz fedőt és fedőgombot.","dep.breakTone":"Előbb növeld a „Vékony az éleken” értékét.","dep.crackleSize":"Előbb növeld a „Repesztés” értékét.","dep.dripAmp":"Előbb adj hozzá mázcseppeket.","dep.flashScale":"Előbb növeld a „Lángnyomok” értékét.","dep.flameDir":"Előbb növeld a „Lángoldali eltérés” értékét.","dep.thickScale":"Előbb növeld a „Vastagságingadozás” értékét.","dep.runScale":"Előbb növeld a „Mázfolyások” vagy a „Vastagságingadozás” értékét.","dep.decoSoft":"Előbb válassz festett mintát.","dep.decoCount":"Ennek a mintának nincs ismétlésszáma.","dep.decoRows":"Ennek a mintának nincsenek sorai.","dep.keyAz":"Előbb kapcsold ki a „Spotlámpa a főlámpánál” kapcsolót.","dep.plinthGloss":"Előbb kapcsold be a „Talapzat” kapcsolót.","dep.selfRefl":"Előbb kapcsold be a „Terem tükröződése” kapcsolót.","dep.backdropTone":"Előbb válaszd a „Háttérív” hátteret.","dep.fstop":"Előbb kapcsold be a „Mélységélesség” beállítást.","dep.halation":"Előbb növeld a „Csúcsfények ragyogása” értékét.",
 "form.baluster":"Baluszter","form.bottle":"Palack","form.gourd":"Lopótök","form.tulip":"Tulipán","form.amphora":"Amfora","form.ginger":"Gyömbértartó","form.urn":"Fedeles urna","form.bowl":"Tál",
@@ -950,7 +968,7 @@ const DEFAULTS = {
   env: 'Atelier softboxes', envRot: 20, envInt: 1, keyInt: 2.6, keyLock: true, keyAz: 38, keyEl: 46, keySoft: 2, keySpec: 0,
   backdrop: 'Cove', backdropTone: 0.12, pool: 0.6, plinthMat: 'Black stone',
   roomRefl: true, reflDetail: 'High', selfRefl: true, plinthGloss: 0.35, floorGloss: 0, exposure: 1, tone: 'ACES', bloom: 0.22, vignette: 0.3,
-  occlusion: 0.9, bounce: 1, spin: 1.2, plinth: true, detail: 'Standard', pixelRatio: 2, adaptive: true,
+  occlusion: 0.9, bounce: 1, spin: 1.2, plinth: true, detail: 'Standard', pixelRatio: 2, adaptive: true, upscale: 'Auto', sharpen: 0.4,
   // camera and film
   focal: 45, fstop: 4, dof: 'Always', focusLevel: 0.5, stillSamples: 32, look: 'Print', grain: 0.15, chroma: 0.5, halation: 0.2, frame: 'Free',
 };
@@ -2051,12 +2069,12 @@ uniform vec3 uBreakTone;
 #define EZ_BREAK 0.8
 uniform mat3 normalMatrix;
 uniform int uSpecN;
-uniform float uSpecBW;       // half the spacing of the spectral samples, nm
-uniform float uLam[EZ_MAX];
 uniform vec3 uCMF[EZ_MAX];
-uniform vec2 uEpsCu[EZ_MAX];
-uniform vec2 uEpsAg[EZ_MAX];
-uniform vec2 uEpsAu[EZ_MAX];
+// what depends on the spectral sample alone, worked out once on the CPU (hoistOptics)
+uniform float uSpecBW;       // half the spacing of the spectral samples, nm
+uniform vec4 uEzK[EZ_MAX];   // glass index squared, cover index squared, 4 pi / lambda, lambda
+uniform vec4 uEzAB[EZ_MAX];  // Clausius-Mossotti term of copper (xy) and of silver (zw) in the glass
+uniform vec2 uEzCc[EZ_MAX];  // and of gold
 uniform float uNGlass, uDisp, uNCover, uDCover, uDMetal, uHaze;
 uniform vec3 uFill;
 uniform float uCoverage, uInnerLustre;
@@ -2107,43 +2125,27 @@ vec3 ezParallax(vec3 r) {
 
 // ---- self-reflection, traced: the piece as a height field in cylinder coordinates (angle, height) -> outer radius,
 // cavity radius and their ambient occlusion (uEzProf) and the slopes of both radii (uEzProfN), built from the mesh
-// (buildSelfMap); handles as chains of capsules. One ray per pixel along the mirror direction. A ray that starts in
+// (buildSelfMap); handles are not mirrored. One ray per pixel along the mirror direction. A ray that starts in
 // the cavity is tested against the cavity wall alone, one that starts outside against the outer wall alone: each is
 // then a single crossing of one smooth function, found with uEzSteps samples, bisected and closed with a secant step.
 // Every edge of a reflected region is a weight that runs out to nothing (ezHitW), never a yes or no: a moving frame
 // has one ray per pixel and nothing else to soften it. uEzSelf 0 skips all of it: the adaptive ladder's fallback.
-#define EZ_CAPS 9
 uniform sampler2D uEzProf, uEzProfN;
 uniform vec4 uEzProfP;       // y of the first row, 1 / span, bounding radius, top (cm)
 uniform mat4 uEzW2O;         // world -> vessel
-uniform float uEzSelf, uEzSteps, uEzHitR, uEzHand;
+uniform float uEzSelf, uEzSteps, uEzHitR, uSrK;
 uniform vec3 uEzJit, uEzKeyRad, uEzKeyDir;   // a still's sample: lobe radius and angle, march offset; the key light for a lit hit
-uniform vec4 uEzCap[EZ_CAPS * 4];
-uniform vec4 uEzHB[4];       // a bounding sphere per handle
 float ezHitW, ezHitVis, ezHitRo;   // how much of the pixel's mirror image a hit covers; how much of the room the hit's own mirror image sees, and how blurred
 vec2 ezProfUv(vec3 p) { return vec2(atan(p.z, p.x + 1e-6) * 0.15915494 + 0.5, (p.y - uEzProfP.x) * uEzProfP.y); }
 vec4 ezProf(vec3 p) { return textureLod(uEzProf, ezProfUv(p), 0.0); }
-float ezCapHit(vec3 ro, vec3 rd, vec3 pa, vec3 pb, float ra) {
-  vec3 ba = pb - pa, oa = ro - pa;
-  float baba = dot(ba, ba), bard = dot(ba, rd), baoa = dot(ba, oa), rdoa = dot(rd, oa), oaoa = dot(oa, oa);
-  float a = baba - bard * bard, b = baba * rdoa - baoa * bard, c = baba * oaoa - baoa * baoa - ra * ra * baba, h = b * b - a * c;
-  if (h >= 0.0 && a > 1e-7) {
-    float t = (-b - sqrt(h)) / a, y = baoa + t * bard;
-    if (y > 0.0 && y < baba) return t;
-    vec3 oc = y <= 0.0 ? oa : ro - pb;
-    b = dot(rd, oc); c = dot(oc, oc) - ra * ra; h = b * b - c;
-    if (h > 0.0) return -b - sqrt(h);
-  }
-  return -1.0;
-}
 // foot: how far apart neighbouring pixels' rays have drifted per cm travelled. What a pixel's mirror image cannot
-// resolve (a handle squeezed to a hairline in a convex wall) is left to the room's reflection.
+// resolve (a shoulder squeezed into a waisted neck) is left to the room's reflection.
 float ezTrace(vec3 o, vec3 d, float jit, float foot, out vec3 n, out float ao) {
   n = vec3(0.0, 1.0, 0.0); ao = 1.0; ezHitW = 0.0; ezHitVis = 1.0; ezHitRo = 0.0;
   float best = -1.0, r0 = length(o.xz);
   vec4 s = ezProf(o);
   bool cav = r0 < s.g || (r0 < s.r && abs(r0 - s.g) < abs(r0 - s.r));   // the ray starts in the cavity; in the clay: on the nearer side
-  // --- body and lid
+  // --- body and lid: all there is to hit. A handle's image in a wall is a hairline or a patch with nothing to soften it
   float a = dot(d.xz, d.xz), b = dot(o.xz, d.xz), c = dot(o.xz, o.xz) - uEzProfP.z * uEzProfP.z, t1 = 400.0;
   bool run = true;
   if (a > 1e-6) { float h = b * b - a * c; if (h <= 0.0) run = false; else t1 = (-b + sqrt(h)) / a; } else if (c > 0.0) run = false;
@@ -2192,39 +2194,14 @@ float ezTrace(vec3 o, vec3 d, float jit, float foot, out vec3 n, out float ao) {
         // chance: a hit counts only where the ray stays in for longer than the march's stride at that distance
         vec3 p2 = ph + (0.1 + 1.9 * t1 * pow(th / t1, 0.3333) / (uEzSteps - 1.0)) * d;
         w *= smoothstep(0.0, 0.3, ezProf(p2).r - length(p2.xz));
-        // a convex shoulder mirrored in a waisted neck is squeezed: centimetres of it to the pixel. Its image is blurred
-        // by as much as a pixel takes in, and given up where that is most of the shoulder
-        w *= 1.0 - smoothstep(0.3, 0.9, foot * th);
+        // a convex shoulder mirrored in a waisted neck is squeezed: centimetres of it to the pixel, and more the flatter
+        // the ray meets it (under a lid's brim the far edge of that image was a dark band ruled with lines). Its image is
+        // blurred by as much as a pixel takes in, and given up where that is most of the shoulder
+        w *= 1.0 - smoothstep(0.25, 0.7, foot * th / max(-dot(n, d), 0.05));
         ao = s.b; ezHitVis = ao; ezHitRo = min(2.0 * foot * th, 0.7);
       }
       if (w > 0.0) { best = th; ezHitW = w; }
     }
-  }
-  // --- handles: only for rays that start outside (the root capsules poke through the wall into the cavity)
-  float tc = -1.0, rc = 1.0; vec3 nc;
-  for (int k = 0; k < 6; k++) {
-    if (float(k) >= uEzHand || cav) break;
-    vec3 hc = uEzHB[k].xyz - o;
-    float hb = dot(hc, d), hc2 = dot(hc, hc), hr2 = uEzHB[k].w * uEzHB[k].w;
-    if (hc2 - hb * hb > hr2 || (hb < 0.0 && hc2 > hr2)) continue;
-    for (int q = 0; q < EZ_CAPS - 1; q++) {
-      vec4 A = uEzCap[k * EZ_CAPS + q], B = uEzCap[k * EZ_CAPS + q + 1];
-      float ra = 0.5 * (A.w + B.w), t = ezCapHit(o, d, A.xyz, B.xyz, ra);
-      if (t > 0.1 && (tc < 0.0 || t < tc)) {
-        tc = t; rc = ra;
-        vec3 pa = o + t * d - A.xyz, ba = B.xyz - A.xyz;
-        nc = (pa - clamp(dot(pa, ba) / dot(ba, ba), 0.0, 1.0) * ba) / ra;
-      }
-    }
-  }
-  if (tc > 0.0 && (best < 0.0 || tc < best)) {
-    // a handle counts where its capsules stand in well for it: clear of the wall its flared root runs into, some way
-    // off, off its own silhouette, and wide enough in this mirror to be more than a line of beads
-    vec3 pc = o + tc * d;
-    float wc = smoothstep(0.4, 1.6, tc) * smoothstep(0.1, 0.7, length(pc.xz) - ezProf(pc).r) * smoothstep(0.05, 0.4, -dot(nc, d)) * (1.0 - smoothstep(0.1, 0.3, foot * tc / rc));
-    // in front of a wall the two cross-fade through nothing: only one hit is shaded
-    if (wc > 0.5) { best = tc; ezHitW = 2.0 * wc - 1.0; n = nc; ao = 0.85; ezHitVis = 0.85; }
-    else { ezHitW *= 1.0 - 2.0 * wc; if (ezHitW <= 0.0) best = -1.0; }
   }
   return best;
 }
@@ -2280,7 +2257,9 @@ vec3 ezMicro(vec3 p, float fw, out float crack, out float cell, out float pit, o
   vec3 pa = EZ_R1 * p, pb = (EZ_R1 * pa).zxy;
   float fa = 1.0 - smoothstep(0.022, 0.055, fw), fb = 1.0 - smoothstep(0.07, 0.18, fw);
   vec4 nw = ezNoiseD(pb * 0.55 + 3.0);
-  vec4 na = ezNoiseD(pa * 10.5 + 2.0 * nw.x), nb = ezNoiseD(pb * 3.1 + 5.0);
+  vec4 na = vec4(0.0), nb = vec4(0.0);     // each octave only ever counts times uPeel and its fade: not asked once it has faded out
+  if (uPeel != 0.0 && fa > 0.0) na = ezNoiseD(pa * 10.5 + 2.0 * nw.x);
+  if (uPeel != 0.0 && fb > 0.0) nb = ezNoiseD(pb * 3.1 + 5.0);
   vec3 g = uPeel * (0.0075 * 10.5 * fa * (na.yzw * EZ_R1) + 0.017 * 3.1 * fb * ((nb.zwy * EZ_R1) * EZ_R1)) + uWave * 0.09 * 0.55 * ((nw.zwy * EZ_R1) * EZ_R1);
   lost = uPeel * (0.0075 * 10.5 * (1.0 - fa) + 0.017 * 3.1 * (1.0 - fb));
   // throwing rings: one spiral left by the fingers, stronger inside where no rib smoothed it; straps and lids have none
@@ -2357,23 +2336,20 @@ void ezLustreEval(float cosT, vec3 fill, float dC, float dM, out vec3 R, out vec
   R = vec3(0.0); T = vec3(0.0);
   for (int i = 0; i < EZ_MAX; i++) {
     if (i >= uSpecN) break;
-    float lam = uLam[i];
-    float dl = 1.0 / (lam * lam) - 2.8796e-6;
-    float ng = uNGlass + uDisp * dl, nc = uNCover + uDisp * 1.5 * dl;
-    vec2 em = vec2(ng * ng, 0.0), em2 = vec2(2.0 * ng * ng, 0.0);
-    vec2 beta = fill.x * ezCdiv(uEpsCu[i] - em, uEpsCu[i] + em2) + fill.y * ezCdiv(uEpsAg[i] - em, uEpsAg[i] + em2) + fill.z * ezCdiv(uEpsAu[i] - em, uEpsAu[i] + em2);
+    vec4 K = uEzK[i];
+    vec2 em = vec2(K.x, 0.0);
+    vec2 beta = fill.x * uEzAB[i].xy + fill.y * uEzAB[i].zw + fill.z * uEzCc[i];
     vec2 e2 = ezCmul(em, ezCdiv(vec2(1.0 + 2.0 * beta.x, 2.0 * beta.y), vec2(1.0 - beta.x, -beta.y)));
-    vec2 e1 = vec2(nc * nc, 0.0);
+    vec2 e1 = vec2(K.y, 0.0);
     vec2 q1 = vec2(sqrt(max(e1.x - s2, 1e-6)), 0.0);
     vec2 q2 = ezCsqrt(vec2(e2.x - s2, e2.y));
     vec2 q3 = vec2(sqrt(max(em.x - s2, 1e-6)), 0.0);
-    float k0 = 6.28318530718 / lam;
-    float a1 = 2.0 * k0 * dC * q1.x;
+    float a1 = K.z * dC * q1.x;
     vec2 p1 = vec2(cos(a1), sin(a1));
-    vec2 d2 = 2.0 * k0 * dM * q2;
+    vec2 d2 = K.z * dM * q2;
     float att = exp(-min(d2.y, 60.0));
-    float coh = ezSinc(a1 * uSpecBW / lam);                    // box filter over this sample's share of the spectrum
-    vec2 p2 = att * ezSinc(d2.x * uSpecBW / lam) * vec2(cos(d2.x), sin(d2.x));
+    float coh = ezSinc(a1 * uSpecBW / K.w);                    // box filter over this sample's share of the spectrum
+    vec2 p2 = att * ezSinc(d2.x * uSpecBW / K.w) * vec2(cos(d2.x), sin(d2.x));
     float Rs = ezStack(vec2(cosT, 0.0), q1, q2, q3, p1, p2, coh);
     float Rp = ezStack(vec2(1.0 / cosT, 0.0), ezCdiv(e1, q1), ezCdiv(e2, q2), ezCdiv(em, q3), p1, p2, coh);
     float r = min(0.5 * (Rs + Rp), 1.0);
@@ -2414,7 +2390,7 @@ const GLSL_FRAG_SURFACE = /* glsl */`
 // ================= eozin: surface fields =================
 vec3 ezP = vObjPos;
 vec3 ezDx = dFdx(ezP), ezDy = dFdy(ezP);
-float ezFw = max(length(ezDx), length(ezDy));
+float ezFw = max(length(ezDx), length(ezDy)) * uSrK;   // a still gathered at a reduced drawn scale resolves the output pixel, not the drawn one
 float ezCav = vSurf.x, ezRel = vSurf.y, ezReg = vSurf.w;
 float ezHN = clamp(ezP.y / uHeight, 0.0, 1.0);
 float ezInner = smoothstep(2.4, 2.9, ezReg);
@@ -2422,11 +2398,15 @@ float ezUnder = 1.0 - smoothstep(0.1, 0.6, ezReg);
 float ezOuter = smoothstep(0.4, 0.9, ezReg) * (1.0 - smoothstep(1.1, 1.6, ezReg));
 
 // glaze line: where the pot was held while dipping
-float ezGlaze = smoothstep(-0.015, 0.025, vSurf.z + (ezNoise(ezP * 7.0) - 0.5) * 0.10 + (ezNoise(ezP * 23.0) - 0.5) * 0.03);
+// The two noises move the line by less than 0.125 cm (|ezNoise - 0.5| < 0.94): farther from it the smoothstep is
+// saturated and they are not asked. This and the guards below skip only what is multiplied by zero or cannot count.
+float ezGlaze = step(0.0, vSurf.z);
+if (abs(vSurf.z) < 0.16) ezGlaze = smoothstep(-0.015, 0.025, vSurf.z + (ezNoise(ezP * 7.0) - 0.5) * 0.10 + (ezNoise(ezP * 23.0) - 0.5) * 0.03);
 
 // base glaze thickness: pooling, breaking, runs, sag
-float ezRunN = ezFbm(vec3(ezP.x, ezP.y * 0.1, ezP.z) * uRunScale + uSeed);     // uRunScale, uFlashScale, uThickScale: 1 / size in cm
-float ezLow = ezFbm(ezP * uThickScale + vec3(uSeed * 1.7, 4.1, 2.3));
+float ezRunN = 0.5, ezLow = 0.5;         // each field only ever counts times one of the uniforms asked for here
+if (uRuns != 0.0 || uThickVar != 0.0 || uWear != 0.0) ezRunN = ezFbm(vec3(ezP.x, ezP.y * 0.1, ezP.z) * uRunScale + uSeed);     // uRunScale, uFlashScale, uThickScale: 1 / size in cm
+if (uThickVar != 0.0 || uHalo != 0.0 || uDust != 0.0 || uWear != 0.0) ezLow = ezFbm(ezP * uThickScale + vec3(uSeed * 1.7, 4.1, 2.3));
 float ezGT = max(0.03, uGlazeThick * (1.0 + uPool * 1.4 * ezCav + uRuns * 1.5 * (ezRunN - 0.5) + uSag * (0.5 - ezHN)));
 float ezBreak = 1.0 - smoothstep(0.15 * uBreak, 0.85 * uBreak + 1e-3, ezGT);
 // on the crest of the lip the glaze is pulled thin as it runs off to both sides: a fine continuous line, a fat roll below
@@ -2437,6 +2417,7 @@ float ezLipThin = min(1.0, 4.0 * uBreak) * smoothstep(1.5, 1.9, ezReg) * (1.0 - 
 // so that it stays one line and never falls into beads
 float ezBn = 0.0;
 if (ezBreak > 0.0) { ezBn = clamp(ezBreak * (0.8 + 0.4 * ezNoise(ezP * 1.7)), 0.0, 1.0); ezBn *= ezBn * (3.0 - 2.0 * ezBn); }
+float ezBnWall = ezBn;                    // the lip's line stains the glass and leaves the lustre on it alone: a thinned film there turned the crest's highlight grey-cream, paler than the wall
 ezBn = max(ezBn, 0.9 * ezLipThin);
 
 float ezCrack = 0.0, ezCell = 0.5, ezPit = 0.0, ezLost = 0.0, ezSand = 0.0, ezWorn = 0.0, ezTurn = 0.0;
@@ -2465,8 +2446,11 @@ ezCol *= (1.0 - 0.7 * uCrackleStain * ezCrack) * (1.0 - 0.5 * ezPit);
 vec3 ezQ = ezP * uFlashScale;
 ezQ.y *= uFlashStretch;
 ezQ += uSeed * vec3(3.1, 1.7, 2.9);
-vec3 ezW = vec3(ezFbm2(ezQ + 3.1), ezFbm2(ezQ + vec3(7.7, 1.3, 4.2)), ezFbm2(ezQ + 11.5)) - 0.5;
-float ezFlame = ezFbm(ezQ + uFlashWarp * 2.5 * ezW);
+bool ezFl = uFlash != 0.0 || uHalo != 0.0, ezSt = uStreak != 0.0 && ezFw < 0.14;   // the flame field only ever counts times uFlash or uHalo; its warp also feeds the streaks, which are gone at a footprint of 0.14 cm
+vec3 ezW = vec3(0.0);
+if (ezFl || ezSt) ezW = vec3(ezFbm2(ezQ + 3.1), ezFbm2(ezQ + vec3(7.7, 1.3, 4.2)), ezFbm2(ezQ + 11.5)) - 0.5;
+float ezFlame = 0.5;
+if (ezFl) ezFlame = ezFbm(ezQ + uFlashWarp * 2.5 * ezW);
 // a flame leaves fronts, not clouds: broad calm fields with an edge where the tongue ended
 ezFlame = mix(ezFlame, 0.5 + 0.55 * (smoothstep(0.34, 0.66, ezFlame) - 0.5) + 0.3 * (ezFlame - 0.5), uFront);
 // 'holdudvar': around the edge of a tongue the clear cover film swells through part of an interference order and
@@ -2474,7 +2458,8 @@ ezFlame = mix(ezFlame, 0.5 + 0.55 * (smoothstep(0.34, 0.66, ezFlame) - 0.5) + 0.
 float ezTongue = smoothstep(0.64, 0.74, ezFlame);
 float ezHalo = uHalo * exp(-pow((ezFlame - 0.655) / 0.04, 2.0)) * smoothstep(0.25, 0.6, ezLow);   // a broken ring, in nm below
 // film depth also wanders at the scale of a brush hair and a finger: fine drawn-out streaks, gone before they alias
-float ezFine = uStreak * (ezNoise(vec3(ezP.x, ezP.y * 0.3, ezP.z) * 3.2 + 3.0 * ezW) - 0.5) * (1.0 - smoothstep(0.05, 0.14, ezFw));
+float ezFine = 0.0;
+if (ezSt) ezFine = uStreak * (ezNoise(vec3(ezP.x, ezP.y * 0.3, ezP.z) * 3.2 + 3.0 * ezW) - 0.5) * (1.0 - smoothstep(0.05, 0.14, ezFw));
 // which way the wall faces the flame; fades to nothing where the surface turns horizontal (floor, lip crest)
 float ezSide = dot(vObjNormal.xz, uFlameDir) / max(max(length(vObjNormal.xz), 0.35 * length(vObjNormal)), 1e-4);
 float ezRed = clamp(1.0 + uFlash * 2.2 * (ezFlame - 0.5) + uFlameBias * 0.6 * ezSide, 0.0, 2.0);
@@ -2483,7 +2468,7 @@ float ezDeco = ezDecoMask(ezRel, ezP) * ezOuter;
 if (uDeco == 3 || uDeco == 5) ezDeco *= step(-0.5, vEzUv.x);          // lattice motifs need the body's (u, v); handles carry u = -1
 
 float ezLustre = ezGlaze * uCoverage * (1.0 - 0.85 * ezPit) * mix(1.0, uInnerLustre, ezInner);
-vec3 ezFill = uFill * ezRed * (1.0 - 0.25 * ezBn) * mix(1.0, uDecoFill, ezDeco);
+vec3 ezFill = uFill * ezRed * (1.0 - 0.25 * ezBnWall) * mix(1.0, uDecoFill, ezDeco);
 float ezMove = uDecoSilver * ezDeco;
 ezMove = ezMove > 0.0 ? ezFill.x * ezMove : ezFill.y * ezMove;        // repaint copper as silver, or the reverse
 ezFill.x -= ezMove; ezFill.y += ezMove;
@@ -2745,8 +2730,8 @@ scene.add(keyLight, keyLight.target);
 const U = {
   uWave: { value: 0.3 }, uDust: { value: 0.15 }, uWear: { value: 0.25 }, uGrit: { value: 0.6 }, uFootTurn: { value: 0.6 }, uBreakTone: { value: new THREE.Color('#8a5a3c') },
   uUnit: { value: UNIT }, uHeight: { value: 30 }, uAO: { value: 0.9 }, uHand: { value: 0.3 }, uKeySpec: { value: 0 }, uSpecN: { value: 16 }, uSpecBW: { value: 0 },
-  uLam: { value: new Float32Array(MAX_SPECTRAL).fill(550) }, uCMF: { value: new Float32Array(MAX_SPECTRAL * 3) },
-  uEpsCu: { value: new Float32Array(MAX_SPECTRAL * 2) }, uEpsAg: { value: new Float32Array(MAX_SPECTRAL * 2) }, uEpsAu: { value: new Float32Array(MAX_SPECTRAL * 2) },
+  uCMF: { value: new Float32Array(MAX_SPECTRAL * 3) },
+  uEzK: { value: new Float32Array(MAX_SPECTRAL * 4) }, uEzAB: { value: new Float32Array(MAX_SPECTRAL * 4) }, uEzCc: { value: new Float32Array(MAX_SPECTRAL * 2) },   // filled by hoistOptics
   uNGlass: { value: 1.56 }, uDisp: { value: 9000 }, uNCover: { value: 1.56 }, uDCover: { value: 30 }, uDMetal: { value: 150 }, uHaze: { value: 0 },
   uFill: { value: new THREE.Vector3() }, uCoverage: { value: 1 }, uInnerLustre: { value: 0.5 },
   uGlazeColor: { value: new THREE.Color() }, uBodyColor: { value: new THREE.Color() },
@@ -2758,8 +2743,7 @@ const U = {
   uDeco: { value: 0 }, uDecoCount: { value: 12 }, uDecoRows: { value: 6 }, uDecoSoft: { value: 0.3 }, uDecoThick: { value: 1 }, uDecoFill: { value: 1 }, uDecoSilver: { value: 0 }, uDecoMatte: { value: 0 },
   uScatter: { value: 1 }, uScatRough: { value: 0.42 }, uDepth: { value: 1 }, uHalo: { value: 0 }, uFront: { value: 0 }, uStreak: { value: 0 },
   uEzProf: { value: null }, uEzProfN: { value: null }, uEzProfP: { value: new THREE.Vector4(0, 1, 1, 1) }, uEzW2O: { value: new THREE.Matrix4() }, uEzSelf: { value: 0 }, uEzSteps: { value: 12 },
-  uEzHitR: { value: 0.12 }, uEzJit: { value: new THREE.Vector3() }, uEzKeyRad: { value: new THREE.Color() }, uEzKeyDir: { value: new THREE.Vector3(0, 1, 0) },
-  uEzCap: { value: new Float32Array(144) }, uEzHB: { value: new Float32Array(16) }, uEzHand: { value: 0 },
+  uEzHitR: { value: 0.12 }, uSrK: { value: 1 }, uEzJit: { value: new THREE.Vector3() }, uEzKeyRad: { value: new THREE.Color() }, uEzKeyDir: { value: new THREE.Vector3(0, 1, 0) },
   uEzEnvC: { value: new THREE.Vector3(0, 1.5, 0) }, uEzGround: { value: new THREE.Vector4(PLINTH_H, 1, 0, 12) }, uEzPar: { value: 0 },
 };
 const glaze = makeGlazeMaterial(U);
@@ -2958,8 +2942,10 @@ const CARD = { detail: 3.2, foot: 1.8 };
 // view, and under a dark floor its lustre goes out. Such a piece gets the card in every view, by how much of its wall
 // looks down (ctx.under); an upright form gets none and is lit as before.
 const underCard = () => 1 + 1.5 * smooth(0.3, 0.55, state.ctx ? state.ctx.under : 0);
+let warmStub = null;                                 // the stand-in the glaze is compiled against before the first capture (warmPrograms)
 function captureLocal(now) {
   localDirty = false; lastCapture = now;
+  if (warmStub) { warmStub.dispose(); warmStub = null; }   // the glaze still points at it: replaced or dropped right below
   if (!P.roomRefl) {
     if (glaze.envMap) { glaze.envMap = null; glaze.needsUpdate = true; }
     if (localTarget) { localTarget.dispose(); localTarget = null; }
@@ -2968,20 +2954,26 @@ function captureLocal(now) {
   }
   const C = U.uEzEnvC.value.set(0, vesselGroup.position.y + P.height * UNIT * 0.5, 0);
   const fog = scene.fog, bg = scene.background, rp = plinth.material.roughness, rf = floor.material.roughness, mp = reflOnPlinth.value, mf = reflOnFloor.value;
-  scene.background = envTarget.texture; scene.backgroundRotation.copy(scene.environmentRotation); scene.backgroundIntensity = P.envInt; scene.fog = null;
+  scene.background = envTarget.texture; scene.backgroundRotation.copy(scene.environmentRotation); scene.backgroundIntensity = P.envInt;
+  const fogNF = [fog.near, fog.far]; fog.near = 900; fog.far = 1000;   // parked beyond the capture's far plane (100), not removed: without fog the stand and the unseen piece would compile a second time
   contactMesh.visible = cycWall.visible = false;     // the lamps are the capture's background: a wall around the piece would hide them
   // the same floor whatever the camera's distance and whatever the backdrop: the Void's floor, five times as wide, would
   // meet the room at a horizon that the picture itself hides in fog, a straight crease across every belly. Cove-sized,
   // the veil runs out to nothing before it gets there. tick() sets the floor again before the picture.
   if (floor.scale.x !== 1) floor.scale.setScalar(1);
-  vesselMesh.material = handleMesh.material = lidMesh.material = hiddenMat;
+  // The piece is not in its own room. While the shadow map is due it must still cast into it, so it is drawn unseen
+  // (hiddenMat); otherwise it is left out, and its triangles are not sent through the six faces of the capture.
+  const cast = renderer.shadowMap.needsUpdate || keyLight.shadow.needsUpdate, seen = [vesselMesh.visible, handleMesh.visible, lidMesh.visible];
+  if (cast) vesselMesh.material = handleMesh.material = lidMesh.material = hiddenMat;
+  else vesselMesh.visible = handleMesh.visible = lidMesh.visible = false;
   plinth.material.roughness = 0.7; floor.material.roughness = 0.96;        // the capture serves every view direction
   reflOnPlinth.value = reflOnFloor.value = 0;
   veilFloor(true, Math.max(CARD[hold.id] || 1, underCard()));
   const next = pmremLocal.fromScene(scene, 0, 0.05, 100, { size: phoneSized ? 128 : 256, position: C });
-  scene.background = bg; scene.backgroundIntensity = 1; scene.fog = fog;
+  scene.background = bg; scene.backgroundIntensity = 1; fog.near = fogNF[0]; fog.far = fogNF[1];
   contactMesh.visible = true; cycWall.visible = P.backdrop === 'Cove';
   vesselMesh.material = handleMesh.material = lidMesh.material = glaze;
+  [vesselMesh.visible, handleMesh.visible, lidMesh.visible] = seen;
   plinth.material.roughness = rp; floor.material.roughness = rf;
   reflOnPlinth.value = mp; reflOnFloor.value = mf;
   veilFloor(false);
@@ -3183,6 +3175,7 @@ function renderMirror() {
   if (!on) return;
   const [eye, aim, up, size] = mirrorV, Y = vesselGroup.position.y, div = state.fx || phoneSized ? 2 : 1;
   renderer.getDrawingBufferSize(size);
+  if (srOn()) size.multiplyScalar(sr.scale);
   const w = Math.max(2, size.x >> div), h = Math.max(2, size.y >> div);
   if (mirrorRT.width !== w || mirrorRT.height !== h) mirrorRT.setSize(w, h);
   UR.uReflP.value.set(P.footRadius * UNIT, h * camera.projectionMatrix.elements[5] / 2);
@@ -3219,6 +3212,29 @@ composer.renderTarget1.dispose();
 composer.renderTarget1 = composer.writeBuffer = new THREE.WebGLRenderTarget(4, 4, { type: THREE.HalfFloatType, depthBuffer: false });
 composer.addPass(new RenderPass(scene, camera));
 const acc = { n: 0, F: 5, A: 0 };                    // samples in the sum; focus distance and aperture of the still being gathered
+// --- reconstruction. The scene can be drawn at a reduced scale s (sr.scale) while the canvas keeps its size: every frame is
+// moved a part of a drawn pixel aside (srJit), and srPass gathers the frames into a picture of the canvas's resolution.
+// At rest that is a weighted mean that keeps refining; in motion the gathered picture is carried along with the scene
+// (reprojected from depth), clipped to what the new frame allows, and kept only briefly on the piece, whose lustre
+// changes with the view. 'Off' never enters any of it: resize() then lowers the canvas itself, as it always did.
+const SR_STEPS = [1, 0.77, 0.67, 0.5], SR_FIXED = { Quality: 0.77, Balanced: 0.67, Performance: 0.5 };
+const sr = { scale: 1, jx: 0, jy: 0, k: 0, reset: true, rest: false, dead: false, turn: 0,
+  vp: new THREE.Matrix4(), prevVP: new THREE.Matrix4(), view: new THREE.Matrix4(), prevView: new THREE.Matrix4(), model: new THREE.Matrix4(), prevModel: new THREE.Matrix4(),
+  m: new THREE.Matrix4(), vdir: new THREE.Vector3(), pdir: new THREE.Vector3() };
+const srMode = () => (sr.dead ? 'Off' : P.upscale);
+const srOn = () => srMode() !== 'Off' && sr.scale < 1 && !state.capture;   // an exposure is always drawn at full scale
+// A still's sample k always takes the same place in the pixel, so a still does not depend on how long the picture moved before it.
+function srJit(rest) {
+  const period = Math.ceil(8 / (sr.scale * sr.scale)), i = (rest ? acc.n : sr.k++) % period + 1;
+  sr.jx = halton(i, 2) - 0.5; sr.jy = halton(i, 3) - 0.5;
+}
+function srScale(s) {                                // a change of the drawn scale: the gathered picture starts again, and resize() reallocates before the next frame
+  if (sr.scale === s) return;
+  sr.scale = s; sr.reset = true;
+  state.settle = Math.max(state.settle, 3);
+  if (s >= 1) srPass.free();
+  invalidate();
+}
 const FSQ_VERT = 'varying vec2 vUv; void main() { vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }';
 const dofPass = new (class extends Pass {
   constructor() {
@@ -3294,6 +3310,116 @@ const accumPass = new (class extends Pass {          // a running sum of lens sa
 })();
 accumPass.enabled = false;
 composer.addPass(accumPass);
+// The gathered picture: two targets at the canvas's resolution, written in turn. Colour with the gathered weight in
+// alpha, and the view depth the colour was seen at. They exist only while the scene is drawn at a reduced scale.
+const srPass = new (class extends Pass {
+  constructor() {
+    super();
+    this.h = null; this.flip = 0; this.has = false; this.needsSwap = false;
+    this.out = { texture: null, width: 4, height: 4 }; this.size = new THREE.Vector2();
+    this.mat = new THREE.ShaderMaterial({ glslVersion: THREE.GLSL3, depthTest: false, depthWrite: false,
+      uniforms: { tCur: { value: null }, tDepth: { value: null }, tHist: { value: null }, tAux: { value: null },
+        uInvVP: { value: new THREE.Matrix4() }, uPrevVP: { value: new THREE.Matrix4() }, uPrevView: { value: new THREE.Matrix4() }, uTurn: { value: new THREE.Matrix4() },
+        uCyl: { value: new THREE.Vector4() }, uYTop: { value: 0 }, uLo: { value: new THREE.Vector2() }, uHi: { value: new THREE.Vector2() }, uJit: { value: new THREE.Vector2() }, uNF: { value: new THREE.Vector2() },
+        uStatic: { value: 0 }, uReset: { value: 1 }, uCap: { value: 4 }, uCapV: { value: 4 }, uWScale: { value: 1 } },
+      vertexShader: FSQ_VERT,
+      fragmentShader: /* glsl */`
+        layout(location = 0) out highp vec4 oCol;
+        layout(location = 1) out highp vec4 oAux;
+        varying vec2 vUv;
+        uniform sampler2D tCur, tHist, tAux; uniform highp sampler2D tDepth;
+        uniform mat4 uInvVP, uPrevVP, uPrevView, uTurn; uniform vec4 uCyl; uniform vec2 uLo, uHi, uJit, uNF;
+        uniform float uYTop, uStatic, uReset, uCap, uCapV, uWScale;
+        float mx3(vec3 c) { return max(c.r, max(c.g, c.b)); }
+        vec3 tm(vec3 c) { return c / (1.0 + mx3(c)); }               // a reversible tone curve: highlights do not outvote their neighbours
+        vec3 itm(vec3 c) { return c / max(1.0 - mx3(c), 1e-4); }
+        vec3 ycc(vec3 c) { return vec3(dot(c, vec3(0.25, 0.5, 0.25)), dot(c, vec3(0.5, 0.0, -0.5)), dot(c, vec3(-0.25, 0.5, -0.25))); }
+        vec3 rgb(vec3 y) { return vec3(y.x + y.y - y.z, y.x + y.z, y.x - y.y - y.z); }
+        float viewZ(float d) { return uNF.x * uNF.y / (uNF.y - d * (uNF.y - uNF.x)); }
+        void main() {
+          vec2 pl = vUv * uLo - uJit;                               // this pixel's centre, in texels of the drawn frame as it was moved aside
+          vec2 c = floor(pl) + 0.5;
+          vec2 dOut = (c - pl) * (uHi / uLo);                       // distance to the nearest sample of this frame, in pixels of the canvas
+          float d2 = dot(dOut, dOut);
+          ivec2 ic = ivec2(c), top = ivec2(uLo) - 1;
+          if (uStatic > 0.5) {                                      // at rest: a running weighted mean of the nearest samples, each counted by how near it fell
+            vec4 h = texture(tHist, vUv);
+            vec3 near = min(texelFetch(tCur, clamp(ic, ivec2(0), top), 0).rgb, vec3(48.0));
+            float w = max(exp(-4.0 * d2), 0.004), W = h.a * uWScale;
+            oCol = vec4(max((h.rgb * W + near * w) / (W + w), vec3(0.0)), W + w);
+            oAux = texture(tAux, vUv);
+            return;
+          }
+          vec3 cur = min(texture(tCur, pl / uLo).rgb, vec3(48.0));
+          vec3 m1 = vec3(0.0), m2 = vec3(0.0), mn = vec3(1e9), mx = vec3(-1e9); float dmin = 1.0;
+          for (int y = -1; y <= 1; y++) for (int x = -1; x <= 1; x++) {
+            ivec2 q = clamp(ic + ivec2(x, y), ivec2(0), top);
+            vec3 s = ycc(tm(min(texelFetch(tCur, q, 0).rgb, vec3(48.0))));
+            m1 += s; m2 += s * s; mn = min(mn, s); mx = max(mx, s); dmin = min(dmin, texelFetch(tDepth, q, 0).x);
+          }
+          vec4 wp = uInvVP * vec4(vUv * 2.0 - 1.0, dmin * 2.0 - 1.0, 1.0); wp /= wp.w;   // where the nearest thing around this pixel stands
+          vec4 pw = wp;
+          bool inC = length(wp.xz - uCyl.xy) < uCyl.z && wp.y > uCyl.w && wp.y < uYTop;
+          if (inC) pw = uTurn * wp;                                 // the turntable: the piece's previous pose
+          vec4 pc = uPrevVP * pw; vec2 puv = pc.xy / pc.w * 0.5 + 0.5;
+          float zExp = max(-(uPrevView * pw).z, 1e-3);
+          vec4 h = texture(tHist, puv);
+          float ok = (1.0 - uReset) * step(0.0, puv.x) * step(puv.x, 1.0) * step(0.0, puv.y) * step(puv.y, 1.0);
+          ok *= 1.0 - smoothstep(0.03, 0.08, abs(zExp - texture(tAux, puv).r) / zExp);   // what was hidden a frame ago has no history
+          vec3 mu = m1 / 9.0, sg = sqrt(max(m2 / 9.0 - mu * mu, vec3(0.0)));
+          vec3 lo = max(mn, mu - 1.25 * sg), hi = min(mx, mu + 1.25 * sg);
+          vec3 hy = clamp(ycc(tm(h.rgb)), lo, hi);
+          float cap = inC ? uCapV : uCap;                           // the lustre changes with the view: its history is kept only while the view has turned little
+          float W = min(h.a * ok, cap);
+          float wm = max(exp(-2.0 * d2), 0.12);                     // in motion every pixel takes a share of the new frame, or the resampled history never clears
+          vec3 outc = itm(rgb(mix(hy, ycc(tm(cur)), wm / (W + wm))));
+          oCol = vec4(max(outc, vec3(0.0)), min(W + wm, cap));
+          oAux = vec4(viewZ(dmin), 0.0, 0.0, 1.0);
+        }` });
+    this.fsq = new FullScreenQuad(this.mat);
+  }
+  free() { if (this.h) for (const t of this.h) t.dispose(); this.h = null; this.has = false; }
+  render(renderer, writeBuffer, readBuffer) {
+    const size = renderer.getDrawingBufferSize(this.size);
+    let fresh = false;
+    if (!this.h) { const mk = () => new THREE.WebGLRenderTarget(size.x, size.y, { count: 2, type: THREE.HalfFloatType, depthBuffer: false }); this.h = [mk(), mk()]; this.has = false; fresh = true; }
+    if (this.h[0].width !== size.x || this.h[0].height !== size.y) { for (const t of this.h) t.setSize(size.x, size.y); this.has = false; }
+    const u = this.mat.uniforms, A = this.h[this.flip], B = this.h[1 - this.flip], reset = !this.has || sr.reset, stat = sr.rest && !reset;
+    renderer.setRenderTarget(B);
+    if (fresh) {                                     // asked once: a device that cannot draw into such a target goes without for the session
+      const gl = renderer.getContext();
+      if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) {
+        console.warn('Eozin: upscaling is not available on this device; switched off');
+        this.free(); sr.dead = true;
+        setTimeout(() => { applyParams({ upscale: 'Off' }); updateStage(); });
+        return;                                      // this one frame goes to the canvas as it was drawn, stretched
+      }
+    }
+    u.tCur.value = readBuffer.texture; u.tDepth.value = composer.renderTarget2.depthTexture; u.tHist.value = A.textures[0]; u.tAux.value = A.textures[1];
+    u.uInvVP.value.copy(sr.vp).invert(); u.uPrevVP.value.copy(sr.prevVP); u.uPrevView.value.copy(sr.prevView);
+    u.uTurn.value.copy(sr.m.copy(sr.model).invert()).premultiply(sr.prevModel);
+    const Y = vesselGroup.position.y;
+    u.uCyl.value.set(vesselGroup.position.x, vesselGroup.position.z, (Math.max(state.maxR, state.reach) + 0.6) * UNIT, Y + 0.005); u.uYTop.value = Y + (P.height + state.rise + 1) * UNIT;
+    u.uLo.value.set(readBuffer.width, readBuffer.height); u.uHi.value.set(B.width, B.height); u.uJit.value.set(sr.jx, sr.jy); u.uNF.value.set(camera.near, camera.far);
+    // How long a history may grow, in frames' worth of weight. 8 frames away from the piece; on the piece, as many as
+    // the view of it (camera and turntable together) takes to turn by SR_THETA degrees: a fraction of one at any visible speed.
+    const s2 = sr.scale * sr.scale, mean = (s2 > 0.4 ? 0.52 : 0.36) + 0.06;                  // mean sample weight of a frame at this scale
+    const v = sr.vdir.copy(camera.position).sub(controls.target).applyMatrix4(sr.m.copy(sr.model).invert().setPosition(0, 0, 0)).normalize();
+    sr.turn = sr.pdir.lengthSq() ? v.angleTo(sr.pdir) * 180 / Math.PI : 0; sr.pdir.copy(v);
+    u.uStatic.value = stat ? 1 : 0; u.uReset.value = reset ? 1 : 0; u.uWScale.value = stat && acc.n === 0 ? 0.25 : 1;   // the first frame at rest lets the moving history fade, not cut
+    u.uCap.value = 8 * mean; u.uCapV.value = mean * clamp(SR_THETA / Math.max(sr.turn, 1e-4), SR_FLOOR, 8);
+    this.fsq.render(renderer);
+    this.flip = 1 - this.flip; this.has = true; sr.reset = false;
+    sr.prevVP.copy(sr.vp); sr.prevView.copy(sr.view); sr.prevModel.copy(sr.model);
+    if (sr.rest) acc.n++;
+    this.out.texture = B.textures[0]; this.out.width = B.width; this.out.height = B.height;
+    composer.readBuffer = this.out;                  // the output pass reads the full-resolution picture; tick() pins the composer's pair again before the next frame
+  }
+  dispose() { this.free(); this.mat.dispose(); this.fsq.dispose(); }
+})();
+const SR_THETA = 0.1, SR_FLOOR = 0;
+srPass.enabled = false;
+composer.addPass(srPass);
 // Finishing, in the pass that writes the picture to the canvas: lens fringing and vignette on the scene-linear picture,
 // then after the tone curve the grade of the chosen look, and after the encoding the dither and the film grain.
 // uFrame is the picture's rectangle in the canvas (centre, size); outside it the presentation draws its bars.
@@ -3301,16 +3427,29 @@ const outputPass = new OutputPass();
 const post = Object.assign(outputPass.uniforms, {
   uVig: { value: 0.3 }, uDither: { value: 1 }, uAspect: { value: 1 }, uCA: { value: 0 }, uGrain: { value: 0 }, uGrainSeed: { value: 0 }, uSat: { value: 1 }, uContrast: { value: 0 },
   uLift: { value: new THREE.Vector3() }, uGain: { value: new THREE.Vector3(1, 1, 1) }, uShadowTint: { value: new THREE.Vector3(1, 1, 1) }, uHighTint: { value: new THREE.Vector3(1, 1, 1) },
-  uFrame: { value: new THREE.Vector4(0.5, 0.5, 1, 1) },
+  uFrame: { value: new THREE.Vector4(0.5, 0.5, 1, 1) }, uSharp: { value: 0 }, uSrPx: { value: new THREE.Vector2() },
 });
 {
   let fs = outputPass.material.fragmentShader;
   const texel = 'gl_FragColor = texture2D( tDiffuse, vUv );', srgb = /(#ifdef SRGB_TRANSFER[\s\S]*?#endif)/;
   if (!fs.includes('varying vec2 vUv;') || !fs.includes(texel) || !srgb.test(fs)) console.warn('Eozin shader hook not found: output pass');
-  fs = fs.replace('varying vec2 vUv;', 'varying vec2 vUv;\nuniform float uVig, uDither, uAspect, uCA, uGrain, uGrainSeed, uSat, uContrast; uniform vec3 uLift, uGain, uShadowTint, uHighTint; uniform vec4 uFrame;');
+  fs = fs.replace('varying vec2 vUv;', 'varying vec2 vUv;\nuniform float uVig, uDither, uAspect, uCA, uGrain, uGrainSeed, uSat, uContrast; uniform vec3 uLift, uGain, uShadowTint, uHighTint; uniform vec4 uFrame; uniform float uSharp; uniform vec2 uSrPx;\nvec3 ezTm(vec2 uv) { vec3 c = max(texture2D(tDiffuse, uv).rgb, vec3(0.0)); return c / (1.0 + max(c.r, max(c.g, c.b))); }\nvec3 ezItm(vec3 c) { return c / max(1.0 - max(c.r, max(c.g, c.b)), 1e-4); }');
   fs = fs.replace(texel, texel + `
+gl_FragColor.a = 1.0;                                // the gathered picture keeps its weight in alpha: not for the canvas
+vec3 ezSh = vec3(0.0);
+if (uSharp > 0.0) {                                  // a contrast-adaptive sharpening of the rebuilt moving picture, kept inside the range of the five texels it reads: edges steepen, nothing rings
+  vec3 e = ezTm(vUv), b = ezTm(vUv + vec2(0.0, -uSrPx.y)), d = ezTm(vUv + vec2(-uSrPx.x, 0.0)), f = ezTm(vUv + vec2(uSrPx.x, 0.0)), h = ezTm(vUv + vec2(0.0, uSrPx.y));
+  vec3 mn4 = min(min(b, d), min(f, h)), mx4 = max(max(b, d), max(f, h));
+  vec3 hitMin = min(mn4, e) / (4.0 * mx4 + 1e-5), hitMax = (1.0 - max(mx4, e)) / (4.0 * mn4 - 4.0);
+  vec3 lv = max(-hitMin, hitMax);
+  float lobe = max(-0.1875, min(max(lv.r, max(lv.g, lv.b)), 0.0)) * uSharp;
+  vec3 r = ezItm((lobe * (b + d + f + h) + e) / (4.0 * lobe + 1.0));
+  b = ezItm(b); d = ezItm(d); f = ezItm(f); h = ezItm(h); e = max(gl_FragColor.rgb, vec3(0.0));
+  r = clamp(r, min(min(min(b, d), min(f, h)), e), max(max(max(b, d), max(f, h)), e));   // in scene-linear values, channel by channel
+  ezSh = r - gl_FragColor.rgb; gl_FragColor.rgb = r;
+}
 { vec2 d = vUv - uFrame.xy, q = d * vec2(uAspect, 1.0) / uFrame.w;
-  if (uCA > 0.0) { vec2 dc = d * dot(q, q) * uCA * 0.004; gl_FragColor.r = texture2D(tDiffuse, vUv - dc).r; gl_FragColor.b = texture2D(tDiffuse, vUv + dc).b; }
+  if (uCA > 0.0) { vec2 dc = d * dot(q, q) * uCA * 0.004; gl_FragColor.r = texture2D(tDiffuse, vUv - dc).r; gl_FragColor.b = texture2D(tDiffuse, vUv + dc).b; if (uSharp > 0.0) gl_FragColor.rb += ezSh.rb * max(0.0, 1.0 - length(dc / uSrPx)); }   // the fringed channels are read unsharpened: where the fringe is under a pixel they take the sharpening of the texel they are drawn at
   float c = 1.0 / (1.0 + dot(q, q) * 1.6 * uVig); gl_FragColor.rgb *= c * c; }`);
   fs = fs.replace(srgb, `{ vec3 c = clamp(gl_FragColor.rgb, 0.0, 1.0);
   float l = dot(c, vec3(0.2126, 0.7152, 0.0722));
@@ -3413,13 +3552,18 @@ function freeView(w, h) {
 // ever changed here; reading the pixel ratio each time also follows the window onto a display with another density.
 function resize() {
   const w = Math.max(2, stageEl.clientWidth), h = Math.max(2, stageEl.clientHeight);
-  const pr = Math.min(window.devicePixelRatio || 1, P.pixelRatio) * state.scale, size = `${w}x${h}@${pr}`;
+  const s = srOn() ? sr.scale : 1;                   // the scale the scene is drawn at; the canvas keeps its size
+  const pr = Math.min(window.devicePixelRatio || 1, P.pixelRatio) * state.scale, size = `${w}x${h}@${pr}/${s}`;
   if (state.size !== size) {
     state.size = size;
     renderer.setPixelRatio(pr);
     renderer.setSize(w, h, false);
-    composer.setPixelRatio(pr);
-    composer.setSize(w, h);
+    const buf = renderer.getDrawingBufferSize(mirrorV[3]);
+    post.uSrPx.value.set(1 / buf.x, 1 / buf.y);
+    if (s < 1) { composer.setPixelRatio(1); composer.setSize(Math.max(2, Math.round(buf.x * s)), Math.max(2, Math.round(buf.y * s))); }   // whole pixels: the gathering pass counts in them
+    else { composer.setPixelRatio(pr); composer.setSize(w, h); }
+    sr.reset = true;
+    if (srMode() === 'Off' || sr.scale >= 1) srPass.free();
     post.uAspect.value = w / h;
     state.settle = Math.max(state.settle, 3); state.frame = 0;         // the frames around a reallocation are not steady-state samples
     layoutDirty = true;
@@ -3665,6 +3809,10 @@ function takeShot(id) {
 const lensSave = { pos: new THREE.Vector3(), p8: 0, p9: 0, on: false, key: false, keyPos: new THREE.Vector3(), keyR: 0 }, lensV = [new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector2()];
 const halton = (i, b) => { let f = 1, r = 0; while (i > 0) { f /= b; r += f * (i % b); i = Math.floor(i / b); } return r; };
 const stillN = () => (state.fx >= 3 ? 8 : state.fx >= 1 ? P.stillSamples / 2 : +P.stillSamples);
+// Frames of a still gathered at a reduced drawn scale: as many more as there are fewer pixels in each. Without lens blur, 16 full frames' worth.
+const restN = () => Math.min(64, Math.ceil((P.dof !== 'Off' ? stillN() : Math.min(16, stillN())) / (sr.scale * sr.scale)));
+// At full scale and without lens blur a picture at rest is finished like a still all the same: 16 samples with no aperture.
+const restFinish = () => srMode() !== 'Off' && sr.scale >= 1 && P.dof === 'Off' && state.fx < 3;
 function focusLens() {
   const [fwd, hz, fp] = lensV, ctx = state.ctx;
   let aim = follow.aim || lens.aim || { y: P.focusLevel * P.height };
@@ -3686,9 +3834,23 @@ function lensBegin(refine, N) {
   dofPass.enabled = acc.A > 0 && (refine || (P.dof === 'Always' && state.fx < 2));
   dofPass.fill = refine ? 1.25 / Math.sqrt(k) : 1;   // early samples are spread out, so the picture tightens and never shows separate copies
   dofPass.taps = state.fx >= 1 ? 24 : 48;
-  accumPass.enabled = refine;
+  const on = srOn();
+  accumPass.enabled = refine && !on; srPass.enabled = on;
+  post.uSharp.value = !on ? 0 : refine ? P.sharpen * Math.max(0, 1 - k / (0.5 * N)) : P.sharpen;   // only the rebuilt moving picture is sharpened: none of it is left in the second half of a still
+  U.uSrK.value = on && refine ? sr.scale : 1;
   selfTier(refine, k);
   lensSave.on = false;
+  if (on) {                                          // the frame as it would be drawn unmoved, for the gathering pass; then the part of a drawn pixel it is moved aside
+    camera.updateMatrixWorld();
+    sr.view.copy(camera.matrixWorldInverse); sr.vp.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse); sr.model.copy(vesselGroup.matrixWorld); sr.rest = refine;
+    srJit(refine);
+    if (!refine) {
+      const e = camera.projectionMatrix.elements;
+      lensSave.pos.copy(camera.position); lensSave.p8 = e[8]; lensSave.p9 = e[9]; lensSave.on = true;
+      e[8] += 2 * sr.jx / composer.renderTarget2.width; e[9] += 2 * sr.jy / composer.renderTarget2.height;
+      camera.projectionMatrixInverse.copy(camera.projectionMatrix).invert();
+    }
+  }
   if (!refine) return;
   // The key lamp of a still is an area light: from its second sample on, each sample is lit from another point of a disc
   // as wide as 'Shadow softness' says, with a hard shadow. Their mean is the penumbra the moving frame's filter estimates,
@@ -3702,8 +3864,9 @@ function lensBegin(refine, N) {
     shadowDirty();
   }
   const e = camera.projectionMatrix.elements, size = renderer.getDrawingBufferSize(lensV[3]);
+  if (on) size.set(composer.renderTarget2.width, composer.renderTarget2.height);
   const r = Math.sqrt((k - 0.5) / N), a = k * 2.39996323, ox = Math.cos(a) * r * acc.A / 2, oy = Math.sin(a) * r * acc.A / 2;
-  const jx = halton(k, 2) - 0.5, jy = halton(k, 3) - 0.5;
+  const jx = on ? sr.jx : halton(k, 2) - 0.5, jy = on ? sr.jy : halton(k, 3) - 0.5;
   camera.updateMatrixWorld();
   lensSave.pos.copy(camera.position); lensSave.p8 = e[8]; lensSave.p9 = e[9]; lensSave.on = true;
   camera.position.addScaledVector(lensV[0].setFromMatrixColumn(camera.matrixWorld, 0), ox).addScaledVector(lensV[1].setFromMatrixColumn(camera.matrixWorld, 1), oy);
@@ -3832,7 +3995,7 @@ function selfTextures(W) {
   };
   U.uEzProf.value = selfTex = make(); U.uEzProfN.value = selfTexN = make();
 }
-function buildSelfMap(v, hd, ld, level) {
+function buildSelfMap(v, ld, level) {
   const t0 = performance.now(), W = level === 'Draft' ? 64 : 128, TH = EZ_TH;
   selfTextures(W);
   // every row of a mesh, resampled to the texture's angles
@@ -3917,27 +4080,7 @@ function buildSelfMap(v, hd, ld, level) {
     dataN[tx * 4] = hf(Math.min(lipY, 6e4)); dataN[tx * 4 + 1] = hf(lipR); dataN[tx * 4 + 2] = dataN[tx * 4 + 3] = 0;
   }
   selfTex.needsUpdate = selfTexN.needsUpdate = true;
-  // handles: nine points along each strap, with the mean radius of its section there
-  const caps = U.uEzCap.value.fill(0), hbs = U.uEzHB.value.fill(0), nh = hd ? Math.min(hd.n, 4) : 0;
-  if (hd) {
-    const pos = hd.geometry.attributes.position.array, A = hd.A1 - 1, per = pos.length / 3 / hd.n, NS = per / hd.A1 - 1;
-    for (let h = 0; h < nh; h++) for (let q = 0; q < 9; q++) {
-      const b = h * per + Math.round(q * NS / 8) * hd.A1; let cx = 0, cy = 0, cz = 0, rad = 0;
-      for (let j = 0; j < A; j++) { const o = (b + j) * 3; cx += pos[o]; cy += pos[o + 1]; cz += pos[o + 2]; }
-      cx /= A; cy /= A; cz /= A;
-      for (let j = 0; j < A; j++) { const o = (b + j) * 3; rad += Math.hypot(pos[o] - cx, pos[o + 1] - cy, pos[o + 2] - cz); }
-      rad /= A;
-      caps.set([cx, cy, cz, rad], (h * 9 + q) * 4);
-    }
-    for (let h = 0; h < nh; h++) {                                           // a sphere round each handle: most rays miss it and skip its capsules
-      let cx = 0, cy = 0, cz = 0, r = 0;
-      for (let q = 0; q < 9; q++) { const o = (h * 9 + q) * 4; cx += caps[o] / 9; cy += caps[o + 1] / 9; cz += caps[o + 2] / 9; }
-      for (let q = 0; q < 9; q++) { const o = (h * 9 + q) * 4; r = Math.max(r, Math.hypot(caps[o] - cx, caps[o + 1] - cy, caps[o + 2] - cz) + caps[o + 3]); }
-      hbs.set([cx, cy, cz, r + 0.05], h * 4);
-    }
-  }
-  U.uEzHand.value = nh;
-  U.uEzProfP.value.set(y0, 1 / span, rMax + 0.2, top + 0.4);       // the body and lid alone: the handles are found without a march
+  U.uEzProfP.value.set(y0, 1 / span, rMax + 0.2, top + 0.4);       // the body and lid alone: handles are not traced
   state.selfMs = performance.now() - t0;
 }
 // What the traced reflection costs this frame, by uniform only: 24 steps for the picture at rest, 12 while it moves,
@@ -3952,6 +4095,7 @@ function selfTier(refine, k) {
   U.uEzHitR.value = refine && k > 1 ? 0.06 : 0.12;
 }
 function rebuildGeometry(level) {
+  sr.reset = true;
   const v = buildVessel(P, level);
   vesselMesh.geometry.dispose();
   vesselMesh.geometry = v.geometry;
@@ -3963,7 +4107,7 @@ function rebuildGeometry(level) {
   if (ld) { lidMesh.geometry.dispose(); lidMesh.geometry = ld.geometry; }
   state.maxR = v.maxR; state.rise = Math.max(v.rise, ld ? ld.top : 0); state.reach = Math.max(hd ? hd.reach : 0, ld ? ld.reach : 0); state.vertices = v.vertices;
   state.ctx = v.ctx; state.lidTop = ld ? ld.top : 0;
-  buildSelfMap(v, hd, ld, level);
+  buildSelfMap(v, ld, level);
   if (state.framed && state.aimY !== undefined) {
     const dy = targetY() - state.aimY;
     controls.target.y += dy; camera.position.y += dy;
@@ -3982,18 +4126,35 @@ function rebuildGeometry(level) {
   invalidate();
 }
 
+const SPEC = { lam: new Float32Array(MAX_SPECTRAL).fill(550), cu: new Float32Array(MAX_SPECTRAL * 2), ag: new Float32Array(MAX_SPECTRAL * 2), au: new Float32Array(MAX_SPECTRAL * 2) };   // the spectral samples and the metals at them
 function setBasis(n) {
   if (state.basisN === n) return;
   state.basisN = n;
   const basis = spectralBasis(n);
   for (let i = 0; i < n; i++) {
-    U.uLam.value[i] = basis.lam[i];
+    SPEC.lam[i] = basis.lam[i];
     U.uCMF.value.set(basis.w[i], i * 3);
-    U.uEpsCu.value.set(metalEps(METALS.cu, basis.lam[i]), i * 2);
-    U.uEpsAg.value.set(metalEps(METALS.ag, basis.lam[i]), i * 2);
-    U.uEpsAu.value.set(metalEps(METALS.au, basis.lam[i]), i * 2);
+    SPEC.cu.set(metalEps(METALS.cu, basis.lam[i]), i * 2);
+    SPEC.ag.set(metalEps(METALS.ag, basis.lam[i]), i * 2);
+    SPEC.au.set(metalEps(METALS.au, basis.lam[i]), i * 2);
   }
   U.uSpecN.value = n; U.uSpecBW.value = basis.bw;
+}
+// Film optics: what depends on the spectral sample alone and not on the pixel (the indices of glass and cover, the
+// wavenumber, the share of the bandwidth, the Clausius-Mossotti term of each metal in the glass) is worked out here,
+// once per change of the material, from the same inputs and in the same form as the shader used to, per sample and pixel.
+function hoistOptics() {
+  const f = Math.fround, n = state.basisN, K = U.uEzK.value, AB = U.uEzAB.value, Cc = U.uEzCc.value;   // single precision, step by step, as the GPU would
+  const nG = f(U.uNGlass.value), nC = f(U.uNCover.value), disp = f(U.uDisp.value);
+  const cm = (e, i, em, em2) => {                    // (eps - em) / (eps + 2 em), complex
+    const ax = f(e[i * 2] - em), ay = e[i * 2 + 1], bx = f(e[i * 2] + em2), d = Math.max(f(f(bx * bx) + f(ay * ay)), 1e-12);
+    return [f(f(f(ax * bx) + f(ay * ay)) / d), f(f(f(ay * bx) - f(ax * ay)) / d)];
+  };
+  for (let i = 0; i < n; i++) {
+    const lam = SPEC.lam[i], dl = f(f(1 / f(lam * lam)) - f(2.8796e-6)), ng = f(nG + f(disp * dl)), nc = f(nC + f(f(disp * 1.5) * dl)), em = f(ng * ng), em2 = f(f(2 * ng) * ng);
+    K.set([em, f(nc * nc), f(2 * f(f(6.28318530718) / lam)), lam], i * 4);
+    AB.set([...cm(SPEC.cu, i, em, em2), ...cm(SPEC.ag, i, em, em2)], i * 4); Cc.set(cm(SPEC.au, i, em, em2), i * 2);
+  }
 }
 
 function updateMaterial() {
@@ -4017,6 +4178,7 @@ function updateMaterial() {
   U.uDeco.value = Math.max(0, DECOS.indexOf(P.deco)); U.uDecoCount.value = P.decoCount; U.uDecoRows.value = P.decoRows; U.uDecoSoft.value = P.decoSoft;
   U.uDecoThick.value = P.decoThick; U.uDecoFill.value = P.decoFill; U.uDecoSilver.value = P.decoSilver; U.uDecoMatte.value = P.decoMatte;
   U.uScatter.value = P.scatter; U.uFront.value = P.front; U.uHalo.value = P.halo; U.uStreak.value = P.streak;
+  hoistOptics();
   labelDirty = true;
   invalidate();
 }
@@ -4047,9 +4209,10 @@ function setFx(n) {
   state.settle = Math.max(state.settle, 2);
 }
 function updateStage() {
-  const quality = `${P.pixelRatio}/${P.adaptive}/${P.detail}/${P.reflDetail}`;
+  const quality = `${P.pixelRatio}/${P.adaptive}/${P.detail}/${P.reflDetail}/${srMode()}`;
   if (state.quality !== quality) {                   // a quality choice by the user hands the picture back at full quality
     state.quality = quality; state.scale = 1; state.frame = 0; state.hold = 8000; state.raised = -Infinity;
+    srScale(SR_FIXED[srMode()] || 1);
     setFx(0);
     if (state.lod) { state.lod = 0; if (!geoTimer) geoDirty = P.detail; }
   }
@@ -4102,7 +4265,7 @@ function updateStage() {
   groundLights();
   post.uVig.value = P.vignette;
   const room = [P.env, P.envRot, P.envInt, P.keyInt, P.keySoft, el, az, P.plinth, plinth.scale.x, P.height, P.footRadius, state.maxR, state.ctx ? state.ctx.under.toFixed(2) : 0, P.roomRefl, P.reflDetail, state.envLod, P.backdrop, P.backdropTone, P.pool, P.plinthMat, P.plinthGloss, P.occlusion, P.bounce, state.fx >= 4 ? 2 : state.fx >= 2 ? 1 : 0].join();
-  if (state.room !== room) { state.room = room; localDirty = true; }   // the turntable does not ask for a new capture
+  if (state.room !== room) { state.room = room; localDirty = true; sr.reset = true; }   // the turntable does not ask for a new capture
   resize();
   shadowDirty();
   invalidate();
@@ -4114,6 +4277,9 @@ renderer.domElement.addEventListener('webglcontextrestored', () => {
   envTarget = localTarget = null;                    // their GL objects went with the old context; nothing to dispose
   envName = ''; localDirty = true;
   acc.n = 0;                                         // the sum of lens samples went as well
+  warmStub = null;                                   // went with the old context as well
+  sr.reset = true; srPass.has = false;               // the gathered picture went too
+  firstSync = null;                                  // the first frame's fence belonged to the old context: never asked, never deleted
   if (selfTex) selfTex.needsUpdate = selfTexN.needsUpdate = true;       // the tracer's maps: uploaded again from their data
   shadowDirty();
   updateStage();
@@ -4287,6 +4453,7 @@ const GUI_DEF = [
   { title: 'Rendering', kind: 'stage', items: [
     row('spin', 'Turntable · rpm', -6, 6, 0.1), { key: 'roomRefl', label: 'Room reflections' }, opt('reflDetail', 'Reflection detail', ['Standard', 'High']), { key: 'selfRefl', label: 'Self-reflections' },
     opt('detail', 'Mesh detail', Object.keys(DETAIL), 'geo'), row('pixelRatio', 'Max pixel ratio', 1, 3, 0.25), { key: 'adaptive', label: 'Adaptive quality' },
+    opt('upscale', 'Upscaling', ['Off', 'Auto', 'Native', 'Quality', 'Balanced', 'Performance']), row('sharpen', 'Sharpening', 0, 1, 0.05),
     opt('spectral', 'Spectral samples', [8, 12, 16, 24], 'mat')] },
 ];
 
@@ -4420,7 +4587,7 @@ const META = {
   keySpec: { label: 'Spotlight glint', help: 'A sharp point of light on the glaze from the spotlight itself, on top of the lamps reflected from the room.' },
   roomRefl: { help: 'The glaze mirrors the plinth, the floor and the shadow it stands in, not only the lamps.' },
   reflDetail: { help: 'Sharpness of the lamps mirrored in the glaze. The page may lower it by itself to stay smooth.' },
-  selfRefl: { help: 'The glaze mirrors the piece itself by tracing one ray per pixel: the far wall inside a bowl, the shoulder in a flaring neck, handles and lid. Slower machines keep it for the picture at rest, or drop it.' },
+  selfRefl: { help: 'The glaze mirrors the piece itself by tracing one ray per pixel: the far wall inside a bowl, the shoulder in a flaring neck, the lid. Handles are not mirrored. Slower machines keep it for the picture at rest, or drop it.' },
   backdrop: { basic: true, help: 'What stands behind the piece: a studio cove that sweeps up from the floor, or an empty dark void.' },
   backdropTone: { help: 'How light the cove is painted, from near black to mid grey.' },
   pool: { help: 'Gathers the light of the cove into a pool around the plinth, falling away outward and up the wall.' },
@@ -4448,6 +4615,8 @@ const META = {
   detail: { help: 'Triangles in the mesh. The page may lower it by itself to stay smooth.' },
   pixelRatio: { help: 'Upper limit on rendered pixels per screen pixel.' },
   adaptive: { help: 'Lets the page trade resolution and mesh detail for a steady frame rate.' },
+  upscale: { help: 'Draws fewer pixels while the picture moves and rebuilds the full picture over a few frames; at rest the picture is refined until it is complete. Auto lowers the drawn resolution only when the frame rate needs it. Off restores the plain behaviour.' },
+  sharpen: { help: 'Restores edge contrast on the rebuilt picture while it moves. It fades out as the still completes, so the finished picture is not sharpened.' },
 };
 
 // part = the region of the piece a control is about (REGIONS): while it is edited the view goes there (focusOn).
@@ -4494,6 +4663,7 @@ const DEPENDS = [
   [['backdropTone', 'pool'], () => P.backdrop === 'Cove', 'Choose the Cove backdrop first.'],
   [['fstop', 'focusLevel', 'stillSamples'], () => P.dof !== 'Off', 'Switch Depth of field on first.'],
   [['halation'], () => P.bloom > 0, 'Raise Highlight bloom first.'],
+  [['sharpen'], () => P.upscale !== 'Off', 'Switch Upscaling on first.'],
 ];
 
 const SCHEMA = {}, ctl = {}, why = {}, said = {}, folders = [], keyOf = new WeakMap();
@@ -4978,7 +5148,7 @@ const actions = {
     }
     lastPiece = { form: lustreOnly ? lastPiece.form : pc.form, family: pc.family };
     if (!lustreOnly) state.framed = state.userMoved = false;
-    applyParams(pc.params);
+    applyParams(pc.params); sr.reset = true;
     rematch();
     pieceHash = lustreOnly ? '' : 'piece-' + pc.seed.toString(36); setHash(null);
     adoptBase(); commit();
@@ -5095,7 +5265,7 @@ function buildChips() {
     b.innerHTML = `<span class="sw" style="background: linear-gradient(135deg, ${sw(1)}, ${sw(0.45)})"></span><span class="n" data-i18n="lustre.${id}"></span><span class="t" data-i18n="lustre.${id}.note"></span>`;
     b.addEventListener('click', () => {
       commit();
-      applyParams(presetState(LUSTRE_KEYS, preset.set)); pieceHash = ''; markPreset(id, 'lustre'); setHash(id);
+      applyParams(presetState(LUSTRE_KEYS, preset.set)); sr.reset = true; pieceHash = ''; markPreset(id, 'lustre'); setHash(id);
       Object.assign(BASE, PRESET.lustre.table[id]);
       commit();
       toast(say('toast.applied', { name: say('lustre.' + id) }), undoAction);
@@ -5226,13 +5396,40 @@ window.addEventListener('focusin', () => { if (state.present) peek(); });
    -------------------------------------------------------------------------- */
 updateStage();
 updateMaterial();
+// The programs of the picture are handed to the GPU before the mesh is built: the driver compiles them (on its own
+// threads, where it has them) while this thread makes the geometry. Nothing is drawn and nothing waits; a program that
+// is not through by the first frame is waited for there, as before. The glaze is compiled against a stand-in of the
+// room capture's shape, the second pass is the state of that capture (the veiled floor, the piece unseen). This leans
+// on how three.js keys its programs: a key that drifts costs one wasted compile, never a wrong picture. Called here
+// only: after a restored context three.js makes its programs again by itself.
+function warmPrograms() {
+  const target = renderer.getRenderTarget(), size = phoneSized ? 128 : 256;
+  if (!contactMesh.geometry.attributes.color) contactMesh.geometry.setAttribute('color', new THREE.BufferAttribute(new Float32Array(4), 4));   // the contact shadow's program is chosen by its colours with alpha
+  renderer.setRenderTarget(composer.renderTarget2);                        // linear, no tone curve: how every pass of the scene is drawn
+  if (P.roomRefl) {
+    warmStub = new THREE.WebGLRenderTarget(3 * Math.max(size, 112), 4 * size, { type: THREE.HalfFloatType, depthBuffer: false });
+    warmStub.texture.mapping = THREE.CubeUVReflectionMapping;
+    glaze.envMap = warmStub.texture;                                       // until the capture replaces it (captureLocal)
+  }
+  renderer.compile(scene, camera);                                         // the picture and the mirror: glaze, floor, wall, plinth, contact shadow
+  veilFloor(true, Math.max(CARD[hold.id] || 1, underCard()));
+  vesselMesh.material = handleMesh.material = lidMesh.material = hiddenMat;
+  renderer.compile(scene, camera);
+  vesselMesh.material = handleMesh.material = lidMesh.material = glaze;
+  veilFloor(false);
+  renderer.setRenderTarget(target);
+  renderer.getContext().flush();
+}
+warmPrograms();
 rebuildGeometry(P.detail);
 
 // Adaptive quality: hold a usable frame rate on slower GPUs. Pixels go first, which keeps the piece as designed, then
 // the costly extras of the stage (setFx). By then the triangles are far below a pixel and shading follows their count,
 // so mesh levels go last. Now and then the finer step is tried again; if it does not hold, the wait before the next try doubles.
 function coarser() {
-  if (state.scale > 0.5) state.scale = Math.max(0.5, state.scale * 0.82);
+  const mode = srMode(), i = SR_STEPS.indexOf(sr.scale);
+  if (mode === 'Off' && state.scale > 0.5) state.scale = Math.max(0.5, state.scale * 0.82);
+  else if (mode === 'Auto' && i < SR_STEPS.length - 1) srScale(SR_STEPS[i + 1]);   // the canvas keeps its size: the picture at rest is rebuilt in full
   else if (state.fx < 4) { setFx(state.fx + 1); updateStage(); }
   else if (meshLevel() !== LEVELS[0]) { state.lod++; geoDirty = meshLevel(); }
   else return false;
@@ -5242,6 +5439,7 @@ function finer() {
   if (state.lod > 0) { state.lod--; geoDirty = meshLevel(); }
   else if (state.fx > 0) { setFx(state.fx - 1); updateStage(); }
   else if (state.scale < 1) state.scale = Math.min(1, state.scale / 0.82);
+  else if (srMode() === 'Auto' && sr.scale < 1) srScale(SR_STEPS[SR_STEPS.indexOf(sr.scale) - 1]);
   else return false;
   return true;
 }
@@ -5262,6 +5460,17 @@ function adapt(now, dt) {
 document.addEventListener('visibilitychange', () => { state.settle = Math.max(state.settle, 3); invalidate(); });
 
 let last = performance.now(), first = true, curtain = true;
+// The first frame carries everything that is costly once: programs, the studio, the room capture, the shadow map. A
+// fence behind it tells when the GPU is through with it: then the picture exists, and the curtain lifts. A fence that
+// cannot be asked (a lost context) counts as passed; so do two drawn frames, should a driver never signal.
+let firstSync = null;
+function firstDone() {
+  if (!firstSync || state.frames >= 2) return true;
+  const gl = renderer.getContext(), s = gl.clientWaitSync(firstSync, 0, 0);
+  if (s === gl.TIMEOUT_EXPIRED) return false;
+  gl.deleteSync(firstSync); firstSync = null;
+  return true;
+}
 function opened() {                                  // the first pictures are drawn and the room is captured: lift the curtain, and let the camera settle into its place
   const done = () => statusEl.remove();
   if (reduceMotion.matches) { done(); return; }
@@ -5276,10 +5485,11 @@ function tick(now) {
   requestAnimationFrame(tick);
   const gap = now - last, dt = Math.min(0.1, gap / 1000), measured = state.live;   // dt spans the previous frame: a measurement only if that one was drawn for a change
   last = now;
-  // The curtain lifts once the costly first frames (programs, the room capture) are through: a quick frame, or none
-  // left to draw. The opening move then starts on time and does not begin with a jump.
-  if (curtain && !first && (!state.drew || gap < 300 || state.frames > 6)) { curtain = false; opened(); }
+  // The curtain lifts once the costly first frame (programs, the room capture) is through on the GPU (firstDone). The
+  // opening move then starts on time and does not begin with a jump.
+  if (curtain && !first && firstDone()) { curtain = false; opened(); }
   if (geoDirty) { const level = geoDirty; geoDirty = null; rebuildGeometry(level); updateStage(); state.settle = Math.max(state.settle, 2); }
+  if (first && labelDirty) { labelDirty = false; updateLabel(); tintDirty = true; layoutDirty = true; }   // the caption takes its room before the first fit, so the first frame is drawn into the final layout
   resize();
   if (!state.framed && stageEl.clientWidth > 2) {    // the fit may change the view offset: apply it before this frame is drawn
     // Fitted from where the view is or was heading: a move in flight keeps its destination, and a view that was
@@ -5308,9 +5518,9 @@ function tick(now) {
   if (tintDirty && now - tintAt > 150) { tintDirty = false; tintAt = now; paintTracks(); }   // a few times a second at most while a slider is dragged
   if (markDirty) { markDirty = false; markChanged(); }
   // A picture at rest is refined: N more frames, each through another point of the lens, summed. Then nothing is drawn.
-  const N = cap ? cap.N : stillN();
+  const finish = !cap && restFinish(), N = cap ? cap.N : srOn() ? restN() : finish ? Math.min(16, stillN()) : stillN();
   if (stale) { acc.n = 0; state.movedAt = now; }
-  const refine = !stale && !first && (cap || (P.dof !== 'Off' && now - state.movedAt > 120)) && acc.n < N;
+  const refine = !stale && !first && !curtain && (cap || ((P.dof !== 'Off' || finish || srOn()) && now - state.movedAt > 120)) && acc.n < N;
   state.drew = stale || refine; state.live = stale;
   if (stale || refine) {                             // nothing moved, nothing changed, the still is complete: the frame on screen is still right
     stale = false;
@@ -5328,7 +5538,7 @@ function tick(now) {
       if (refine && acc.n >= N) { state.capture = null; cap.done(); layoutDirty = true; state.settle = Math.max(state.settle, 3); invalidate(); }
       exposing(); showHelp(helpKey);
     }
-    if (first) { first = false; state.tuned = now; }
+    if (first) { first = false; state.tuned = now; const gl = renderer.getContext(); firstSync = gl.fenceSync(gl.SYNC_GPU_COMMANDS_COMPLETE, 0); gl.flush(); }
   }
   if (P.adaptive && measured && state.live && !cap) adapt(now, dt);
 }
@@ -5336,7 +5546,7 @@ requestAnimationFrame(tick);
 
 if (urlQ.get('configurator') === '1') configurator();
 
-window.eozin = { U, P, makePiece, applyParams, state, renderer, scene, camera, controls, get gui() { return gui; }, configurator, setLang, get lang() { return LANG; }, say, words: { EN, HU }, invalidate, actions, menu: menuRuns, setMode, undo, redo, rematch, takeShot, setPresent, setFollow, follow, fitPose, flyCamera, acc, post, composer };   // handle for the console
+window.eozin = { U, P, makePiece, applyParams, state, renderer, scene, camera, controls, get gui() { return gui; }, configurator, setLang, get lang() { return LANG; }, say, words: { EN, HU }, invalidate, actions, menu: menuRuns, setMode, undo, redo, rematch, takeShot, setPresent, setFollow, follow, fitPose, flyCamera, acc, post, composer, sr, srPass };   // handle for the console
 </script>
 </body>
 </html>
