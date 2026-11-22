@@ -164,8 +164,16 @@ when the camera is moved.
   shot is left. A piece whose wall leans out over the floor (an open bowl) gets a weaker
   card in every view, by how much of its outer wall looks down: under a dark floor such a
   wall mirrors nothing else and its lustre went out. Upright forms are lit as before. The
-  floor's capture material is the same program with or without a card, so entering
-  *Detail* or *Foot* compiles nothing.
+  card is not one even sheet: mirrored in a wall, an even field of light reads as matte
+  paint (the outside of a Bronz bowl was a flat olive-khaki). Most of its light lies in
+  eight sheets of unequal width set around the stand like spokes, with the floor between
+  them left dim, scaled so that the floor sends up as much light as the even card did;
+  the wall then mirrors lit shapes with edges, as the upper walls mirror the softboxes.
+  In *Detail* and *Foot* 60 % of the card stays even (a close view may look at the floor
+  between two sheets), otherwise 20 %. The sheets are fixed to the floor and do not turn
+  with *Studio rotation*. A piece without a card in a view without one is drawn exactly
+  as before. The floor's capture material is the same program with or without a card, so
+  entering *Detail* or *Foot* compiles nothing.
 - *Self-reflections, traced.* The glaze also mirrors the piece itself (*Self-reflections*,
   `selfRefl`). For every pixel one ray is followed along the mirror direction through a
   height field of the piece: outer radius and cavity radius over angle and height, with
@@ -595,7 +603,17 @@ reduced scale was compared with the full-resolution moving frame once (35.7 dB, 
 trails seen) and not otherwise examined. A specular anti-aliasing of the mirror lobe on
 moving frames (roughness widened by the screen-space change of the normal) was built
 and left out: it lowered the frame-to-frame difference on the lustre by 1.4 % where
-10 % was the bar, and cost 0.33 dB. Index lists of lower detail for moving frames were
+10 % was the bar, and cost 0.33 dB. What is in instead is narrower: on the lip alone, a
+frame that is not a sample of a still takes the film's response at the mean viewing
+angle of the pixel (from the screen-space change of the cosine), because the crest of a
+far rim drawn thinner than a pixel otherwise breaks into pale dashes. On the one frame
+measured (Bowl, Bronz, Hero, 440 x 480, software rasteriser) the dashes went, 423 of
+211,200 pixels changed by more than 8 levels, all in the rim's rows, and on the Baluster
+184, all on its lip; the crest is then dimmer than the finished still draws it (RMS
+difference to the still in the rim's band 6.7 before, 8.8 after), so the rim brightens a
+little as the picture comes to rest. Samples of a still do not use it. Silhouettes away
+from the lip, lid seats and handles are not filtered and can still show a beaded pale
+edge in a single frame. Index lists of lower detail for moving frames were
 not built. Firefox, Safari and every real GPU are untested.
 
 ## Limits of the model
@@ -619,3 +637,8 @@ estimate, not a ray. The shade
 on the stand treats the piece as a body of revolution (an oval squash is followed and
 turns with the piece; lobes and lean are not), so two handles shade it as a ring
 would. Softbox shapes, the card and the bounce are stage dressing, not measurements.
+Relief on a lower wall that mirrors the stand and the dark floor (the vines low on a
+Ginger jar in Labrador) stays a dull, even colour in the Hero view: nothing lit and shaped
+lies where it looks, and no card is laid for an upright form. At Draft mesh detail the
+steps of a relief (the upper edge of a cabochon, a thin vine) are a few triangles wide and
+their mirrored edge is ragged; Standard draws them clean.
