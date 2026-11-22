@@ -401,7 +401,8 @@ shade the stand; 3: a smaller shadow map, 8 lens samples, no traced self-reflect
 no area-light shadow in stills; 4: a smaller studio capture, and the stand shaded by the
 dome alone, without bounce), then
 falls back to a lighter mesh, and tries the finer setting again from time to time, in
-the reverse order. A change of the drawn scale links no program, and rungs 1 to 3 are
+the reverse order. With Upscaling on Auto a lowered scale makes the picture at rest take
+longer to finish than the shrunk canvas did (more frames: see *Reconstruction*). A change of the drawn scale links no program, and rungs 1 to 3 are
 uniform values only. Rung 4 is not, although this file used to say so: the smaller
 studio capture changes the defines of the materials that read it, and nine programs
 are linked again on the way down and nine more on the way back (measured: 32 linked
@@ -412,8 +413,8 @@ self-reflections are kept for the picture at rest from the start. The
 frames that refine a still are not counted as a measure of speed. A scene in which
 nothing moves is not redrawn at all once its still is complete.
 
-**Start-up.** The import map sits in the head, followed by a preconnect and thirteen
-`modulepreload` links: the whole three.js module graph of the page, flat, so that it is
+**Start-up.** A preconnect to the CDN and the import map sit in the head, followed by
+thirteen `modulepreload` links: the whole three.js module graph of the page, flat, so that it is
 fetched in one wave while the HTML is still arriving, not in two (the second used to wait
 for the first to be parsed). The list has to follow the three.js version; a browser
 without `modulepreload` ignores it, and the configurator's lil-gui is still fetched on
@@ -427,10 +428,14 @@ used to remove it, which saved compiling the stand and the unseen piece a second
 a load links 32 programs where it linked 34, and 23 are live where 25 were. The loading
 curtain lifts when the GPU reports the first complete frame finished (a fence sync
 behind it; two drawn frames count as well, should a driver never signal), not after up
-to seven frames, and a still's samples are drawn in sight, not behind the curtain.
+to seven frames, and a still's samples are drawn in sight, not behind the curtain: the
+tick that lifts the curtain draws nothing itself, so the browser can paint the lift
+before the next frame is worked on, and the opening move is clocked from the tick after
+it.
 Measured only in headless Chromium on a software rasteriser (460 by 420 pixels): one
 frame drawn before the curtain where there were seven, the curtain up after about 9 s
-where it took about 29 s. On a real GPU the gain is expected to be about one frame;
+where it took about 29 s (the time of the change in the page; the next animation frame
+followed 5 ms later, where a frame of several seconds used to come first). On a real GPU the gain is expected to be about one frame;
 no real-GPU timings exist.
 
 Two changes in the glaze shader are exact, not approximations. What the film optics
@@ -459,19 +464,25 @@ downloaded weights are involved, and it is not DLSS, FSR or any vendor's upscale
 does not match one. Its limits on the lustre in motion are measured below.
 
 Two parameters in the configurator's Rendering group control it: *Upscaling* (`upscale`)
-and *Sharpening* (`sharpen`, 0 to 1, default 0.4, available unless Upscaling is Off).
+and *Sharpening* (`sharpen`, 0 to 1, default 0.4; greyed out with Upscaling Off or
+Native, where it can do nothing, and without effect in Auto until the ladder has
+lowered the scale).
 
 | `upscale` | Scale the scene is drawn at | Adaptive ladder | Picture at rest |
 |---|---|---|---|
 | Off | 1; a lowered rung shrinks the canvas itself, as before | resolution of the canvas (steps of 0.82 down to half), stage extras, mesh | exactly as before this feature |
 | Auto (default) | starts at 1; the ladder lowers it to 0.77, 0.67, 0.5 | drawn scale first, then stage extras, then mesh | at scale 1 as Native; below it rebuilt at full resolution |
-| Native | 1 always | stage extras, then mesh | with lens blur off: finished with 16 jittered samples; with lens blur on: the still as before |
+| Native | 1 always | stage extras, then mesh | with lens blur off: finished with up to 16 jittered samples (the still's sample count if that is lower; none from stage rung 3, where it is a single frame again); with lens blur on: the still as before |
 | Quality / Balanced / Performance | 0.77 / 0.67 / 0.5, fixed | stage extras, then mesh | rebuilt at full resolution |
 
 With the defaults (Auto, lens blur on) nothing changes until the ladder lowers the
 scale: the completed still is the same picture, pixel for pixel, as before the feature
 existed, and the history targets are not even allocated. A device that cannot draw
-into the history targets falls back to Off for the session, with one console warning.
+into the history targets falls back to Off for the session, with one console warning:
+the page then behaves as with Off whatever `upscale` holds, the parameter itself is left
+as it was (so a copied parameter set does not carry one device's fallback to another),
+and the configurator greys out both controls and says that upscaling is not available
+on this device.
 The gathering pass is one more program, linked the first time the scene is drawn below
 scale 1 (24 live and 33 linked where a default load has 23 and 32); a load with the
 defaults links none.
@@ -483,9 +494,32 @@ of the nearest samples that fell on it, each weighted by how close it fell
 pixels in each (27, 36 or 64 frames for 16 full frames' worth at 0.77, 0.67, 0.5; with
 lens blur on, the still's own sample count divided by the square of the scale, at most
 64), with the lens samples, the area-light shadow and the traced self-reflections of a
-still as before, and then nothing is drawn. At scale 1 with lens blur Off, a resting
+still as before, and then nothing is drawn. Two details keep such a still clean and
+repeatable. The area light's sample is drawn from other Halton bases (5 and 7) than the
+pixel's jitter (2 and 3): from the same ones, each canvas pixel gathered the frames of
+one part of the lamp only, and a soft shadow came out as a two-pixel comb. And what was
+gathered before the still began (the moving picture, or the previous still) is weighted
+down by 0.25 on the first frame at rest and by half on each of the next seven, so about
+a five-hundredth of its weight is left: the picture fades into the still without a cut,
+and the completed still is the same whatever preceded it (measured: at most 1/255
+apart after a reset, after an orbit out and back and after a plain redraw). The first
+frames of the still count for less in return. A redraw of a complete still from an
+unchanged view (a parameter edit that changes nothing here) is not treated as motion
+and is not sharpened, and showing the tab again puts a complete still back on the canvas as it
+is (one frame, not counted into it) instead of starting it anew.
+
+The price of the full-resolution rest picture is time. On a lowered rung the canvas
+used to shrink and the still took its usual number of frames, each cheaper; now it takes
+1.7 to 4 times as many frames of about that drawn size, each followed by a gathering
+pass at full resolution, so a slow device reaches its finished picture, and an idle
+GPU, correspondingly later. Upscaling Off restores the short still.
+
+At scale 1 with lens blur Off, a resting
 picture used to be a single frame; with Upscaling on (Auto, Native) it is now finished
-like a still without an aperture, 16 samples, through the existing accumulation. An
+like a still without an aperture through the existing accumulation: 16 samples, or the
+still's own count where the ladder has lowered that below 16 (8 with Still quality 16
+on stage rungs 1 and 2), and not at all from stage rung 3, where a resting picture is a
+single frame as before. An
 exposure (Save PNG) is always drawn at full scale. Away from scale 1 the glaze's
 footprint estimate is scaled by the drawn scale on the frames of a still, so the still
 resolves the canvas pixel, not the drawn one.
@@ -525,7 +559,7 @@ pictures exist.
 | Auto or Native at scale 1, lens blur off, at rest | identical to the reference |
 | Off with the canvas lowered to 0.67 and stretched by the browser | 36.1 dB |
 | Quality (0.77) at rest, 27 frames | 45.6 dB |
-| Balanced (0.67) at rest, 36 frames | 43.5 dB |
+| Balanced (0.67) at rest, 36 frames | 43.4 dB (43.5 before the first rest frames were weighted down; Quality and the Void / plinth rows were not measured again) |
 | Performance (0.5) at rest, 64 frames | 39.1 dB |
 | Performance, one frame upscaled bilinearly (no history) | 33.9 dB |
 | Performance, 8 frames at rest after a move | 38.1 dB |

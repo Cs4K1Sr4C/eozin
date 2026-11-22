@@ -837,9 +837,9 @@ const HU = {
 "opt.Standard":"Normál","opt.High":"Nagy",
 "p.detail":"Háló részletessége","p.detail.help":"A háló háromszögeinek száma. Az oldal magától is csökkentheti, hogy a mozgás folyamatos maradjon.",
 "opt.Draft":"Vázlat","opt.Fine":"Finom",
-"p.upscale":"Felskálázás","p.upscale.help":"Mozgás közben kevesebb képpontot rajzol, és néhány képkocka alatt építi fel a teljes képet; nyugalomban a kép addig finomodik, amíg el nem készül. Az Automatikus csak akkor csökkenti a rajzolt felbontást, ha a képfrissítés megkívánja. A Ki visszaadja az egyszerű működést.",
+"p.upscale":"Felskálázás","p.upscale.help":"Mozgás közben kevesebb képpontot rajzol, és ahol lehet, a korábbi képkockákból pótolja őket: a környezet és a körvonalak javulnak, a forgó máz kissé lágyabb marad, amíg meg nem áll. Nyugalomban a kép addig finomodik, amíg el nem készül. Az „Automatikus” csak akkor csökkenti a rajzolt felbontást, ha a képfrissítés megkívánja. A „Ki” visszaadja az egyszerű működést.","dep.upscale":"Ezen az eszközön a felskálázás nem érhető el.",
 "opt.Auto":"Automatikus","opt.Native":"Natív","opt.Quality":"Minőség","opt.Balanced":"Kiegyensúlyozott","opt.Performance":"Teljesítmény",
-"p.sharpen":"Élesítés","p.sharpen.help":"Mozgás közben visszaadja az újraépített kép élkontrasztját. Ahogy az állókép elkészül, fokozatosan megszűnik, így a kész kép nincs élesítve.","dep.sharpen":"Előbb kapcsold be a felskálázást.",
+"p.sharpen":"Élesítés","p.sharpen.help":"Mozgás közben visszaadja a felskálázott kép élkontrasztját. Ahogy az állókép elkészül, fokozatosan megszűnik, így a kész kép nincs élesítve. Csak akkor hat, amikor a kép csökkentett léptékben készül („Minőség”, „Kiegyensúlyozott”, „Teljesítmény”, vagy az „Automatikus”, miután lejjebb lépett).","dep.sharpen":"Előbb válaszd a „Felskálázás” beállításnál az „Automatikus” módot vagy egy csökkentett léptéket.",
 "p.pixelRatio":"Legnagyobb képpontarány","p.pixelRatio.help":"A képernyő egy képpontjára jutó kiszámolt képpontok felső határa.","p.adaptive":"Alkalmazkodó minőség","p.adaptive.help":"Az oldal a felbontásból és a háló részletességéből enged, hogy a képfrissítés egyenletes maradjon.","p.spectral":"Színminták","p.spectral.help":"A képpontonként kiszámolt hullámhosszak száma. Több mintával hűbb és lassabb.",
 "dep.lobeDepth":"Előbb állítsd a „Gerezdek” értékét 0 fölé.","dep.reliefHeight":"Előbb válassz dombormintát.","dep.reliefCount":"Ehhez 0-tól eltérő magasságú domborminta kell.","dep.ringHeight":"Előbb adj hozzá gyűrűket.","dep.rimHeight":"Előbb adj hozzá peremhullámokat.","dep.handleLow":"Előbb adj hozzá füleket.","dep.lid":"A fedőhöz egyenes perem kell: állítsd a „Peremhullámok” értékét 0-ra.","dep.lidRise":"Előbb válassz fedőt.","dep.finialSize":"Előbb válassz fedőt és fedőgombot.","dep.breakTone":"Előbb növeld a „Vékony az éleken” értékét.","dep.crackleSize":"Előbb növeld a „Repesztés” értékét.","dep.dripAmp":"Előbb adj hozzá mázcseppeket.","dep.flashScale":"Előbb növeld a „Lángnyomok” értékét.","dep.flameDir":"Előbb növeld a „Lángoldali eltérés” értékét.","dep.thickScale":"Előbb növeld a „Vastagságingadozás” értékét.","dep.runScale":"Előbb növeld a „Mázfolyások” vagy a „Vastagságingadozás” értékét.","dep.decoSoft":"Előbb válassz festett mintát.","dep.decoCount":"Ennek a mintának nincs ismétlésszáma.","dep.decoRows":"Ennek a mintának nincsenek sorai.","dep.keyAz":"Előbb kapcsold ki a „Spotlámpa a főlámpánál” kapcsolót.","dep.plinthGloss":"Előbb kapcsold be a „Talapzat” kapcsolót.","dep.selfRefl":"Előbb kapcsold be a „Terem tükröződése” kapcsolót.","dep.backdropTone":"Előbb válaszd a „Háttérív” hátteret.","dep.fstop":"Előbb kapcsold be a „Mélységélesség” beállítást.","dep.halation":"Előbb növeld a „Csúcsfények ragyogása” értékét.",
 "form.baluster":"Baluszter","form.bottle":"Palack","form.gourd":"Lopótök","form.tulip":"Tulipán","form.amphora":"Amfora","form.ginger":"Gyömbértartó","form.urn":"Fedeles urna","form.bowl":"Tál",
@@ -3218,12 +3218,13 @@ const acc = { n: 0, F: 5, A: 0 };                    // samples in the sum; focu
 // (reprojected from depth), clipped to what the new frame allows, and kept only briefly on the piece, whose lustre
 // changes with the view. 'Off' never enters any of it: resize() then lowers the canvas itself, as it always did.
 const SR_STEPS = [1, 0.77, 0.67, 0.5], SR_FIXED = { Quality: 0.77, Balanced: 0.67, Performance: 0.5 };
-const sr = { scale: 1, jx: 0, jy: 0, k: 0, reset: true, rest: false, dead: false, turn: 0,
+const sr = { scale: 1, jx: 0, jy: 0, k: 0, reset: true, rest: false, dead: false, calm: false, keep: false, turn: 0,
   vp: new THREE.Matrix4(), prevVP: new THREE.Matrix4(), view: new THREE.Matrix4(), prevView: new THREE.Matrix4(), model: new THREE.Matrix4(), prevModel: new THREE.Matrix4(),
   m: new THREE.Matrix4(), vdir: new THREE.Vector3(), pdir: new THREE.Vector3() };
 const srMode = () => (sr.dead ? 'Off' : P.upscale);
 const srOn = () => srMode() !== 'Off' && sr.scale < 1 && !state.capture;   // an exposure is always drawn at full scale
-// A still's sample k always takes the same place in the pixel, so a still does not depend on how long the picture moved before it.
+// A still's sample k always takes the same place in the pixel, and what was gathered in motion fades out over its first
+// frames (uWScale), so a still does not depend on how long the picture moved before it.
 function srJit(rest) {
   const period = Math.ceil(8 / (sr.scale * sr.scale)), i = (rest ? acc.n : sr.k++) % period + 1;
   sr.jx = halton(i, 2) - 0.5; sr.jy = halton(i, 3) - 0.5;
@@ -3321,7 +3322,7 @@ const srPass = new (class extends Pass {
       uniforms: { tCur: { value: null }, tDepth: { value: null }, tHist: { value: null }, tAux: { value: null },
         uInvVP: { value: new THREE.Matrix4() }, uPrevVP: { value: new THREE.Matrix4() }, uPrevView: { value: new THREE.Matrix4() }, uTurn: { value: new THREE.Matrix4() },
         uCyl: { value: new THREE.Vector4() }, uYTop: { value: 0 }, uLo: { value: new THREE.Vector2() }, uHi: { value: new THREE.Vector2() }, uJit: { value: new THREE.Vector2() }, uNF: { value: new THREE.Vector2() },
-        uStatic: { value: 0 }, uReset: { value: 1 }, uCap: { value: 4 }, uCapV: { value: 4 }, uWScale: { value: 1 } },
+        uStatic: { value: 0 }, uReset: { value: 1 }, uCap: { value: 4 }, uCapV: { value: 4 }, uWScale: { value: 1 }, uKeep: { value: 0 } },
       vertexShader: FSQ_VERT,
       fragmentShader: /* glsl */`
         layout(location = 0) out highp vec4 oCol;
@@ -3329,7 +3330,7 @@ const srPass = new (class extends Pass {
         varying vec2 vUv;
         uniform sampler2D tCur, tHist, tAux; uniform highp sampler2D tDepth;
         uniform mat4 uInvVP, uPrevVP, uPrevView, uTurn; uniform vec4 uCyl; uniform vec2 uLo, uHi, uJit, uNF;
-        uniform float uYTop, uStatic, uReset, uCap, uCapV, uWScale;
+        uniform float uYTop, uStatic, uReset, uCap, uCapV, uWScale, uKeep;
         float mx3(vec3 c) { return max(c.r, max(c.g, c.b)); }
         vec3 tm(vec3 c) { return c / (1.0 + mx3(c)); }               // a reversible tone curve: highlights do not outvote their neighbours
         vec3 itm(vec3 c) { return c / max(1.0 - mx3(c), 1e-4); }
@@ -3344,6 +3345,7 @@ const srPass = new (class extends Pass {
           ivec2 ic = ivec2(c), top = ivec2(uLo) - 1;
           if (uStatic > 0.5) {                                      // at rest: a running weighted mean of the nearest samples, each counted by how near it fell
             vec4 h = texture(tHist, vUv);
+            if (uKeep > 0.5) { oCol = h; oAux = texture(tAux, vUv); return; }   // a complete still shown again: as it is
             vec3 near = min(texelFetch(tCur, clamp(ic, ivec2(0), top), 0).rgb, vec3(48.0));
             float w = max(exp(-4.0 * d2), 0.004), W = h.a * uWScale;
             oCol = vec4(max((h.rgb * W + near * w) / (W + w), vec3(0.0)), W + w);
@@ -3391,7 +3393,7 @@ const srPass = new (class extends Pass {
       if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) {
         console.warn('Eozin: upscaling is not available on this device; switched off');
         this.free(); sr.dead = true;
-        setTimeout(() => { applyParams({ upscale: 'Off' }); updateStage(); });
+        setTimeout(() => { updateStage(); syncControls(); invalidate(); });   // the parameter stays as chosen (it may travel to a device that can); srMode() answers Off, and the configurator says why
         return;                                      // this one frame goes to the canvas as it was drawn, stretched
       }
     }
@@ -3406,7 +3408,7 @@ const srPass = new (class extends Pass {
     const s2 = sr.scale * sr.scale, mean = (s2 > 0.4 ? 0.52 : 0.36) + 0.06;                  // mean sample weight of a frame at this scale
     const v = sr.vdir.copy(camera.position).sub(controls.target).applyMatrix4(sr.m.copy(sr.model).invert().setPosition(0, 0, 0)).normalize();
     sr.turn = sr.pdir.lengthSq() ? v.angleTo(sr.pdir) * 180 / Math.PI : 0; sr.pdir.copy(v);
-    u.uStatic.value = stat ? 1 : 0; u.uReset.value = reset ? 1 : 0; u.uWScale.value = stat && acc.n === 0 ? 0.25 : 1;   // the first frame at rest lets the moving history fade, not cut
+    u.uStatic.value = stat ? 1 : 0; u.uReset.value = reset ? 1 : 0; u.uKeep.value = stat && sr.keep ? 1 : 0; sr.keep = false; u.uWScale.value = stat && acc.n < 8 ? (acc.n === 0 ? 0.25 : 0.5) : 1;   // the first frames at rest let what was gathered before fade, not cut: after eight, a five-hundredth of it is left, and the still is the same whatever preceded it
     u.uCap.value = 8 * mean; u.uCapV.value = mean * clamp(SR_THETA / Math.max(sr.turn, 1e-4), SR_FLOOR, 8);
     this.fsq.render(renderer);
     this.flip = 1 - this.flip; this.has = true; sr.reset = false;
@@ -3836,13 +3838,19 @@ function lensBegin(refine, N) {
   dofPass.taps = state.fx >= 1 ? 24 : 48;
   const on = srOn();
   accumPass.enabled = refine && !on; srPass.enabled = on;
-  post.uSharp.value = !on ? 0 : refine ? P.sharpen * Math.max(0, 1 - k / (0.5 * N)) : P.sharpen;   // only the rebuilt moving picture is sharpened: none of it is left in the second half of a still
+  const sharp0 = post.uSharp.value;
+  post.uSharp.value = 0;
   U.uSrK.value = on && refine ? sr.scale : 1;
   selfTier(refine, k);
   lensSave.on = false;
   if (on) {                                          // the frame as it would be drawn unmoved, for the gathering pass; then the part of a drawn pixel it is moved aside
     camera.updateMatrixWorld();
     sr.view.copy(camera.matrixWorldInverse); sr.vp.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse); sr.model.copy(vesselGroup.matrixWorld); sr.rest = refine;
+    // Only the rebuilt moving picture is sharpened: none of it is left in the second half of a still. A frame that redraws
+    // an unsharpened still from the same view (a changed parameter, the tab shown again) is not motion: it and the still
+    // after it stay unsharpened, so the still does not flash a harder outline.
+    if (!refine) sr.calm = sharp0 === 0 && srPass.has && !sr.reset && sr.vp.equals(sr.prevVP) && sr.model.equals(sr.prevModel);
+    post.uSharp.value = sr.calm ? 0 : refine ? P.sharpen * Math.max(0, 1 - k / (0.5 * N)) : P.sharpen;
     srJit(refine);
     if (!refine) {
       const e = camera.projectionMatrix.elements;
@@ -3856,7 +3864,7 @@ function lensBegin(refine, N) {
   // as wide as 'Shadow softness' says, with a hard shadow. Their mean is the penumbra the moving frame's filter estimates,
   // without its grain. Not on the lower rungs, where a still has too few samples for it.
   if (k > 1 && N >= 16 && state.fx < 3 && P.keyInt > 0) {
-    const R = 14 * Math.tan(P.keySoft * Math.PI / 180) * Math.sqrt((halton(k, 2) + 0.37) % 1), a = TAU * ((halton(k, 3) + 0.71) % 1);
+    const R = 14 * Math.tan(P.keySoft * Math.PI / 180) * Math.sqrt((halton(k, on ? 5 : 2) + 0.37) % 1), a = TAU * ((halton(k, on ? 7 : 3) + 0.71) % 1);   // at a reduced scale from other bases than the pixel's jitter (srJit), or each canvas pixel would gather one part of the lamp only
     const dir = lensV[0].copy(keyLight.position).sub(keyLight.target.position).normalize(), right = lensV[1].set(dir.z, 0, -dir.x).normalize(), up = lensV[2].crossVectors(dir, right);
     lensSave.key = true; lensSave.keyPos.copy(keyLight.position); lensSave.keyR = keyLight.shadow.radius;
     keyLight.position.addScaledVector(right, R * Math.cos(a)).addScaledVector(up, R * Math.sin(a));
@@ -4199,7 +4207,8 @@ let envName = '';
 // lens blur of moving frames at half its taps and half the lens samples of a still; 2 no mirror, no lens blur and no
 // traced self-reflection on moving frames, two lamps fewer shading the stand; 3 a 1024 shadow map, 8 lens samples, no
 // traced self-reflection and no area-light shadow in stills; 4 the studio at 256, the stand shaded by the dome alone and
-// without bounce. No rung switches a shader variant: that would recompile the glaze.
+// without bounce. Rungs 1 to 3 are uniform values only; rung 4 changes the size of the studio capture, which changes the
+// defines of the materials that read it and links nine programs again (see README).
 function setFx(n) {
   state.fx = n;
   const size = n >= 3 ? 1024 : 2048, shadow = keyLight.shadow;
@@ -4615,8 +4624,8 @@ const META = {
   detail: { help: 'Triangles in the mesh. The page may lower it by itself to stay smooth.' },
   pixelRatio: { help: 'Upper limit on rendered pixels per screen pixel.' },
   adaptive: { help: 'Lets the page trade resolution and mesh detail for a steady frame rate.' },
-  upscale: { help: 'Draws fewer pixels while the picture moves and rebuilds the full picture over a few frames; at rest the picture is refined until it is complete. Auto lowers the drawn resolution only when the frame rate needs it. Off restores the plain behaviour.' },
-  sharpen: { help: 'Restores edge contrast on the rebuilt picture while it moves. It fades out as the still completes, so the finished picture is not sharpened.' },
+  upscale: { help: 'Draws fewer pixels while the picture moves and fills them in from earlier frames where it can: the surroundings and outlines gain, the turning glaze stays a little softer until it rests. At rest the picture is refined until it is complete. Auto lowers the drawn resolution only when the frame rate needs it. Off restores the plain behaviour.' },
+  sharpen: { help: 'Restores edge contrast on the upscaled picture while it moves. It fades out as the still completes, so the finished picture is not sharpened. Only acts while the picture is drawn at a reduced scale (Quality, Balanced, Performance, or Auto after it has stepped down).' },
 };
 
 // part = the region of the piece a control is about (REGIONS): while it is edited the view goes there (focusOn).
@@ -4663,7 +4672,8 @@ const DEPENDS = [
   [['backdropTone', 'pool'], () => P.backdrop === 'Cove', 'Choose the Cove backdrop first.'],
   [['fstop', 'focusLevel', 'stillSamples'], () => P.dof !== 'Off', 'Switch Depth of field on first.'],
   [['halation'], () => P.bloom > 0, 'Raise Highlight bloom first.'],
-  [['sharpen'], () => P.upscale !== 'Off', 'Switch Upscaling on first.'],
+  [['upscale', 'sharpen'], () => !sr.dead, 'Upscaling is not available on this device.'],
+  [['sharpen'], () => !['Off', 'Native'].includes(P.upscale), 'Choose Auto or a reduced Upscaling scale first.'],
 ];
 
 const SCHEMA = {}, ctl = {}, why = {}, said = {}, folders = [], keyOf = new WeakMap();
@@ -4697,9 +4707,10 @@ const optName = (v) => (typeof v === 'number' ? num(v) : say('opt.' + v, null, S
 let gui = null, scroller = null, helpEl = null, moreLink = null, qmenu = null, moreBtn = null, panelReady = null;   // the configurator, while it exists
 function syncControls() {
   if (!gui) return;                                  // no configurator: nothing to grey out or describe
+  const off = new Set();                             // a control named by two rules stays off, with the reason of the first that says so
   for (const [keys, live] of DEPENDS) {
     const on = live();
-    for (const key of keys) { ctl[key].enable(on); why[key] = on ? '' : say('dep.' + keys[0]); }
+    for (const key of keys) { if (off.has(key)) continue; ctl[key].enable(on); why[key] = on ? '' : say('dep.' + keys[0]); if (!on) off.add(key); }
   }
   for (const k in ctl) {                             // what a screen reader is told about the field: the help line, or why it is off
     const text = why[k] || say(`p.${k}.help`, null, '');
@@ -5457,9 +5468,9 @@ function adapt(now, dt) {
     state.tuned = state.raised = now; state.frame = 0;
   }
 }
-document.addEventListener('visibilitychange', () => { state.settle = Math.max(state.settle, 3); invalidate(); });
+document.addEventListener('visibilitychange', () => { state.settle = Math.max(state.settle, 3); repaint = true; });
 
-let last = performance.now(), first = true, curtain = true;
+let last = performance.now(), first = true, curtain = true, rebase = false, repaint = false;
 // The first frame carries everything that is costly once: programs, the studio, the room capture, the shadow map. A
 // fence behind it tells when the GPU is through with it: then the picture exists, and the curtain lifts. A fence that
 // cannot be asked (a lost context) counts as passed; so do two drawn frames, should a driver never signal.
@@ -5486,8 +5497,10 @@ function tick(now) {
   const gap = now - last, dt = Math.min(0.1, gap / 1000), measured = state.live;   // dt spans the previous frame: a measurement only if that one was drawn for a change
   last = now;
   // The curtain lifts once the costly first frame (programs, the room capture) is through on the GPU (firstDone). The
-  // opening move then starts on time and does not begin with a jump.
-  if (curtain && !first && firstDone()) { curtain = false; opened(); }
+  // opening move then starts on time and does not begin with a jump. The tick that lifts it draws nothing, so the lift
+  // is on screen before the next frame is worked on.
+  if (rebase) { rebase = false; if (camLeg) camLeg.t0 = now; }   // the opening move is clocked from the first tick the lifted curtain can be seen in
+  if (curtain && !first && firstDone()) { curtain = false; opened(); rebase = true; state.drew = state.live = false; return; }   // nothing more is drawn in this tick: the browser paints the lift first
   if (geoDirty) { const level = geoDirty; geoDirty = null; rebuildGeometry(level); updateStage(); state.settle = Math.max(state.settle, 2); }
   if (first && labelDirty) { labelDirty = false; updateLabel(); tintDirty = true; layoutDirty = true; }   // the caption takes its room before the first fit, so the first frame is drawn into the final layout
   resize();
@@ -5519,6 +5532,10 @@ function tick(now) {
   if (markDirty) { markDirty = false; markChanged(); }
   // A picture at rest is refined: N more frames, each through another point of the lens, summed. Then nothing is drawn.
   const finish = !cap && restFinish(), N = cap ? cap.N : srOn() ? restN() : finish ? Math.min(16, stillN()) : stillN();
+  if (repaint) {                                     // the tab is shown again. A complete still gathered at a reduced scale is not begun anew: one frame is drawn that puts it on the canvas as it is
+    repaint = false;
+    if (!stale && !cap && srOn() && srPass.has && !sr.reset && acc.n >= N && N > 1) { acc.n = N - 1; sr.keep = true; } else stale = true;
+  }
   if (stale) { acc.n = 0; state.movedAt = now; }
   const refine = !stale && !first && !curtain && (cap || ((P.dof !== 'Off' || finish || srOn()) && now - state.movedAt > 120)) && acc.n < N;
   state.drew = stale || refine; state.live = stale;
