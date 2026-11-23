@@ -51,7 +51,16 @@ fragment in GLSL, where it replaces three.js's RGB iridescence approximation ins
 lobes: a sharp image of the lamps at the roughness of the glass surface, and under it a
 broad glow from the metal colloids (*Colloid scatter*, `scatter`; 0 gives the single lobe
 of earlier versions). The share of the glow follows the haze of the fired film, so the two
-lobes together reflect what one did. The glaze is coloured glass: seen at a slant the light
+lobes together reflect what one did. The glow is the colloids': a film with no metal in
+it (Gyöngyház) has neither haze nor glow and reflects in the sharp lobe alone. Toward
+grazing the film's Fresnel factors are worked out at an angle that stops short of
+grazing (its cosine never falls under 0.35), as for a layer that lies under a glassy skin
+and is met by refracted light, while the path through each layer, which sets the hue, is
+kept at the true angle. So a wall seen at a slant keeps its colour and slides along the
+series, and only the last degrees before the silhouette go pale; before this the film
+turned to a white mirror from about 65 degrees on and ribs near the silhouette read grey
+with white lines. This is an approximation, not a third layer in the stack: no skin
+reflection of its own is added. The glaze is coloured glass: seen at a slant the light
 travels further through it and the colour deepens.
 
 **Surface.** Film thickness and metal fill vary across the pot: glaze pooling in hollows
@@ -62,7 +71,16 @@ brushed edge. The flashing gathers into a few tongues with an edge (*Flame front
 `front`); round the edge of a mark the cover film swells by some tens of nanometres and
 wears a ring of the neighbouring interference colours (*Flame-mark halo*, `halo`), and
 fine drawn-out streaks run through the film (*Film streaks*, `streak`). With all three at
-0 the flashing is the even mottle of earlier versions. Where a thin glaze breaks on an edge it stays glossy and goes darker and warmer than the wall:
+0 the flashing is the even mottle of earlier versions. The kiln leaves two finer marks,
+both small by default. *Kiln mottle* (`mottle`, 0–1, default 0.5): the depth and the metal
+of the film also wander in soft clouds about 2 cm across and in a grain of about 3 mm
+(a few per cent of the depth at the default; the two noises are ones the micro-relief
+already works out, so nothing is added per pixel but arithmetic). *Kiln specks*
+(`specks`, 0–1, default 0.35): sparse pin-points, 0.3 to 1 mm across, well under one per
+square centimetre, where the paste lay thick: more metal in a deeper layer over darker
+glass; smaller than a pixel they spread and fade. And the clear cover film now follows
+the relief as the metal layer already did (*Lustre pooling*): a little thinner on a
+ridge, thicker in a hollow, by a few per cent. Where a thin glaze breaks on an edge it stays glossy and goes darker and warmer than the wall:
 the piece's own glaze colour stained halfway towards *Break colour*, never paler. Its width wanders slowly along
 the edge, so it stays one line.
 
@@ -265,7 +283,7 @@ The groups of the parameter model, as the configurator shows them:
 | Handles & lid | handle count, joints, reach, arch, thickness, flatness, *Joint blend* (how far a handle flares and spreads into the wall), *Pulled taper* (`handleTaper`, 0–1), *Finger ribs* (`handleRibs`, 0–3); *Lid* (`lid`: None, Domed, Flat, Conical), *Lid rise* (`lidRise`), *Lid overhang* (`lidOverhang`, cm), *Finial* (`finial`: None, Ball, Bud, Acorn, Disc), *Finial size* (`finialSize`, cm) |
 | Glaze | colour, clay body, thickness, dark in hollows, thin on edges and its *Break colour* (`breakTone`), runs, gloss, surface ripple, *Slump waves* (`wave`), crackle, pinholes, *Dust* (`dust`), *Handling bloom* (`wear`), *Foot grit* (`grit`), bare foot and drips |
 | Lustre metals | copper, silver, gold, bismuth, paste coat, coverage |
-| Firing | temperature, soak, smoke (reduction), air on cooling (re-oxidation), glaze resistance (diffusion barrier), flame marks |
+| Firing | temperature, soak, smoke (reduction), air on cooling (re-oxidation), glaze resistance (diffusion barrier), flame marks, *Kiln mottle* (`mottle`), *Kiln specks* (`specks`) |
 | Film optics | refractive index, dispersion, thickness variation, direct trims (layer depth, metal amount, clear skin) |
 | Painted decoration | second-lustre pattern and how its film differs |
 | Lighting | lighting rig (Atelier softboxes, North window, Vitrine spots, Kiln glow, and the low-key *Chiaroscuro*), room light, spotlight (aim, shadow softness, glint), *Lustre bounce* (`bounce`, 0–2, default 1), *Backdrop* (`backdrop`: Cove, Void), *Backdrop tone* (`backdropTone`), *Pool of light* (`pool`), plinth on/off, *Plinth material* (`plinthMat`: Lacquer, Black stone, Ebonised wood, Bronze), plinth and floor polish, *Contact shading* (ambient occlusion, the contact shadow and the lamp-by-lamp shade on the stand) |
@@ -280,7 +298,8 @@ in centimetres.
 glaze recipe: lustre presets leave them alone. A parameter set saved before handles had
 a taper is restored with even, smooth straps, as it was drawn then. A whole set saved
 before the film had flame fronts, halo rings, fine streaks and the scatter lobe is
-restored without them. A whole set saved before the foot was turned keeps its plain foot
+restored without them, and one saved before the kiln left mottle and specks has neither
+(`mottle` 0, `specks` 0). A whole set saved before the foot was turned keeps its plain foot
 (`footTurn` 0) and its own glaze line and drips.
 
 ### Views
@@ -384,21 +403,29 @@ Ibolya, Bronz, Gyöngyház). A preset restores every parameter of its groups, an
 stays pressed exactly while all of them have the preset's values. A lustre preset can be
 linked directly with its hash, for example `index.html#labrador`; the hash is dropped as
 soon as the glaze is edited and comes back when the edit is undone. The six are fired as
-coloured films over dark glass rather than as metal plate: Zöld emerald, Hajnal ruby red,
-Labrador deep blue breaking towards cyan where the film is thick (its glaze pools and breaks less, so rims keep their lustre; its motif is a thinner, fuller film, plum-violet, where a deeper one fell between two orders and read slate grey), Ibolya a plum blue-violet, Bronz a warm olive-brown bronze with no gold in the paste, a
-little satin, its even film turning copper-red where it thickens. Gyöngyház is the
-exception: no metal at all, only a clear bismuth film of uneven depth on a pale, glossy,
-crackled glaze, so the piece stays pearl white and its colour (rose, pale green, pale
-blue, a little gold) lives in the highlights and the sheen around them, shifting with
-the angle; it is plainest on relief and stays quiet on a smooth wall. Its glaze is a
-near-neutral white, so the body no longer reads ivory-grey. Under so clear a film the
+coloured films over dark glass rather than as metal plate: Zöld emerald, Hajnal ruby red
+(a shallow copper layer under a lean cover film, fired cooler than before so the colloids stay
+fine: the film's haze is 0.03 where it was 0.07, so less of the reflection goes to the broad
+glow; ruby face-on, sliding to orange-gold toward grazing and where the film runs thin,
+to rose where it lies deep),
+Labrador deep blue breaking towards cyan where the film is thick (its glaze pools and breaks less, so rims keep their lustre; its motif is a thinner, fuller film, plum-violet, where a deeper one fell between two orders and read slate grey), Ibolya a plum blue-violet, Bronz a bronze-gold with no gold in the paste:
+copper alone under a cover film a little short of the depth where its gold turns rose, so
+it goes green-gold toward grazing and where the film runs thin and takes a rose blush
+where it lies deep (gloss 0.9, where it was a satin 0.8). Gyöngyház is the
+exception: no metal at all, only a clear bismuth film of uneven depth on a pale grey,
+glossy, lightly crackled glaze. It is a glossy pot first: the film holds no colloids, so
+none of its reflection is scattered (before, the long hot firing gave it the largest
+haze of the six and sent 73 % of the film's reflection into the broad lobe, which is what
+made it read as matte plaster), and its colour (pale green and gold, rose where the film
+lies deep, sky where it runs thin) lives in the reflection and slides with the
+angle. The crackle is fainter and no longer gives each cell its own tint. Under so clear a film the
 body would return exactly the complement of the reflection and cancel its colour, so
 there (and only with no metal in the film) the glaze is tinted by the film's mean
 transmission alone: an approximation that keeps the pearl's play of colour. The painted second
-lustre is the same film laid on about a quarter thicker, so the motif reads tone on
+lustre is the same film laid on about a quarter thicker (a seventh on Hajnal), so the motif reads tone on
 tone, in the next colours of the series; on Bronz it is only a few per cent thicker and
-fuller in metal, which turns the relief copper-red; a quarter more would carry the brown
-into magenta, and on Gyöngyház it is a soft veining an eighth thicker. A lustre tile's swatch
+leaner in metal; a quarter more would carry the gold
+into magenta, and on Gyöngyház it is a soft veining a fifth thicker. A lustre tile's swatch
 shows what the film reflects plus what the glaze returns through it.
 
 **Adaptive quality** keeps the frame rate usable on slower GPUs: it first draws fewer
