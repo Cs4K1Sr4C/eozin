@@ -76,9 +76,10 @@ both small by default. *Kiln mottle* (`mottle`, 0–1, default 0.5): the depth a
 of the film also wander in soft clouds about 2 cm across and in a grain of about 3 mm
 (a few per cent of the depth at the default; the two noises are ones the micro-relief
 already works out, so nothing is added per pixel but arithmetic). *Kiln specks*
-(`specks`, 0–1, default 0.35): sparse pin-points, 0.3 to 1 mm across, well under one per
-square centimetre, where the paste lay thick: more metal in a deeper layer over darker
-glass; smaller than a pixel they spread and fade. And the clear cover film now follows
+(`specks`, 0–1, default 0.35): sparse pinholes, 0.3 to 1 mm across, well under one per
+square centimetre, where a bubble burst in the glaze or a crumb of the paste fell away:
+no film there, over darker glass, so each is a dark point and never a glint; smaller than
+a pixel they spread and fade. And the clear cover film now follows
 the relief as the metal layer already did (*Lustre pooling*): a little thinner on a
 ridge, thicker in a hollow, by a few per cent. Where a thin glaze breaks on an edge it stays glossy and goes darker and warmer than the wall:
 the piece's own glaze colour stained halfway towards *Break colour*, never paler. Its width wanders slowly along
@@ -109,8 +110,29 @@ an unglazed foot with a dripped glaze line that ends in a bead.
 
 - *Handles* are pulled, not extruded: heavier at the top where the pull began and thinner
   towards the lower joint (*Pulled taper*), with the ridges the fingers leave down the
-  back (*Finger ribs*), and smeared onto the wall in a skirt of clay at both joints
-  (*Joint blend*).
+  back (*Finger ribs*), and luted onto the wall at both joints (*Joint blend*). Close
+  to the wall the strap spreads into a quarter-round fillet of clay (0.42 of the strap's
+  thickness at full blend) that runs out along the wall; its shading normal turns into
+  the wall's own over half a strap's thickness and is the wall's at the join, so a
+  highlight crosses from strap to wall without a crease; and a fine line of pooled glaze
+  follows the join on the strap's side, over the broader pooling on the wall around it.
+  The root used to swell into a collar half as thick again as the strap that met the
+  wall at about 27 degrees, with a visible edge; the collar is now a quarter as thick
+  again, and the fillet takes its place. At blend 0 the joint is the plain butt it was.
+  The fillet is not made everywhere: where a strap leaves the wall at a shallow angle (a
+  short reach: the strap needs more than about a third further along its spine to stand
+  clear of the wall by the fillet than the straight way out) and on a wide flat strap
+  (*Strap flatness* over about 1.2, none from 1.6) the joint fades back, per joint, to
+  the skirt and collar it had before, because the fillet tore and folded there (ragged
+  glints and a dark slit at the lower joint at reach 1 cm, and at any reach with
+  flatness 1.8). The default handles (flatness 0.78) keep the full fillet. And where
+  the turned normals of a triangle would look away from its own face its corners keep
+  their own: a per-triangle count of such faces on the Standard handle mesh is 0 on
+  the default Amphora and Covered urn at Draft, Standard and Fine (it was 18 to 34
+  with the fillet as first made, 0 before it), and at the extremes it is at the level
+  of the version before the fillet (Amphora, reach 1, flatness 1.8: 40 at thickness
+  1.5 and 34 at 2.4, where it was 41 and 36 before the fillet and 78 and 88 with it;
+  reach 10, flatness 0.5, thickness 2.4: 8, before 0).
 - *Lids* are a third turned part: a domed, flat or conical cover that rests on the rim
   with a bare-clay flange inside the mouth, and a finial (ball, bud, acorn or disc) on a
   short stem. A conical lid is turned to a rounded apex, and the cap sweeps up into the
@@ -120,8 +142,18 @@ an unglazed foot with a dripped glaze line that ends in a bead.
   lid; a waved rim cannot carry one. Under a lid the upper joint of a handle stays below
   the lip, clear of the brim.
 - At its buried tips a wide strap narrows to what the round wall can hide, so the root of
-  a very wide, thick handle no longer folds where it leaves the wall. At the shortest
-  reach with the thickest, widest strap a few folded triangles remain.
+  a very wide, thick handle no longer folds where it leaves the wall. Checked over 162
+  handle builds on the Standard mesh (Amphora and Covered urn; reach 1, 4.4 and 10 cm;
+  flatness 0.5, 0.78 and 1.8; thickness 0.5, 1.5 and 2.4 cm; blend 0, 0.85 and 1): in
+  none does an end of a strap show outside the wall. Faces turned inside out where they
+  stand clear of the wall (a quad that looks at its own strap's centre line) remain in 8
+  of the 162, 219 quads in all, every one at reach 1 cm with flatness 1.8 and blend on
+  (37 to 57 a build with the 2.4 cm strap, 4 to 12 with the 1.5 cm one). That is where
+  the version before the fillet stood (8 builds, 237 quads, the same corner): the
+  fillet as first made had brought it to 4 builds and 84 quads but tore visibly there,
+  and falling back to the old skirt gave the count back. Seen at four times
+  magnification on the Amphora those joints are the clean, heavy collar they were
+  before. The test knows the turned wall only, not the warp of *Hand of the maker*.
 
 **The set.** The floor sweeps up into a round studio cove, so every view has a graded
 backdrop and no horizon line; *Pool of light* gathers its brightness around the plinth
@@ -256,7 +288,12 @@ when the camera is moved.
   plinth around the foot.
 - *Relief filtering.* Motifs with a hard outline are averaged over each vertex's patch of
   wall, and every quad is split along the diagonal that follows the relief, so scale rims
-  and cabochon collars are slopes instead of staircases.
+  and cabochon collars are slopes instead of staircases. The Draft mesh, which is shown
+  while a slider is dragged and where the page has given up triangles, used to be left
+  unfiltered; it now takes the mean of the motif at the four corners of each vertex's
+  patch (as many motifs worked out as before, so dragging costs no more), and its edges
+  are the same slopes drawn softer. Standard and Fine build exactly the vertices they
+  did.
 - *Hand of the maker.* A seeded, smooth warp makes the piece very slightly oval, leaning
   and uneven at the rim (the foot stays flat), lets the motifs wander and swell around the
   pot, and leaves fine throwing rings in the glaze, strongest inside, their pitch and
@@ -404,29 +441,111 @@ stays pressed exactly while all of them have the preset's values. A lustre prese
 linked directly with its hash, for example `index.html#labrador`; the hash is dropped as
 soon as the glaze is edited and comes back when the edit is undone. The six are fired as
 coloured films over dark glass rather than as metal plate: Zöld emerald, Hajnal ruby red
-(a shallow copper layer under a lean cover film, fired cooler than before so the colloids stay
-fine: the film's haze is 0.03 where it was 0.07, so less of the reflection goes to the broad
-glow; ruby face-on, sliding to orange-gold toward grazing and where the film runs thin,
-to rose where it lies deep),
+(a shallow copper layer, about 96 nm, under a lean cover film of about 46 nm, fired cooler
+than before so the colloids stay fine: the film's haze is 0.02 where it was 0.07, so less of
+the reflection goes to the broad glow; a dark ruby face-on, sliding to orange-gold toward
+grazing and where the film runs thin, to rose where it lies deep; its motif is the same
+film a seventh thinner, gold on ruby. It does not reach green: in this model a copper film
+whose cover is deep enough to turn green toward grazing turns magenta wherever it is a
+little thicker, which is the candy colour the preset had before, so the travel stops at gold),
 Labrador deep blue breaking towards cyan where the film is thick (its glaze pools and breaks less, so rims keep their lustre; its motif is a thinner, fuller film, plum-violet, where a deeper one fell between two orders and read slate grey), Ibolya a plum blue-violet, Bronz a bronze-gold with no gold in the paste:
 copper alone under a cover film a little short of the depth where its gold turns rose, so
 it goes green-gold toward grazing and where the film runs thin and takes a rose blush
-where it lies deep (gloss 0.9, where it was a satin 0.8). Gyöngyház is the
-exception: no metal at all, only a clear bismuth film of uneven depth on a pale grey,
-glossy, lightly crackled glaze. It is a glossy pot first: the film holds no colloids, so
+where it lies deep (gloss 0.9, where it was a satin 0.8; the film is a little leaner in
+metal than it was first re-fired, because the fuller one read as polished lemon-gold
+brass on the tall shapes). Gyöngyház is the
+exception: no metal at all, only a clear bismuth film (about 210 nm) on a pale ivory,
+glossy, lightly crackled glaze. It is a white glossy pot first: the film holds no colloids, so
 none of its reflection is scattered (before, the long hot firing gave it the largest
 haze of the six and sent 73 % of the film's reflection into the broad lobe, which is what
-made it read as matte plaster), and its colour (pale green and gold, rose where the film
-lies deep, sky where it runs thin) lives in the reflection and slides with the
-angle. The crackle is fainter and no longer gives each cell its own tint. Under so clear a film the
+made it read as matte plaster), and its colour (rose-gold at the film's mean depth,
+gold and then sea-green where it runs thin, lilac where it lies deep) lives in the
+reflection and slides toward gold with the angle. The film's depth is kept even (a
+third of the unevenness it had) and its flame fronts and streaks are turned down, so
+the colour reads as a soft sheen and not as patches; what the film mirrors is mostly
+the warm lamps and the dark room, so on a still it is rose and gold, with no green or
+blue to speak of. A first re-firing with a thinner film (165 nm) on a grey-blue glaze
+had more gloss contrast and a wider palette, but the pot read pewter, not pearl, and
+on open forms its blue-grey and mustard fields read as stains; it was taken back. The crackle is fainter and no longer gives each cell its own tint. Under so clear a film the
 body would return exactly the complement of the reflection and cancel its colour, so
 there (and only with no metal in the film) the glaze is tinted by the film's mean
 transmission alone: an approximation that keeps the pearl's play of colour. The painted second
-lustre is the same film laid on about a quarter thicker (a seventh on Hajnal), so the motif reads tone on
+lustre is the same film laid on about a quarter thicker (on Hajnal a seventh thinner), so the motif reads tone on
 tone, in the next colours of the series; on Bronz it is only a few per cent thicker and
 leaner in metal; a quarter more would carry the gold
-into magenta, and on Gyöngyház it is a soft veining a fifth thicker. A lustre tile's swatch
+into magenta, and on Gyöngyház it is a soft veining a little (6 %) thicker. A lustre tile's swatch
 shows what the film reflects plus what the glaze returns through it.
+
+**Measured for the re-fired presets**, against the version before them, on completed
+stills in headless Chromium on a software rasteriser (480 by 480 pixels, pixel ratio 1,
+Standard mesh, 32 samples, grain 0, the page's Hero and Detail shots, baluster and bowl,
+one pose, one seed, one lighting set; the target bands are judgement, not measurements of
+real pieces). *Gyöngyház*: the body's median luminance is 0.53 before and 0.51 now on the
+baluster Hero, 0.39 and 0.39 on the bowl Hero (0.37 and 0.29 with the grey glaze of the
+first re-firing, which is why that was taken back), and 0.40 and 0.48 on two random
+pearl pieces (a bowl and an amphora, 16 samples); a random pearl piece now varies its
+glaze lightness by 8 % either way, not by 20 % down. Brightest-to-median luminance 1.6
+to 1.7 on the baluster Hero and 2.2 to 2.3 on the bowl Hero, the share of the body above
+half the peak 0.63 to 0.58 and 0.44 to 0.41, the highlight's 10–90 % edge 3.6 to 3.1 %
+and 1.7 to 1.6 % of the body width: the gain in gloss over the version before is small
+by these numbers (the grey glaze had 2.4 and 3.0, bought with a darker body); what
+changed is that the lamp images are mirror images and not a satin glow. Among its
+coloured pixels (saturation over 0.12) on the bowl Hero gold is 0.80 and pink 0.20,
+with no green or blue (before: gold 0.66, pink 0.33): gold-led, and the colour still
+lies partly in soft fields set by the film's depth, not only by the angle; their edges
+are softer than they were but can still be made out on a bowl seen close, and the lamp
+image is no sharper than on the other five. *Hajnal*: mean hue 345 to
+9 degrees, magenta-pink area 0.37 to 0.05, orange-gold 0.005 to 0.12 on the baluster Hero
+(0.008 to 0.06 on the bowl), saturation of the brightest 1 % 0.26 to 0.71 (the lamp image
+is orange-gold, not washed pink), median luminance 0.030 to 0.021. Its centre-to-rim shift
+is 5 degrees toward orange and its hue span (90 %) 45 degrees: red to gold, no green, and
+the clipped share of the baluster Hero is unchanged at 0.055 (0.092 on the Detail). Its share of
+strongly saturated pixels (saturation over 0.8 with value over 0.3) **rose**: 0.23 to
+0.37 on the baluster Hero, 0.23 to 0.42 on the bowl Hero, 0.43 to 0.61 and 0.73 to 0.87
+on the two Details, 0.26 to 0.42 on the amphora and 0.37 to 0.39 on the tulip; with the
+candy pink gone the red is a purer red. A trial with less smoke (reduction 0.85) only
+moved the baluster Hero from 0.37 to 0.34 and made the piece darker, so it was not
+kept. The motif is still a flat gold fill inside a hard outline. *Bronz* (as it is now,
+with the leaner film): yellow-olive plus green area 0.007 to 0.05 on the baluster Hero
+(0.09 with the fuller film of the first re-firing), red-rose 0.15 to 0.25, the
+centre-to-rim shift 12 to 15 degrees toward green (rim hue 40), the highlight edge 3.1 to
+2.5 %, the hue span (90 %) 40 to 50 degrees, mean hue 30 as before, median saturation
+0.59 to 0.62. The share of strongly saturated pixels, 0 before, was 0.03 on the baluster,
+0.10 on the covered urn and 0.09 on the amphora with the fuller film and is 0.00, 0.01
+and 0.01 now. The bowl Hero and the look into the bowl (the Lip shot) were measured with
+the fuller film only (olive and green 0.006 to 0.06, and a hue span of 25 to 37 degrees
+in the Lip shot) and not again.
+*The other three.* Zöld, Labrador and Ibolya were not retuned, but the glassy skin, the
+mottle and the specks are in the shader for every preset, so they moved too: on the
+baluster Hero the median luminance went 0.057 to 0.051 (Zöld), 0.020 to 0.016 (Labrador)
+and 0.010 to 0.008 (Ibolya, the darkest before and darker now; the share of its body
+under 0.02 went 0.70 to 0.77), and the saturation in the rim band rose (Zöld 0.45 to
+0.61, Labrador 0.69 to 0.84, Ibolya 0.52 to 0.72, Bronz 0.32 to 0.48): the pale line at
+the silhouette is gone, where a real glaze keeps a pale rim in its last degrees. The
+default picture (Zöld, 400 by 360) is 33.7 dB from the one before.
+*Ribs at the silhouette*
+(Zöld, Detail, 360 by 360, 16 samples): in the band 2 to 10 pixels inside the outline the
+mean saturation went 0.19 to 0.30 on the amphora and 0.25 to 0.36 on the covered urn, and
+the share of that band paler than 0.2 went 0.55 to 0.19 and 0.35 to 0.08; the band is
+still paler than the interior (0.71), part of which is the lens blurring it into the
+backdrop. *Cost*: the glaze frame, 12 interleaved pairs twice, 300 by 290, traced
+reflections on: the median of the pair ratios was 0.98 and 1.01 on the default piece, 1.02
+and 1.00 on the bowl. A default load still links 32 programs with 23 live (33 and 24 at
+reduced scale) and makes the same requests; CPU time to the third frame over three
+alternating loads each was 82.5, 68.3 and 82.8 s before and 83.2, 82.7 and 79.7 s after,
+which is inside the spread of the runs. At 460 by 420 the time to the curtain lifting,
+measured in the page over nine alternating loads each, had a median of 6.69 s before
+(5.83 to 7.96) and 7.11 s after (6.52 to 7.63): the first four pairs separated, the
+next five did not, so a slowdown of about 5 % there is neither shown nor excluded; at
+390 by 700 (four loads each) it was 6.34 s before and 6.23 s after. The glaze frame was
+compared at 300 by 290 only; on a large stage (923 by 800) at Quality (0.77) a moving
+frame measured 2 to 4 % dearer than before (pair medians 1.026 and 1.022, n = 3 and 8),
+with Balanced and Performance level (0.99 to 1.01, n = 8). *Mesh build*: the handle
+fillet and the Draft relief filter are mesh code. The Standard build (the least of five
+rebuilds, two alternating runs, 220 by 220 page) took 193 ms on the Amphora and 181 ms on
+the Covered urn against 204 and 194 ms before, and 153 against 151 ms on the baluster,
+which has no handles: no slower within the spread of the runs (single figures vary by
+20 % and more between runs).
 
 **Adaptive quality** keeps the frame rate usable on slower GPUs: it first draws fewer
 pixels (with *Upscaling* on Auto, the default, the scene is drawn at 0.77, then 0.67,
@@ -632,15 +751,23 @@ pictures exist.
 
 | Picture | PSNR |
 |---|---|
-| one full-resolution frame (the resting picture before, lens blur off) | 38.7 dB |
+| one full-resolution frame (the resting picture before, lens blur off) | 42.0 dB (38.7 before the lustre change) |
 | Auto or Native at scale 1, lens blur off, at rest | identical to the reference |
 | Off with the canvas lowered to 0.67 and stretched by the browser | 36.1 dB |
 | Quality (0.77) at rest, 27 frames | 46.3 dB (45.6 with the Halton places) |
-| Balanced (0.67) at rest, 36 frames | 44.0 dB (43.4 with the Halton places and the eight-frame fade, same run) |
-| Performance (0.5) at rest, 64 frames | 39.2 dB (39.1 before, same run) |
-| Performance, one frame upscaled bilinearly (no history) | 33.9 dB |
+| Balanced (0.67) at rest, 36 frames | 45.8 dB (44.0 before the lustre change; then 43.4 with the Halton places and the eight-frame fade, same run) |
+| Performance (0.5) at rest, 64 frames | 41.3 dB (39.2 before the lustre change) |
+| Performance, one frame upscaled bilinearly (no history) | 35.4 dB (33.9 before the lustre change) |
 | Performance, 8 frames at rest after an orbit of 8 degrees | 37.4 dB (36.4 with the eight-frame fade, same move; an earlier round measured 38.1 after another move) |
 | Balanced at rest, Void backdrop / plinth hidden (floor mirror) | 43.2 / 42.8 dB (one frame: 38.4 / 39.0); measured with the Halton places, not again |
+
+The four rows with two figures were measured again after the lustre change (the glassy
+skin, mottle and specks alter the default piece: it has less of the pale rim highlight
+and is easier to rebuild), same procedure, one run; the file before it reproduces the
+earlier figures exactly (44.03, 39.21, 38.71, 33.90). Every other row of this table and
+all of the moving table below are from before that change and were **not** measured
+again, so they are about 1.5 to 3 dB conservative if the gain carries over, which is
+not known.
 
 | Moving (sharpening off) | rebuilt | one frame, bilinear |
 |---|---|---|
@@ -687,16 +814,75 @@ its fragment work should gain more; none has been measured. This is why the ladd
 now checks each step of the scale and takes back one that did not shorten the frame
 by a tenth (see *Adaptive quality*): in a run with adaptive quality on (400 x 360, Draft mesh, turntable running) the ladder stepped to 0.77 after its first eight frames at 1.48 s a frame, found 1.43 s, went back to scale 1 and went on with stage rungs 1 to 4. The rule has not run on a real GPU, and its tenth is a choice, not a measurement.
 
+**Fewer triangles in motion (built, measured, switched off).** The small window is bound
+by triangles because a turned mesh has cells well under a drawn pixel there. The page
+can now make coarser index lists over the same vertices (every 2nd, 4th and 8th
+column, rows merged up to the same spacing, never across the edge of foot, wall, lip or
+interior) and draw a frame in motion at a reduced scale from the coarsest whose cells
+stay under 1.25 drawn pixels where the wall comes nearest the camera. The frames of a
+still, an exposure, the shadow map, the room capture and every frame at scale 1 keep
+the full list; the lists are made only when the first such frame asks for them, so a
+mesh costs nothing more to build. It is **off** in this file (`sr.lod`;
+`eozin.sr.lod = true` in the console switches it on for a session), because it missed
+one of the three conditions it was to be accepted on:
+
+- *Cheaper than scale 1 in motion: met on the small window.* 460 x 420 (stage 460 x 235),
+  default piece, Standard mesh, lens blur and adaptive quality off, half a degree of
+  orbit per frame. The page as it loads, where the masthead and the caption leave the
+  piece about 65 pixels tall: interleaved pairs on two pages, 8 pairs each, medians:
+  scale 1 3.09 s a frame against 0.21 s at 0.5, and 3.20 s against 0.21 s at 0.67;
+  without the lists 0.5 took 3.52 s and 0.67 3.25 s (the file as it was against this
+  one, same procedure). The wall is drawn from every 8th column there, 15,600
+  triangles of 583,440, and a frame draws 65,135 in all passes. With the catalogue
+  hidden so that the piece fills the stage (about 170 pixels tall), one page, lists
+  switched on, off and on again, 4 to 6 frames each: scale 1 2.6 s (2.47 to 2.70);
+  0.67 with the lists 0.95 s (0.90 to 1.05), without 2.6 s; 0.5 with the lists 0.89 s
+  (0.86 to 0.97), without 2.8 s; triangles per frame in all passes 1,200,815 without,
+  286,135 at 0.67 and 239,855 at 0.5 with (the wall from every 2nd column, 190,320,
+  and the plinth mirror from a coarser list still). On 1300 x 800 (stage 923 x 800,
+  catalogue hidden) the cells are not under a drawn pixel and nothing changes at 0.67
+  (3.57 s with, 3.64 s without); at 0.5 only the mirror takes a coarser list (3.08 s
+  with, 3.11 s without). A Bowl that fills the small stage keeps the full list at
+  0.67. Software rasteriser only; no GPU has been measured.
+- *No jump of the outline above a pixel on coming to rest: met as far as measured.* With the piece
+  drawn as a flat mask, a frame in motion with the lists and one without, same view,
+  differ in 58 to 181 pixels along the outline of a mask of 9,000 to 16,000 (Baluster
+  at 0.5 and 0.67, Covered urn at 0.5; 7 comparisons), with one 2 x 2 block of differing
+  pixels in one of the seven and none in the rest. A Bowl at 0.67, where both frames
+  use the full list, differs by as much (160 pixels). Against the still that follows,
+  a frame in motion with the lists differs in 92 to 164 pixels with no 2 x 2 block
+  (4 comparisons), one without them in 88 to 147 with two such blocks in one of two.
+  Six frames after a 5 degree move, though, the frame with the lists was 284 to 380
+  pixels from the still with 1 to 3 such blocks (3 runs), and no frame without the
+  lists was taken at that moment to set beside it (a Bowl on the full list: 306 pixels,
+  no block). So the outline moves by about a pixel on coming to rest with the lists or
+  without, which is the gathering pass's own play; whether the lists add a second pixel
+  in a few places right after a fast move is not settled by this test.
+- *A still at rest identical to the pixel with the lists on or off: not met.* Two runs
+  with the same frames before and after (460 x 420, scale 0.5, a 5 degree move, then 64
+  frames at rest) differ by one 8-bit step in 112 of 193,200 pixels, because a still
+  gathered at a reduced scale keeps a faded trace of the last picture in motion (see
+  above), and that picture was drawn from other triangles. Two runs with the lists on
+  are identical to the pixel when the frames before them are the same, and differ by
+  one step in 225 pixels when they are not, so the stills already depend on their
+  history by more than on the lists; but the condition was identity, and it fails.
+
+The pictures in motion with and without the lists are 40.7 dB apart (one frame after a
+5 degree move, stage only); the decibel figures in the tables above were all measured
+without them. The ladder's rule for taking back a step of the scale is unchanged, and
+with the lists off so are all the frame times above.
+
 So at rest the method works (Balanced ends well above a single full-resolution frame;
-Performance only about level with one), and in motion it helps silhouettes, the stand
+Performance was about level with one, and is 0.7 dB below one on the current shader), and in motion it helps silhouettes, the stand
 and the backdrop by one to two decibels. **On the lustre in motion it does not
 reconstruct anything**: it is level with a plain upscale of the current frame, by
 design. A longer history there was tried and is worse: with 0.75 degrees of turn allowed,
 the turntable's lustre fell to 31.3 dB against 34.0 for the plain upscale. Fine relief
 and thin-film fringes therefore still shimmer between jittered low-resolution frames
-while the piece turns, and settle only when it rests. Two of the designers' bounds are
-still missed on this piece: Performance at rest (39.2 dB where 39.5 was asked) and 8
-rest frames after a move (37.4 where 39 was asked). What separates the half-scale still
+while the piece turns, and settle only when it rests. Of the designers' two bounds missed on
+this piece, one is now met and one is not known: Performance at rest was 39.2 dB where
+39.5 was asked and is 41.3 dB on the current shader; 8 rest frames after a move were
+37.4 dB where 39 was asked, measured before the lustre change and not again. What separates the half-scale still
 from the reference lies on the lustre, along the borders of highlights and of the
 painted fields (99 % of the squared error is inside the piece's bounding box, 30 % in a
 box on its wall), not on outlines or the backdrop; neither the places of the samples
@@ -756,5 +942,7 @@ would. Softbox shapes, the card and the bounce are stage dressing, not measureme
 Relief on a lower wall that mirrors the stand and the dark floor (the vines low on a
 Ginger jar in Labrador) stays a dull, even colour in the Hero view: nothing lit and shaped
 lies where it looks, and no card is laid for an upright form. At Draft mesh detail the
-steps of a relief (the upper edge of a cabochon, a thin vine) are a few triangles wide and
-their mirrored edge is ragged; Standard draws them clean.
+edge of a relief is now filtered like Standard's (see *Relief filtering*) and reads as a
+softer slope, but a few steps remain along the shaded upper edge of a cabochon. At
+Standard the thin pale line of a cabochon's collar on a bowl is still finely serrated
+when seen close: the relief's edge is carried by the mesh alone, not by the shader.
