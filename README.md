@@ -169,8 +169,12 @@ when the camera is moved.
   eight sheets of unequal width set around the stand like spokes, with the floor between
   them left dim, scaled so that the floor sends up as much light as the even card did;
   the wall then mirrors lit shapes with edges, as the upper walls mirror the softboxes.
-  In *Detail* and *Foot* 60 % of the card stays even (a close view may look at the floor
-  between two sheets), otherwise 20 %. The sheets are fixed to the floor and do not turn
+  Outside the close views 20 % of the card stays even. In *Detail* and *Foot* the card is
+  the even sheet it was before: a tightly curved rib squeezes each sheet into a hard pale
+  line down its crest (seen on the Amphora's spiral ribs in *Detail*), and neither softer
+  edges, nor wider sheets, nor a softer near end removed it in the four variants tried,
+  so the sheets were taken out of those two views. The same ribs on a Bowl in *Hero*
+  showed no such line (one shot). The sheets are fixed to the floor and do not turn
   with *Studio rotation*. A piece without a card in a view without one is drawn exactly
   as before. The floor's capture material is the same program with or without a card, so
   entering *Detail* or *Foot* compiles nothing.
@@ -410,7 +414,19 @@ no area-light shadow in stills; 4: a smaller studio capture, and the stand shade
 dome alone, without bounce), then
 falls back to a lighter mesh, and tries the finer setting again from time to time, in
 the reverse order. With Upscaling on Auto a lowered scale makes the picture at rest take
-longer to finish than the shrunk canvas did (more frames: see *Reconstruction*). A change of the drawn scale links no program, and rungs 1 to 3 are
+longer to finish than the shrunk canvas did (more frames: see *Reconstruction*). Fewer
+pixels buy time only where the pixels are what a frame costs, so each step of the drawn
+scale is checked: if the next eight moving frames are not at least a tenth shorter than
+the eight before the step, the step is taken back and the ladder goes on with the stage
+extras from the scale above it (until *Quality* or *Upscaling* is chosen anew, or the
+canvas grows by more than a fifth in pixels). Intervals enter that mean cut off at 10 s;
+the cut-off used to be 2 s, which made every step look useless where frames take longer
+than that. On a slow device bound by its triangles the ladder therefore reaches the
+stage extras sooner than it did: in one run in the software rasteriser (460 x 420,
+turntable running) rung 3 after about four minutes, where the earlier ladder was still
+lowering the scale and its frames had grown slower. In the
+software rasteriser this page is tested in that is what happens at the first step: see
+the frame times under *Reconstruction*. A change of the drawn scale links no program, and rungs 1 to 3 are
 uniform values only. Rung 4 is not, although this file used to say so: the smaller
 studio capture changes the defines of the materials that read it, and nine programs
 are linked again on the way down and nine more on the way back (measured: 32 linked
@@ -495,26 +511,43 @@ The gathering pass is one more program, linked the first time the scene is drawn
 scale 1 (24 live and 33 linked where a default load has 23 and 32); a load with the
 defaults links none.
 
-**At rest.** Every frame is moved aside by a part of a drawn pixel (a Halton sequence,
-longer the lower the scale). At a reduced scale each canvas pixel keeps a running mean
+**At rest.** Every frame is moved aside by a part of a drawn pixel: in motion by a
+short Halton cycle, in a still by the points of a (0,2)-sequence in base 2 (Sobol'),
+none used twice, so the frames of a still cover the drawn pixel evenly at every count.
+At half scale, where each drawn pixel is exactly four canvas pixels, the frames go in
+fours: one place within the canvas pixel, given to each of the four canvas pixels in
+turn, so every canvas pixel gathers the same 16 evenly spread places. At a reduced scale each canvas pixel keeps a running mean
 of the nearest samples that fell on it, each weighted by how close it fell
-(exp(-4 d²), d in canvas pixels). The still takes as many more frames as there are fewer
+(exp(-4 d²), d in canvas pixels; exponents of 6, 8 and 12 were measured at 0.67 and
+0.5, and 1.5, 2.2 and 3 at 0.5 only: 6 gained 0.07 dB at 0.67 and lost 0.27 at 0.5, 3
+was level at 0.5, the others were worse). The still takes as many more frames as there are fewer
 pixels in each (27, 36 or 64 frames for 16 full frames' worth at 0.77, 0.67, 0.5; with
 lens blur on, the still's own sample count divided by the square of the scale, at most
 64), with the lens samples, the area-light shadow and the traced self-reflections of a
 still as before, and then nothing is drawn. Two details keep such a still clean and
-repeatable. The area light's sample is drawn from other Halton bases (5 and 7) than the
-pixel's jitter (2 and 3): from the same ones, each canvas pixel gathered the frames of
-one part of the lamp only, and a soft shadow came out as a two-pixel comb. And what was
+repeatable. A canvas pixel is given its sample by one frame in a few, so a lamp that
+moved with every frame showed each canvas pixel another part of itself, and the soft
+shadow came out with a pattern from pixel to pixel (first a two-pixel comb, then, with
+the lamp on Halton bases of its own, a fainter dither). The area light now keeps its
+point for as many frames as it takes to serve every canvas pixel: the four frames of a
+place at half scale, where each canvas pixel then gathers exactly the 15 lamp points a
+full-resolution still does, and two frames half a drawn pixel apart at the other
+scales, where the canvas pixels have no fixed place in the drawn one and the cure is
+partial (in a test penumbra, 320 x 280, shadow softness 4, the floor without the stand, the spread between the canvas-pixel phases of the high-passed luminance fell from 1.30 to 0.25 levels of 255 at 0.5, where a full-resolution still shows 0.23; at 0.67 from 2.20 to 1.65 against 0.72, with the row and the column patterns alone at the full-resolution figure; at 0.77 from 3.02 to 2.11 against 1.23; the shadow's PSNR against the full-resolution still rose from 42.1 to 45.8, from 42.0 to 45.1 and from 42.1 to 45.0 dB). Four frames to a lamp point at 0.67 removed the pattern too, but
+left 8 lamp points, and the penumbra showed them as contour lines; it was not kept.
+And what was
 gathered before the still began (the moving picture, or the previous still) is weighted
-down by 0.25 on the first frame at rest and by half on each of the next seven, so about
-a five-hundredth of its weight is left: the picture fades into the still without a cut,
-and the completed still is the same whatever preceded it (measured: at most 1/255
-apart after a reset, after an orbit out and back and after a plain redraw). The first
-frames of the still count for less in return. A redraw of a complete still from an
-unchanged view (a parameter edit that changes nothing here) is not treated as motion
-and is not sharpened, and showing the tab again puts a complete still back on the canvas as it
-is (one frame, not counted into it) instead of starting it anew.
+down by 0.25 on the first frame at rest and, together with the four frames gathered on
+top of it, to a sixteenth on the fifth, so a 64th of its weight is left: the picture
+goes over into the still without a hard cut,
+and the completed still is the same whatever preceded it (measured: at 0.5, 320 x 280, at most 1/255 apart after a reset and after an orbit out and back, on 496 and 723 of 89,600 pixels). The first
+four frames of the still count for little in return; they take the last places of the
+sequence, so the frames that count are its first. A redraw that is asked for while the view, the pose of the piece, every parameter
+and every uniform of the glaze and of the finishing pass are as the complete still was
+gathered with (a parameter edit that changes nothing, a script's redraw, the tab shown
+again) puts the still back on the canvas as it is: one frame in which nothing of the
+scene is drawn, not counted into the still (measured: at 0.67, one frame, the still's count unchanged, 0 of 144,000 pixels different, also after a lost and restored context; a changed exposure, a moved camera and a uniform written from the console each started the still anew). Before, such a redraw
+showed one coarse frame and gathered the still again. Any real change starts it anew, as before.
 
 The price of the full-resolution rest picture is time. On a lowered rung the canvas
 used to shrink and the still took its usual number of frames, each cheaper; now it takes
@@ -542,7 +575,16 @@ new frame by how near its sample fell. Away from the piece the history may grow 
 frames' worth. On the piece it may only grow to the number of frames the view of the
 piece (camera and turntable together) takes to turn by 0.1 degrees, which at any
 visible speed is a fraction of one frame: the lustre's colour depends on the view, and
-a history carried across a turn is a picture of another colour.
+a history carried across a turn is a picture of another colour. The outline of the
+piece is the exception. Where the drawn pixels around a canvas pixel are part piece and
+part something at least a few per cent farther away, the colour is mostly a matter of
+how much of each a drawn pixel caught, and a drawn pixel whose centre fell off the
+piece is shaded from beyond its edge, pale: single frames at half scale showed a beaded,
+stepped outline. There the history may grow to 4 frames' worth. It is looked up twice,
+once carried with the surface and once as if the piece had not turned about its axis
+against the camera (the outline of a turned form stands still while its surface passes
+under it), and of the two the one nearer the new frame's colour is taken, so a handle's
+edge goes with its surface. In the frames examined the beads went and the outline is even (figures below); what it costs is two more history lookups on those pixels only. No trail was seen on the handles of a turning two-handled piece in the two frames looked at (turntable at 1.2° and 0.2° a frame), which is a look, not a measurement.
 
 **Sharpening** is contrast-adaptive (the RCAS lobe), applied in the output pass to the
 rebuilt moving picture only, and clamped channel by channel, in scene-linear values, to
@@ -566,12 +608,12 @@ pictures exist.
 | one full-resolution frame (the resting picture before, lens blur off) | 38.7 dB |
 | Auto or Native at scale 1, lens blur off, at rest | identical to the reference |
 | Off with the canvas lowered to 0.67 and stretched by the browser | 36.1 dB |
-| Quality (0.77) at rest, 27 frames | 45.6 dB |
-| Balanced (0.67) at rest, 36 frames | 43.4 dB (43.5 before the first rest frames were weighted down; Quality and the Void / plinth rows were not measured again) |
-| Performance (0.5) at rest, 64 frames | 39.1 dB |
+| Quality (0.77) at rest, 27 frames | 46.3 dB (45.6 with the Halton places) |
+| Balanced (0.67) at rest, 36 frames | 44.0 dB (43.4 with the Halton places and the eight-frame fade, same run) |
+| Performance (0.5) at rest, 64 frames | 39.2 dB (39.1 before, same run) |
 | Performance, one frame upscaled bilinearly (no history) | 33.9 dB |
-| Performance, 8 frames at rest after a move | 38.1 dB |
-| Balanced at rest, Void backdrop / plinth hidden (floor mirror) | 43.2 / 42.8 dB (one frame: 38.4 / 39.0) |
+| Performance, 8 frames at rest after an orbit of 8 degrees | 37.4 dB (36.4 with the eight-frame fade, same move; an earlier round measured 38.1 after another move) |
+| Balanced at rest, Void backdrop / plinth hidden (floor mirror) | 43.2 / 42.8 dB (one frame: 38.4 / 39.0); measured with the Halton places, not again |
 
 | Moving (sharpening off) | rebuilt | one frame, bilinear |
 |---|---|---|
@@ -582,6 +624,42 @@ pictures exist.
 | turntable 0.2°/frame, 16 frames, Balanced, whole picture | 37.3 dB | 35.9 dB |
 | the same, lustre only | 34.4 dB | 34.0 dB |
 
+The rows above were measured before the outline kept a history and were not all
+measured again. With it, in one run at half scale (10 frames at 1°/frame and 8 at
+0.25°/frame, ending on the reference pose; "outline" is a strip 35 pixels wide over the
+left and over the right edge of the piece):
+
+| Moving, Performance, sharpening off | before | with the outline's history | one frame, bilinear |
+|---|---|---|---|
+| orbit 1°/frame, whole picture | 34.2 dB | 34.5 dB | 34.0 dB |
+| the same, left / right outline | 30.0 / 32.3 dB | 30.4 / 33.0 dB | 29.9 / 31.8 dB |
+| the same, lustre only | 29.0 dB | 29.0 dB | 29.0 dB |
+| orbit 0.25°/frame, whole picture | 34.6 dB | 34.9 dB | 34.0 dB |
+| the same, left / right outline | 30.6 / 32.6 dB | 30.9 / 33.5 dB | 29.9 / 31.8 dB |
+| turntable 0.2°/frame, 16 frames, Balanced, whole picture | 37.2 dB | 37.4 dB | 36.7 dB |
+| the same, left / right outline | 34.4 / 34.6 dB | 34.7 / 35.2 dB | 32.6 / 33.1 dB |
+| the same, lustre only | 32.9 dB | 33.1 dB | 32.1 dB |
+
+**Frame time in motion**, the figure the reduced scale exists for, was not measured
+before. Same software rasteriser, default piece on the default (Standard) mesh, lens
+blur off, sharpening 0.4, an orbit of half a degree per frame; each mode in turn, the
+order reversed every round, seconds per moving frame as the mean of the rounds (and
+their range):
+
+| Window (stage) | scale 1 | 0.77 | 0.67 | 0.5 |
+|---|---|---|---|---|
+| 460 x 420 (460 x 235; moving frames not traced), 4 rounds of 2 frames | 3.50 (3.26 to 3.88) | 3.80 (3.41 to 4.46) | 3.86 (3.65 to 4.17) | 4.13 (4.00 to 4.40) |
+| 1300 x 800 (923 x 800; moving frames traced, 12 steps), 3 rounds of 1 frame | 5.49 (5.37 to 5.69) | 4.87 (4.28 to 5.39) | 4.20 (4.13 to 4.32) | 4.06 (3.91 to 4.33) |
+
+**In this rasteriser a reduced scale is not cheaper on the small window: it is 9, 11
+and 18 % dearer**, because a frame there is bound by the mesh's triangles and the
+processor, and the gathering pass at canvas resolution comes on top. On the large
+window it is 11, 24 and 26 % cheaper, far less than the pixel counts (59, 45, 25 % of
+the pixels) suggest, and the step from 0.67 to 0.5 buys 3 %. A GPU that is bound by
+its fragment work should gain more; none has been measured. This is why the ladder
+now checks each step of the scale and takes back one that did not shorten the frame
+by a tenth (see *Adaptive quality*): in a run with adaptive quality on (400 x 360, Draft mesh, turntable running) the ladder stepped to 0.77 after its first eight frames at 1.48 s a frame, found 1.43 s, went back to scale 1 and went on with stage rungs 1 to 4. The rule has not run on a real GPU, and its tenth is a choice, not a measurement.
+
 So at rest the method works (Balanced ends well above a single full-resolution frame;
 Performance only about level with one), and in motion it helps silhouettes, the stand
 and the backdrop by one to two decibels. **On the lustre in motion it does not
@@ -589,9 +667,15 @@ reconstruct anything**: it is level with a plain upscale of the current frame, b
 design. A longer history there was tried and is worse: with 0.75 degrees of turn allowed,
 the turntable's lustre fell to 31.3 dB against 34.0 for the plain upscale. Fine relief
 and thin-film fringes therefore still shimmer between jittered low-resolution frames
-while the piece turns, and settle only when it rests. Two of the designers' bounds were
-missed on this piece: Performance at rest (39.1 dB where 39.5 was asked) and 8 rest
-frames after a move (38.1 where 39 was asked).
+while the piece turns, and settle only when it rests. Two of the designers' bounds are
+still missed on this piece: Performance at rest (39.2 dB where 39.5 was asked) and 8
+rest frames after a move (37.4 where 39 was asked). What separates the half-scale still
+from the reference lies on the lustre, along the borders of highlights and of the
+painted fields (99 % of the squared error is inside the piece's bounding box, 30 % in a
+box on its wall), not on outlines or the backdrop; neither the places of the samples
+nor the width of the gathering kernel moves it by more than a tenth of a decibel. The
+bloom and the stand's mirror are drawn at the reduced scale and were not examined as
+causes.
 
 Other known limits. The stand's mirror image of the piece moves with the mirrored piece
 while the stand's surface stands still, and only the colour clip protects it (the stand
@@ -607,11 +691,16 @@ and left out: it lowered the frame-to-frame difference on the lustre by 1.4 % wh
 frame that is not a sample of a still takes the film's response at the mean viewing
 angle of the pixel (from the screen-space change of the cosine), because the crest of a
 far rim drawn thinner than a pixel otherwise breaks into pale dashes. On the one frame
-measured (Bowl, Bronz, Hero, 440 x 480, software rasteriser) the dashes went, 423 of
+measured (Bowl, Bronz, Hero, 440 x 480, software rasteriser) the dashes went (in a second
+check, *Lip* view at 380 x 420, two pale dashes were left at the top of the far crest,
+the difference is plain only under magnification, and the stair-steps of the crest are
+unchanged), 423 of
 211,200 pixels changed by more than 8 levels, all in the rim's rows, and on the Baluster
 184, all on its lip; the crest is then dimmer than the finished still draws it (RMS
 difference to the still in the rim's band 6.7 before, 8.8 after), so the rim brightens a
-little as the picture comes to rest. Samples of a still do not use it. Silhouettes away
+little as the picture comes to rest. Samples of a still do not use it. With *Upscaling*
+Off and lens blur Off (a combination only the configurator offers) the picture at rest
+is itself such a single frame and keeps the dimmer crest. Silhouettes away
 from the lip, lid seats and handles are not filtered and can still show a beaded pale
 edge in a single frame. Index lists of lower detail for moving frames were
 not built. Firefox, Safari and every real GPU are untested.

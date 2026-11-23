@@ -2947,9 +2947,10 @@ let cardKey = '1';
 const veilFloor = (on, k = 1, close = false) => {
   const m = floor.material;
   if (m.transparent !== on) { m.alphaMap = on ? floorVeil : null; m.emissiveMap = on ? floorCard : null; m.transparent = on; m.needsUpdate = true; }
-  // even: the share of the card left as an even sheet (more of it in a close view, which may look at the floor between
-  // two sheets). Without a card (k = 1) the floor glows as before and the map is white.
-  const even = close ? 0.6 : 0.2, g1 = (k - 1) * (1 - even) / CARD_MEAN, top = 1 + (k - 1) * even + g1;
+  // even: the share of the card left as an even sheet. All of it in a close view: a tightly curved rib squeezes a
+  // sheet into a hard pale line down its crest, whatever the sheet's width or the softness of its edges, and a close
+  // view is where that shows. Without a card (k = 1) the floor glows as before and the map is white.
+  const even = close ? 1 : 0.2, g1 = (k - 1) * (1 - even) / CARD_MEAN, top = 1 + (k - 1) * even + g1;
   m.emissive.setRGB(...(on ? [0.4 * top, 0.35 * top, 0.31 * top] : [0, 0, 0]));
   const key = on ? (k > 1 ? [k, close, floor.scale.x].join(':') : '1') : cardKey;
   if (key !== cardKey) {
@@ -3248,7 +3249,7 @@ const acc = { n: 0, F: 5, A: 0 };                    // samples in the sum; focu
 // (reprojected from depth), clipped to what the new frame allows, and kept only briefly on the piece, whose lustre
 // changes with the view. 'Off' never enters any of it: resize() then lowers the canvas itself, as it always did.
 const SR_STEPS = [1, 0.77, 0.67, 0.5], SR_FIXED = { Quality: 0.77, Balanced: 0.67, Performance: 0.5 };
-const sr = { scale: 1, jx: 0, jy: 0, k: 0, reset: true, rest: false, dead: false, calm: false, keep: false, sig: '', turn: 0, az: null, floor: 0, paid: 0,
+const sr = { scale: 1, jx: 0, jy: 0, k: 0, reset: true, rest: false, dead: false, calm: false, keep: false, sig: '', turn: 0, az: null, floor: 0, paid: 0, px: 0,
   vp: new THREE.Matrix4(), prevVP: new THREE.Matrix4(), view: new THREE.Matrix4(), prevView: new THREE.Matrix4(), model: new THREE.Matrix4(), prevModel: new THREE.Matrix4(),
   m: new THREE.Matrix4(), vdir: new THREE.Vector3(), pdir: new THREE.Vector3() };
 const srMode = () => (sr.dead ? 'Off' : P.upscale);
@@ -3568,7 +3569,7 @@ composer.addPass(outputPass);
 const state = {
   maxR: 10, reach: 0, rise: 0, keyEl: 0.8, optics: null, basisN: 0, vertices: 0,
   frames: 0, framed: false, posed: false, userMoved: false, usable: 1, span: Infinity,           // camera fit
-  scale: 1, fx: 0, envLod: 0, lod: 0, frame: 0, ms: 0, n: 0, tuned: 0, settle: 8, raised: -Infinity, hold: 8000, drew: false, live: false, quality: '',   // adaptive quality
+  scale: 1, fx: 0, envLod: 0, lod: 0, frame: 0, ms: 0, px: 0, n: 0, tuned: 0, settle: 8, raised: -Infinity, hold: 8000, drew: false, live: false, quality: '',   // adaptive quality
   ctx: null, lidTop: 0, present: false, capture: null, crop: null, frameW: 0, freeW: 0, movedAt: 0, shotEv: 0,           // lens, presentation, exposure
 };
 const LEVELS = Object.keys(DETAIL);                  // coarse to fine
@@ -3644,6 +3645,8 @@ function resize() {
   const w = Math.max(2, stageEl.clientWidth), h = Math.max(2, stageEl.clientHeight);
   const s = srOn() ? sr.scale : 1;                   // the scale the scene is drawn at; the canvas keeps its size
   const pr = Math.min(window.devicePixelRatio || 1, P.pixelRatio) * state.scale, size = `${w}x${h}@${pr}/${s}`;
+  state.px = w * h * pr * pr;
+  if (sr.floor && state.px > 1.2 * sr.px) sr.floor = 0;   // a clearly larger canvas may be bound by its pixels where the smaller one was not: the ladder may try the scale again
   if (state.size !== size) {
     state.size = size;
     renderer.setPixelRatio(pr);
@@ -5552,7 +5555,7 @@ function adapt(now, dt, gap) {
   if (state.settle > 0) { state.settle--; return; } // this interval paid for a rebuild, a reallocation or a tab switch
   state.n = state.frame ? state.n + 1 : 1;
   state.frame += (dt - state.frame) / Math.min(state.n, 16);   // a plain mean until the window is full (1/16 ~ 0.06)
-  state.ms = state.n === 1 ? gap : state.ms + (Math.min(gap, 2000) - state.ms) / Math.min(state.n, 16);   // the same mean of the whole interval, which dt cuts off at 100 ms
+  state.ms = state.n === 1 ? gap : state.ms + (Math.min(gap, 10000) - state.ms) / Math.min(state.n, 16);   // the same mean of the whole interval, which dt cuts off at 100 ms
   if (state.n < 8) return;                           // fewer samples are not a measurement
   const idle = now - state.tuned;
   if (state.frame <= 0.040) sr.paid = 0;             // fast enough: the last step of the scale needs no accounting
@@ -5561,7 +5564,7 @@ function adapt(now, dt, gap) {
     // by the processor, a lowered drawn scale would only make the still take longer: a step of the scale that did not
     // shorten the frame by a tenth is taken back, and the ladder goes on with the stage extras from the scale above it.
     if (sr.paid && srMode() === 'Auto' && sr.scale < 1 && state.ms > 0.9 * sr.paid) {
-      sr.paid = 0; sr.floor = SR_STEPS[SR_STEPS.indexOf(sr.scale) - 1];
+      sr.paid = 0; sr.floor = SR_STEPS[SR_STEPS.indexOf(sr.scale) - 1]; sr.px = state.px;
       srScale(sr.floor); state.tuned = now; state.frame = 0;
       return;
     }
