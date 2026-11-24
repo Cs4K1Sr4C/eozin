@@ -843,7 +843,7 @@ const HU = {
 "p.pixelRatio":"Legnagyobb képpontarány","p.pixelRatio.help":"A képernyő egy képpontjára jutó kiszámolt képpontok felső határa.","p.adaptive":"Alkalmazkodó minőség","p.adaptive.help":"Az oldal a felbontásból és a háló részletességéből enged, hogy a képfrissítés egyenletes maradjon.","p.spectral":"Színminták","p.spectral.help":"A képpontonként kiszámolt hullámhosszak száma. Több mintával hűbb és lassabb.",
 "dep.lobeDepth":"Előbb állítsd a „Gerezdek” értékét 0 fölé.","dep.reliefHeight":"Előbb válassz dombormintát.","dep.reliefCount":"Ehhez 0-tól eltérő magasságú domborminta kell.","dep.ringHeight":"Előbb adj hozzá gyűrűket.","dep.rimHeight":"Előbb adj hozzá peremhullámokat.","dep.handleLow":"Előbb adj hozzá füleket.","dep.lid":"A fedőhöz egyenes perem kell: állítsd a „Peremhullámok” értékét 0-ra.","dep.lidRise":"Előbb válassz fedőt.","dep.finialSize":"Előbb válassz fedőt és fedőgombot.","dep.breakTone":"Előbb növeld a „Vékony az éleken” értékét.","dep.crackleSize":"Előbb növeld a „Repesztés” értékét.","dep.dripAmp":"Előbb adj hozzá mázcseppeket.","dep.flashScale":"Előbb növeld a „Lángnyomok” értékét.","dep.flameDir":"Előbb növeld a „Lángoldali eltérés” értékét.","dep.thickScale":"Előbb növeld a „Vastagságingadozás” értékét.","dep.runScale":"Előbb növeld a „Mázfolyások” vagy a „Vastagságingadozás” értékét.","dep.decoSoft":"Előbb válassz festett mintát.","dep.decoCount":"Ennek a mintának nincs ismétlésszáma.","dep.decoRows":"Ennek a mintának nincsenek sorai.","dep.keyAz":"Előbb kapcsold ki a „Spotlámpa a főlámpánál” kapcsolót.","dep.plinthGloss":"Előbb kapcsold be a „Talapzat” kapcsolót.","dep.selfRefl":"Előbb kapcsold be a „Terem tükröződése” kapcsolót.","dep.backdropTone":"Előbb válaszd a „Háttérív” hátteret.","dep.fstop":"Előbb kapcsold be a „Mélységélesség” beállítást.","dep.halation":"Előbb növeld a „Csúcsfények ragyogása” értékét.",
 "form.baluster":"Baluszter","form.bottle":"Palack","form.gourd":"Lopótök","form.tulip":"Tulipán","form.amphora":"Amfora","form.ginger":"Gyömbértartó","form.urn":"Fedeles urna","form.bowl":"Tál",
-"lustre.zold":"Zöld","lustre.zold.note":"smaragdzöld","lustre.hajnal":"Hajnal","lustre.hajnal.note":"rubinvörös","lustre.labrador":"Labrador","lustre.labrador.note":"mélykék","lustre.ibolya":"Ibolya","lustre.ibolya.note":"kékeslila","lustre.bronz":"Bronz","lustre.bronz.note":"meleg bronz","lustre.gyongyhaz":"Gyöngyház","lustre.gyongyhaz.note":"irizáló fehér",
+"lustre.zold":"Zöld","lustre.zold.note":"smaragdzöld","lustre.hajnal":"Hajnal","lustre.hajnal.note":"rézvörös","lustre.labrador":"Labrador","lustre.labrador.note":"mélykék","lustre.ibolya":"Ibolya","lustre.ibolya.note":"kékeslila","lustre.bronz":"Bronz","lustre.bronz.note":"meleg bronz","lustre.gyongyhaz":"Gyöngyház","lustre.gyongyhaz.note":"irizáló fehér",
 "shot.hero":"Főnézet","shot.profile":"Profil","shot.lip":"Perem","shot.foot":"Talp","shot.detail":"Részlet",
 "menu.Copy parameters":"Paraméterek másolása","menu.Paste parameters…":"Paraméterek beillesztése…","menu.Save PNG":"Mentés PNG-ként","menu.Follow edits":"A nézet követi a szerkesztést","menu.Restore shape":"Forma visszaállítása","menu.Restore lustre":"Lüszter visszaállítása","menu.Reset everything":"Minden visszaállítása",
 };
@@ -1001,7 +1001,7 @@ const LUSTRES = {
   // Face-on it is ruby; toward grazing and where the film runs thin it slides to orange-gold, where it lies deep to rose.
   // The motif is the same film laid on a seventh thinner: gold on ruby. (No green: with this copper film a cover deep
   // enough to reach it turns the thick places magenta.)
-  hajnal: { name: 'Hajnal', note: 'ruby red', set: { glazeColor: '#26060a', cu: 0.96, ag: 0.01, au: 0, bi: 0.35, trimThick: 1, trimCover: 0.8, trimFill: 1.2, thickVar: 0.5, kilnTemp: 579, soak: 41, reduction: 0.91, reox: 0.39, flash: 0.5, deco: 'Relief motif', decoThick: 0.86, decoSoft: 0.5, decoFill: 1, decoSilver: 0, decoMatte: 0, crackle: 0 } },
+  hajnal: { name: 'Hajnal', note: 'copper red', set: { glazeColor: '#26060a', cu: 0.96, ag: 0.01, au: 0, bi: 0.35, trimThick: 1, trimCover: 0.8, trimFill: 1.2, thickVar: 0.5, kilnTemp: 579, soak: 41, reduction: 0.91, reox: 0.39, flash: 0.5, deco: 'Relief motif', decoThick: 0.86, decoSoft: 0.5, decoFill: 1, decoSilver: 0, decoMatte: 0, crackle: 0 } },
   // Labrador's motif is a thinner, fuller film: plum-violet with its own highlights. A deeper one (1.25) falls between two
   // interference orders on this silver film and reads as flat slate grey.
   labrador: { name: 'Labrador', note: 'deep blue', set: { glazeColor: '#070f20', cu: 0, ag: 0.57, au: 0, bi: 0.34, trimThick: 0.67, trimCover: 0.96, trimFill: 0.65, thickVar: 0.5, kilnTemp: 636, soak: 21, reduction: 0.62, reox: 0.8, flash: 0.55, pooling: 0.4, breaking: 0.3, deco: 'Relief motif', decoThick: 0.7, decoFill: 1.2, decoSilver: 0, decoMatte: 0, crackle: 0 } },
@@ -1012,11 +1012,14 @@ const LUSTRES = {
   // polished lemon-gold brass on the tall shapes.
   bronz: { name: 'Bronz', note: 'warm bronze', set: { glazeColor: '#2a180c', runScale: 1.2, gloss: 0.9, cu: 0.87, ag: 0, au: 0, bi: 0.68, trimThick: 1.48, trimCover: 1.42, trimFill: 0.68, thickVar: 0.45, mosaic: 0.15, kilnTemp: 597, soak: 33, reduction: 0.8, reox: 0.62, flash: 0.4, halo: 0.4, deco: 'Relief motif', decoThick: 1.05, decoSoft: 0.6, decoFill: 0.8, decoSilver: 0, decoMatte: 0.15, crackle: 0 } },
   // Gyöngyház: no metal at all, only the clear bismuth film (n about 2.3, some 210 nm) on a pale glossy glaze. Its colour is in
-  // the reflection, early in the second interference order: rose-gold face-on at its mean depth, gold and then sea-green
-  // where it runs thin, lilac where it lies deep, each sliding toward gold at grazing. The depth is kept even (thickVar 0.3)
-  // and its fields soft (few fronts and streaks), so the colour reads as a sheen on a white pot and not as patches. A film
-  // without metal holds no colloids, so none of that reflection is scattered: it is a clear gloss with a coloured sheen.
-  gyongyhaz: { name: 'Gyöngyház', note: 'iridescent white', set: { glazeColor: '#c0bdb6', runScale: 2.5, gloss: 0.97, cu: 0, ag: 0, au: 0, bi: 1, trimThick: 1.38, trimCover: 1.3, thickVar: 0.3, mosaic: 0.04, kilnTemp: 680, soak: 60, reduction: 1, reox: 0.85, flash: 0.6, front: 0.3, streak: 0.3, deco: 'Marbled veins', decoThick: 1.06, decoSoft: 0.8, decoFill: 1, decoSilver: 0, decoMatte: 0, crackle: 0.3 } },
+  // the reflection, early in the second interference order: rose face-on at its mean depth, gold and then sea-green
+  // where it runs thin, lilac and blue where it lies deep, each sliding toward gold at grazing. Its depth is as uneven as
+  // a brushed resinate leaves it (thickVar 1): the cool colours live in the deep places, and with an even film the pot
+  // was rose and khaki only. A film without metal holds no colloids and has no haze, but it is not a pure mirror either:
+  // three fifths of its reflection is the sharp image of the lamps, two fifths a broad sheen (sheen in deriveOptics).
+  // As a mirror alone it showed its colour only inside the images of the lamps and the lit floor, and on a bowl
+  // those read as fields cut out with scissors. The veining is only 3 % deeper, with the softest edge.
+  gyongyhaz: { name: 'Gyöngyház', note: 'iridescent white', set: { glazeColor: '#c0bdb6', runScale: 2.5, gloss: 0.97, cu: 0, ag: 0, au: 0, bi: 1, trimThick: 1.38, trimCover: 1.36, thickVar: 1, mosaic: 0.04, kilnTemp: 680, soak: 60, reduction: 1, reox: 0.85, flash: 0.6, front: 0.3, streak: 0.3, deco: 'Marbled veins', decoThick: 1.03, decoSoft: 1, decoFill: 1, decoSilver: 0, decoMatte: 0, crackle: 0.3 } },
 };
 
 /* --------------------------------------------------------------------------
@@ -1056,6 +1059,9 @@ function deriveOptics(p) {
     radius: Math.min(2 + 9 * grow, 0.5 * Math.max(depth, 1)),                    // nm; a colloid is never wider than its layer
     haze: clamp((26 * grow - 17) / 240, 0, 0.16) * smooth(0, 0.03, total),   // the haze is the colloids': a film without metal has none
     colloid: smooth(0, 0.03, total),
+    // A film with no metal in it scatters by its own unevenness instead: fired on from a resinate, the clear bismuth
+    // film is finely wrinkled and sends two fifths of its reflection into the broad lobe, the soft sheen of a pearl
+    sheen: 1.8 * p.bi * (1 - smooth(0, 0.03, total)),
   };
 }
 
@@ -4418,7 +4424,7 @@ function updateMaterial() {
   U.uThickVar.value = P.thickVar; U.uThickScale.value = 1 / P.thickScale; U.uLustrePool.value = P.lustrePool; U.uMosaic.value = P.mosaic;
   U.uDeco.value = Math.max(0, DECOS.indexOf(P.deco)); U.uDecoCount.value = P.decoCount; U.uDecoRows.value = P.decoRows; U.uDecoSoft.value = P.decoSoft;
   U.uDecoThick.value = P.decoThick; U.uDecoFill.value = P.decoFill; U.uDecoSilver.value = P.decoSilver; U.uDecoMatte.value = P.decoMatte;
-  U.uScatter.value = P.scatter * o.colloid; U.uMottle.value = P.mottle; U.uSpeck.value = P.specks; U.uFront.value = P.front; U.uHalo.value = P.halo; U.uStreak.value = P.streak;
+  U.uScatter.value = P.scatter * (o.colloid + o.sheen); U.uMottle.value = P.mottle; U.uSpeck.value = P.specks; U.uFront.value = P.front; U.uHalo.value = P.halo; U.uStreak.value = P.streak;
   hoistOptics();
   labelDirty = true;
   invalidate();

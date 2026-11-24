@@ -51,8 +51,10 @@ fragment in GLSL, where it replaces three.js's RGB iridescence approximation ins
 lobes: a sharp image of the lamps at the roughness of the glass surface, and under it a
 broad glow from the metal colloids (*Colloid scatter*, `scatter`; 0 gives the single lobe
 of earlier versions). The share of the glow follows the haze of the fired film, so the two
-lobes together reflect what one did. The glow is the colloids': a film with no metal in
-it (Gyöngyház) has neither haze nor glow and reflects in the sharp lobe alone. Toward
+lobes together reflect what one did. The haze is the colloids': a film with no metal in
+it (Gyöngyház) has none. Its clear bismuth film scatters by its own fine unevenness
+instead and sends a fixed two fifths of its reflection into the broad lobe (`sheen` in
+`deriveOptics`, in proportion to the bismuth; a film with metal has none of it). Toward
 grazing the film's Fresnel factors are worked out at an angle that stops short of
 grazing (its cosine never falls under 0.35), as for a layer that lies under a glassy skin
 and is met by refracted light, while the path through each layer, which sets the hue, is
@@ -440,7 +442,8 @@ Ibolya, Bronz, Gyöngyház). A preset restores every parameter of its groups, an
 stays pressed exactly while all of them have the preset's values. A lustre preset can be
 linked directly with its hash, for example `index.html#labrador`; the hash is dropped as
 soon as the glaze is edited and comes back when the edit is undone. The six are fired as
-coloured films over dark glass rather than as metal plate: Zöld emerald, Hajnal ruby red
+coloured films over dark glass rather than as metal plate: Zöld emerald, Hajnal copper red
+(its tile says so now; it said ruby red, and the piece renders copper to orange-red)
 (a shallow copper layer, about 96 nm, under a lean cover film of about 46 nm, fired cooler
 than before so the colloids stay fine: the film's haze is 0.02 where it was 0.07, so less of
 the reflection goes to the broad glow; a dark ruby face-on, sliding to orange-gold toward
@@ -455,16 +458,21 @@ where it lies deep (gloss 0.9, where it was a satin 0.8; the film is a little le
 metal than it was first re-fired, because the fuller one read as polished lemon-gold
 brass on the tall shapes). Gyöngyház is the
 exception: no metal at all, only a clear bismuth film (about 210 nm) on a pale ivory,
-glossy, lightly crackled glaze. It is a white glossy pot first: the film holds no colloids, so
-none of its reflection is scattered (before, the long hot firing gave it the largest
-haze of the six and sent 73 % of the film's reflection into the broad lobe, which is what
-made it read as matte plaster), and its colour (rose-gold at the film's mean depth,
-gold and then sea-green where it runs thin, lilac where it lies deep) lives in the
-reflection and slides toward gold with the angle. The film's depth is kept even (a
-third of the unevenness it had) and its flame fronts and streaks are turned down, so
-the colour reads as a soft sheen and not as patches; what the film mirrors is mostly
-the warm lamps and the dark room, so on a still it is rose and gold, with no green or
-blue to speak of. A first re-firing with a thinner film (165 nm) on a grey-blue glaze
+glossy, lightly crackled glaze. It is a white glossy pot first, with the colour in the
+reflection: rose at the film's mean depth, gold and then sea-green where it runs thin,
+lilac and blue where it lies deep, each sliding toward gold with the angle. Three fifths
+of the film's reflection is the sharp image of the lamps and two fifths a broad sheen.
+(Before the re-firing the long hot firing gave it the largest haze of the six and sent
+73 % into the broad lobe, which read as matte plaster. The first re-firing sent none,
+kept the film's depth even at a third of its unevenness and laid the veining on 6 %
+deeper. As a pure mirror the film showed its colour only inside the images of the lamps
+and the lit floor, so on a bowl the wall carried khaki, cream and pink fields with
+cut-out edges: mirror images of lamps, and the veining's step in depth across a steep
+part of the colour series. With the film even, nothing reached lilac or blue.) Now the
+film is as uneven as it was at first (thickness variation 1), a little deeper (cover
+trim 1.36, was 1.3 and 1.27), and the veining is 3 % deeper with the softest edge;
+flame fronts and streaks stay turned down. Its fields still have edges that can be made
+out on a bowl, about as at first. A first re-firing with a thinner film (165 nm) on a grey-blue glaze
 had more gloss contrast and a wider palette, but the pot read pewter, not pearl, and
 on open forms its blue-grey and mustard fields read as stains; it was taken back. The crackle is fainter and no longer gives each cell its own tint. Under so clear a film the
 body would return exactly the complement of the reflection and cancel its colour, so
@@ -473,28 +481,34 @@ transmission alone: an approximation that keeps the pearl's play of colour. The 
 lustre is the same film laid on about a quarter thicker (on Hajnal a seventh thinner), so the motif reads tone on
 tone, in the next colours of the series; on Bronz it is only a few per cent thicker and
 leaner in metal; a quarter more would carry the gold
-into magenta, and on Gyöngyház it is a soft veining a little (6 %) thicker. A lustre tile's swatch
+into magenta, and on Gyöngyház it is a soft veining a little (3 %) thicker. A lustre tile's swatch
 shows what the film reflects plus what the glaze returns through it.
 
 **Measured for the re-fired presets**, against the version before them, on completed
 stills in headless Chromium on a software rasteriser (480 by 480 pixels, pixel ratio 1,
 Standard mesh, 32 samples, grain 0, the page's Hero and Detail shots, baluster and bowl,
 one pose, one seed, one lighting set; the target bands are judgement, not measurements of
-real pieces). *Gyöngyház*: the body's median luminance is 0.53 before and 0.51 now on the
-baluster Hero, 0.39 and 0.39 on the bowl Hero (0.37 and 0.29 with the grey glaze of the
-first re-firing, which is why that was taken back), and 0.40 and 0.48 on two random
-pearl pieces (a bowl and an amphora, 16 samples); a random pearl piece now varies its
-glaze lightness by 8 % either way, not by 20 % down. Brightest-to-median luminance 1.6
-to 1.7 on the baluster Hero and 2.2 to 2.3 on the bowl Hero, the share of the body above
-half the peak 0.63 to 0.58 and 0.44 to 0.41, the highlight's 10–90 % edge 3.6 to 3.1 %
-and 1.7 to 1.6 % of the body width: the gain in gloss over the version before is small
-by these numbers (the grey glaze had 2.4 and 3.0, bought with a darker body); what
-changed is that the lamp images are mirror images and not a satin glow. Among its
-coloured pixels (saturation over 0.12) on the bowl Hero gold is 0.80 and pink 0.20,
-with no green or blue (before: gold 0.66, pink 0.33): gold-led, and the colour still
-lies partly in soft fields set by the film's depth, not only by the angle; their edges
-are softer than they were but can still be made out on a bowl seen close, and the lamp
-image is no sharper than on the other five. *Hajnal*: mean hue 345 to
+real pieces). *Gyöngyház* (three figures each: before the re-firing, the first re-firing, now; the
+ginger jar's first figure is from an earlier run of the same set-up): the body's median
+luminance is 0.53, 0.51, 0.51 on the baluster Hero, 0.53, 0.52, 0.52 on the ginger jar
+Hero, 0.39, 0.39, 0.37 on the bowl Hero and 0.43, 0.43, 0.43 on the bowl Detail.
+Brightest (99.5 %) to median luminance 1.63, 1.74, 1.70 on the baluster, 1.64, 1.70,
+1.68 on the ginger jar, 2.19, 2.25, 2.25 on the bowl Hero: about half of the first
+re-firing's small gain in gloss contrast on the closed forms is kept, and the lamp
+images are still mirror images over a sheen, not a satin glow alone. Median saturation
+of the body on the bowl Hero 0.20, 0.25, 0.22 (the khaki of the first re-firing was
+the 0.25). Share of the bowl Hero's body that is coloured (saturation over 0.10) and
+pink 0.31, 0.19, 0.38; gold 0.61, 0.78, 0.55; blue and violet together 0.015, 0.000,
+0.021; mint 0.003, 0.000, 0.001: the cool colours are back in about the measure they
+had, the mint is not. On the baluster Hero pink 0.22, 0.16, 0.26, gold 0.57, 0.76,
+0.57, blue and violet 0.011, 0.000, 0.008. A stepped, hard edge on the neck of the
+baluster and the collar of the ginger jar in the first re-firing was the mirror image
+of two softboxes that stand one above the other on the left (the side lamp and the low
+fill): it stayed with self-reflections off, on the Fine mesh, with a larger capture of
+the room, without depth of field and with every field of the film switched off, and
+went when those two lamps were put out. The sheen dilutes it to a soft band; it is not
+removed. Not measured again: the two random pearl pieces (0.40 and 0.48 median
+luminance at the first re-firing). *Hajnal*: mean hue 345 to
 9 degrees, magenta-pink area 0.37 to 0.05, orange-gold 0.005 to 0.12 on the baluster Hero
 (0.008 to 0.06 on the bowl), saturation of the brightest 1 % 0.26 to 0.71 (the lamp image
 is orange-gold, not washed pink), median luminance 0.030 to 0.021. Its centre-to-rim shift
@@ -512,9 +526,10 @@ centre-to-rim shift 12 to 15 degrees toward green (rim hue 40), the highlight ed
 2.5 %, the hue span (90 %) 40 to 50 degrees, mean hue 30 as before, median saturation
 0.59 to 0.62. The share of strongly saturated pixels, 0 before, was 0.03 on the baluster,
 0.10 on the covered urn and 0.09 on the amphora with the fuller film and is 0.00, 0.01
-and 0.01 now. The bowl Hero and the look into the bowl (the Lip shot) were measured with
-the fuller film only (olive and green 0.006 to 0.06, and a hue span of 25 to 37 degrees
-in the Lip shot) and not again.
+and 0.01 now. The bowl Hero with the film as it is now: median luminance 0.038, share of
+strongly saturated pixels 0.00, mean hue 32 degrees. The look into the bowl (the Lip
+shot) was measured with the fuller film only (olive and green 0.006 to 0.06, and a hue
+span of 25 to 37 degrees) and not again.
 *The other three.* Zöld, Labrador and Ibolya were not retuned, but the glassy skin, the
 mottle and the specks are in the shader for every preset, so they moved too: on the
 baluster Hero the median luminance went 0.057 to 0.051 (Zöld), 0.020 to 0.016 (Labrador)
