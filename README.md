@@ -375,14 +375,18 @@ Along the foot of the plate are five views, worked out from the piece as it is, 
 - **Lustre and shape tiles.** A tile restores every parameter of its group and stays
   pressed exactly while all of them have its values. The caption on the plate names
   what is on show; a varied piece is named after the lustre it came from.
-- **Surprise me** is described below. Shift-click keeps the shape.
+- **Surprise me** makes a new piece from a random seed; Shift-click keeps the shape. How
+  far it may go and what it may change is set in the configurator and remembered (see
+  *Surprise me* below). The remembered scopes come back when the configurator is opened;
+  until then the page button rolls the whole piece and leaves the studio alone, and
+  only the remembered wildness applies.
 - **Undo.** Each preset and each surprise shows a short note with *Undo*; Ctrl+Z and
   Ctrl+Shift+Z (Ctrl+Y) step through the whole history.
 - **Paste.** Parameter JSON pasted anywhere on the page is applied.
 
 ### The configurator
 
-The panel with all 154 controls is not part of the page an ordinary visitor sees, and
+The panel with all 156 parameters is not part of the page an ordinary visitor sees, and
 nothing on the page leads to it. It is fetched and built only on request:
 
 - `index.html?configurator=1` opens it as a drawer over the left of the stage;
@@ -394,7 +398,9 @@ Without it, the same actions are on the console handle `window.eozin`:
 `eozin.actions['Copy parameters']()` (logs the JSON when there is no clipboard),
 `eozin.actions['Save PNG']()`, `eozin.actions.Reset()`, `eozin.menu['Restore shape']()`,
 `eozin.menu['Restore lustre']()`, `eozin.setFollow(false)`, `eozin.takeShot('foot')`,
-`eozin.setPresent(true)`, `eozin.setLang('hu')`, `eozin.makePiece(seed)`.
+`eozin.setPresent(true)`, `eozin.setLang('hu')`, `eozin.roll()` (what the button does),
+`eozin.makePiece2(seed, wildness)` and `eozin.makePiece(seed)` (the two generators),
+`eozin.setLock('height', true)`, `eozin.surprise` (wildness and scopes), `eozin.RANGES`.
 
 The rest of this section describes the drawer once it is open.
 
@@ -415,15 +421,9 @@ The rest of this section describes the drawer once it is open.
   lustre* in the ⋯ menu put a whole group back.
 - **Undo.** Every change is an undo step, presets and Reset included: the ↶ ↷ buttons, or
   Ctrl+Z and Ctrl+Shift+Z (Ctrl+Y). The camera is not part of the history.
-- **Surprise me** makes a curated random piece: one of the eight shapes with its
-  proportions varied together, a relief that suits it, and one of the six lustres fired
-  a little differently (metals, kiln schedule, glaze tone, flame side and seed, all inside
-  bounds). A firing that comes out dull, black or far from its family is thrown away and
-  another tried, and two presses in a row never give the same shape or lustre family.
-  With Shift held it keeps the shape and changes the firing only. A surprise piece is a
-  function of its seed and can be linked as `index.html#piece-<seed>`; such a link names
-  a piece of this version of the generator and may give another piece after an update.
-  Editing, a preset, undo or Reset drop the piece link.
+- **Surprise me, locks and dice.** The first folder sets how wild a new piece may be and
+  which parts of it Surprise me changes; every row has a lock, every folder a dice button.
+  See *Surprise me* below.
 - **⋯ menu.** *Copy parameters* puts the whole state on the clipboard as JSON. Pasting
   that JSON anywhere on the page restores it, as does *Paste parameters…*, which opens a
   text box for touch screens and for frames without clipboard access. *Save PNG* takes
@@ -638,6 +638,155 @@ streaks and runs each alone, all off, all on; Cove and Void). When the room is c
 again and the shadow map is not due in the same frame, the piece is left out of the
 capture, not drawn unseen through its six faces; an edit from a control asks for the
 shadow map as well, so this applies only to a capture that was put off to a later frame.
+
+### Surprise me
+
+Both *Surprise me* buttons (on the page and in the tool bar of the configurator) roll a
+new piece with the second generator, `makePiece2`.
+
+**A piece is a function of its seed.** `makePiece2(seed, wildness, { mask, base, stage })`
+returns the same parameters every time. `Math.random` only chooses the seed. Every draw
+has a random stream of its own, hashed from the seed, the name of the draw (the
+parameter key, or a named decision such as `form.a`) and, for the lustre, the attempt.
+So which other parameters are rolled, kept or locked cannot move a draw, and a
+parameter added later takes a new name and moves nothing.
+
+**One table, `RANGES`, says what the dice may do with each parameter.** It sits next to
+the control definitions and has one entry per parameter, of three kinds:
+
+- a number with a range `lo…hi`, two jitter widths `j0`, `j1`, a pull exponent `p` and a
+  centre. The value is the centre, pulled toward a free draw over the whole range by
+  `wildness^p` and jittered by ±(hi − lo) · lerp(j0, j1, wildness). The centre is a
+  number, the blend of two catalogue shapes, the lustre family's preset (`L`) or the
+  film just fired (`F`);
+- a rule of the generator (a choice, a count, a colour, or a value that depends on
+  another);
+- `fixed`, with the reason.
+
+Of the 156 parameters 114 make the piece, 15 make the stage and 27 are fixed. The page
+warns in the console (`RANGES: no entry for …`) about a parameter without an entry, so a
+control added later cannot be left out unnoticed. To add one: give it a `RANGES` entry
+and, unless it is fixed or a plain number with a centre, a line in `makePiece2`. A
+second warning (`RANGES: makePiece2 does not write …`) names an entry with a scope
+that a full roll does not write.
+
+**Wildness** (0–1 in steps of 0.05, default 0.5) scales four things: how far two
+catalogue shapes are blended (up to 0.85 · wildness^1.5), the jitter of every number,
+the pull toward the whole range, and how far the lustre may leave its family (the
+allowed colour distance from the family's film is 0.45 + 3 · wildness³; its hue stays
+within 40° of the family's). At 0 a piece is
+a catalogue shape and lustre with small variations; at 0.5 shapes are blended up to
+about 30 %, sculpting and painted patterns are drawn freely and every surface
+parameter moves; near 1 the shape is a free blend, the lustre a one-off, and the caption
+says so (*Thrown vessel*, *One-off firing*).
+
+**Scopes** choose what a roll writes: Shape, Sculpting and relief, Handles and lid, Glaze
+surface, Lustre and firing, Decoration, and Stage and light. The stage is off by
+default, so the studio stays as it is unless asked. With it on, a roll also draws the
+lighting set, key light, backdrop, plinth material, look, lens and the side the piece
+is seen from. Shift keeps the shape: it rolls Glaze surface, Lustre and Decoration as
+far as they are switched on. Wildness and scopes are remembered between visits; the
+scopes are recalled when the configurator is opened (without it there is no switch to
+see or to set, so the page button uses the default six). The note after a roll says what
+was rolled: a whole piece, part of it, a firing, or the studio.
+
+**Constraints are met by construction**, by clamping each value against the ones drawn
+before it, never by trying again:
+
+- the knots of the profile stay in order with margins (belly, shoulder, neck), the foot
+  is wide enough for the piece to stand, the widest radius stays between a fifth of the
+  height and 1.15 times it, no step of the wall is steeper than 1.8 cm of radius per cm
+  of height, the neck leaves a bore, and the wall is at most 28 % of the narrowest
+  radius;
+- a relief cell is at least nine relief heights wide and tall, and a relief is twisted
+  by at most 90°; hammered facets are at most about 3.2 cm across; collar rings stay out
+  of the relief band;
+- an open shape gets at least six lobes, twisted by at most 45°;
+- rim waves come only on open shapes and never with a lid; a lid needs a level rim of
+  2.2–9.5 cm that is not the widest part, and its finial fits it;
+- handles come on shapes of at least 18 cm, nearly always closed ones (an open shape
+  gets them with probability 0.05 · wildness, a waved rim only from wildness 0.8),
+  attach between shoulder and neck,
+  are at most 5.5 % of the height thick and reach at most 0.6 of the widest radius;
+  three or four need room around the neck;
+- the painted pattern follows the relief that is on the piece, and a mother-of-pearl
+  film gets crackle and marbled veins; painted bands stay close to the ground lustre
+  (40 % of the family's film-thickness offset, edge softness at least 0.55), so they
+  read as a second tone of it and not as stripes of the complementary colour;
+- with the Stage scope the room is turned with the side the piece is seen from: the
+  light rotation is the view's angle less 9°, ±20° to ±50° with wildness, which is
+  about the relation each lighting set was built for; a free spotlight stays within
+  15–75° of the lens; and every lighting set but the Atelier softboxes, and the Nocturne
+  look, gets at least the default ambient level and key light. The dice of a folder
+  leave the camera alone and set the light for the view on show.
+
+The one thing drawn again is the lustre: the chemistry (glaze colour, paste, kiln
+schedule, film trims) is drawn together and its face-on film measured. A film that is
+black (brightest channel under 0.13), clipped or neon (over 0.6), too light (luminance
+over 0.32) or dull (chroma under 0.55), further from its family than the wildness
+allows, or more than 40° of hue from its family, is drawn again from the next attempt's
+streams: twelve times at the wildness asked for, then twenty times tamer and tamer;
+after that the family's preset is used. The attempts are seeded, so a link still
+rebuilds the piece. The hue rule is there because free chemistry drifts to blue and
+violet; with it the six families keep roughly their shares at every wildness, and a
+wild film differs from its family in depth, tone and make-up instead.
+
+**Variety.** Each press draws a few candidates and takes the one least like the last two
+pieces (painted pattern, relief, sculpting style, handles, lid, and the shape and
+family of the piece before last); the same leading shape or lustre family never comes
+twice running.
+
+**Locks.** Every row of a parameter the dice can roll has a lock (Tab reaches it after
+the row's field; Enter or Space toggles it). A locked value is kept by Surprise me and
+by the dice, and the rules after it work from the kept value: handles on a locked
+height stay in proportion to that height, and a locked lid keeps its rim level.
+*Lock all changed* in the ⋯ menu locks every row that carries a changed dot, that is,
+everything set by hand since the last roll; *Unlock all* releases them. Locks last for
+the visit. They are not parameters: they are not part of undo, of *Copy parameters* or
+of a link, and *Reset everything* clears them. A lock binds the dice only; presets,
+paste, undo and the row itself still change a locked value. Two locks can contradict
+each other (a lid and a waved rim, say): both are kept as they are, without a message.
+
+**Dice.** The button at the end of each folder title rolls that folder's unlocked rows
+with the current wildness, whatever the scope switches say (the Lighting and Camera
+folders too). After any roll the rolled rows are the new starting point of the changed
+dots, and each roll is one undo step.
+
+**Links.** A piece of the second generator is linked as
+`index.html#p2-<seed>-<wildness>-<scopes>`, each field in base 36: the seed
+(0 … 36⁶ − 1), the wildness in twentieths as one digit (`0`…`k`), and the scopes as a
+number whose bits are the seven switches in the order above (63 = `1r` is everything
+but the stage, 127 = `3j` everything). `#p2-1sdr2h-a-1r` is seed 1sdr2h at wildness 0.5
+without the stage. A link names the roll on the opening piece: parameters outside its
+scopes take the opening piece's values. The address shows a link only while it would
+rebuild exactly what is on show. There is none after a roll in which a lock changed
+the result, after the dice of a folder, after a roll of some scopes on a piece that was
+not the opening one, or once the piece is edited (the stage apart: it is outside a
+link unless the Stage scope rolled it). Undo and redo bring the parameters back but not
+the link. A wildness set off the 0.05 steps through the console is rounded to them
+before the piece is made. Following a link does not change the remembered wildness or
+scopes.
+
+Older links, `index.html#piece-<seed>`, are served by the first generator
+(`makePiece`), which is kept unchanged for that purpose: one of the eight shapes with
+its proportions varied within a few per cent and one of the six lustres fired a little
+differently. Both kinds of link name a piece of that generator as it is in this
+version. They depend on the rules and on the catalogue shapes and lustres, so a re-fired
+preset changes the pieces of its family; a change to the rules of the second
+generator needs a new prefix (`#p3-`).
+
+**What Surprise me never touches** (the 27 fixed parameters): rendering quality and
+performance (pixel ratio, mesh detail, upscaling, sharpening, adaptive quality, still
+quality, spectral samples, reflection detail), the room and self reflections, the
+turntable, the lens settings that belong to the views (aperture, depth of field, focus
+height), the presentation frame, exposure and tone curve (the films are tested against
+them), the finish of the picture (bloom, vignette, grain, fringing, halation), contact
+shading and lustre bounce, key glint and floor polish, and the plinth itself.
+
+**Cost.** The generator takes well under a millisecond per piece and never builds a
+mesh. A roll is one `applyParams`: at most one new mesh and one capture of the room,
+and a capture of the studio only when the lighting set changes, which needs the Stage
+scope or the Lighting dice.
 
 ### Reconstruction
 

@@ -488,6 +488,23 @@ button { font: inherit; color: inherit; }
 .controls .lil-gui .controller.disabled { opacity: 1; pointer-events: auto !important; }
 .controls .lil-gui .controller.disabled .name { color: var(--ink-3); }
 .controls .lil-gui .controller.disabled .widget { opacity: 0.35; pointer-events: none; }
+/* A lock on a row: Surprise me and the dice keep its value. Dim until the row is pointed at, gilt and closed when set. */
+.controls .lil-gui .controller .lock {
+  flex: 0 0 22px; width: 22px; height: var(--widget-height); margin-left: 2px; padding: 0; border: 0; background: none; color: var(--ink-3); opacity: 0.35; cursor: pointer; border-radius: 3px;
+}
+.controls .lil-gui .controller .lock svg { display: block; margin: auto; overflow: visible; }
+.controls .lil-gui .controller:hover .lock, .controls .lil-gui .controller .lock:focus-visible, .controls .lil-gui .controller.locked .lock { opacity: 1; }
+.controls .lil-gui .controller.locked .lock { color: var(--gilt); }
+.controls .lil-gui .controller:not(.locked) .lock .shackle { transform: translateX(2.5px) rotate(-25deg); transform-origin: 8.5px 5.5px; }   /* an open shackle */
+.controls .lil-gui .controller.locked .name { text-decoration: underline dotted var(--gilt); text-underline-offset: 3px; }
+.controls .lil-gui .controller.nolock { padding-right: calc(var(--padding) + 24px); }   /* never rolled: no lock, the widgets stay in line */
+/* The dice of a group, at the end of its title and sticking with it. */
+.controls .lil-gui .lil-gui.diced > .title { padding-right: 36px; }
+.controls .lil-gui .dice {
+  display: block; position: sticky; top: 0; z-index: 2; width: 28px; height: 32px; margin: -32px 6px 0 auto; padding: 0; border: 0; background: none; color: var(--ink-3); cursor: pointer; border-radius: 3px;
+}
+.controls .lil-gui .dice svg { display: block; margin: auto; }
+.controls .lil-gui .dice:hover, .controls .lil-gui .dice:focus-visible { color: var(--gilt); background: none; }
 .controls .lil-gui .controller .name { width: var(--name-width); white-space: normal; overflow-wrap: anywhere; line-height: 1.25; padding-right: 6px; }
 .controls .lil-gui .controller.function .name { text-align: left; padding: 0 8px; }
 .controls .lil-gui .slider { --slider-color: var(--gilt); }
@@ -521,6 +538,7 @@ button { font: inherit; color: inherit; }
 .qmenu {
   position: absolute; z-index: 3; right: 10px; top: 45px; min-width: 190px; display: grid;
   background: var(--panel-solid); border: 1px solid var(--line); border-radius: 3px; padding: 4px;
+  max-height: calc(100% - 53px); overflow-y: auto; overscroll-behavior: contain;   /* a short panel: the list scrolls, nothing is cut off */
 }
 .qmenu[hidden], .qmenu [hidden] { display: none; }
 .qmenu > div { display: grid; gap: 4px; }
@@ -545,6 +563,10 @@ button { font: inherit; color: inherit; }
   .controls .lil-gui { --widget-height: 30px; --font-size: 13px; --input-font-size: 16px; }
   .controls .lil-gui .controller { min-height: 32px; }
   .controls .lil-gui .lil-gui > .title { height: 40px; line-height: 40px; }
+  .controls .lil-gui .dice { height: 40px; margin-top: -40px; width: 40px; margin-right: 2px; }
+  .controls .lil-gui .lil-gui.diced > .title { padding-right: 44px; }
+  .controls .lil-gui .controller .lock { flex-basis: 32px; width: 32px; opacity: 0.6; }
+  .controls .lil-gui .controller.nolock { padding-right: calc(var(--padding) + 34px); }
   .qbar button, .qmenu .qitems button, .qmenu .qrow button { height: 40px; }
   .qbar .ico { width: 38px; }
   .qbar { gap: 4px; padding-left: 8px; padding-right: 8px; }   /* the wider icon buttons leave the one button that gives way its whole label */
@@ -731,7 +753,7 @@ const EN = {
   "qbar.simple": "Simple",
   "qbar.all": "All",
   "qbar.surprise": "Surprise me",
-  "qbar.surprise.title": "Random shape and lustre (Shift: lustre only)",
+  "qbar.surprise.title": "A new piece, as far and as wide as set under Surprise me (Shift: keeps the shape)",
   "qbar.undo": "Undo",
   "qbar.undo.title": "Undo (Ctrl+Z)",
   "qbar.redo": "Redo",
@@ -744,6 +766,37 @@ const EN = {
   "paste.apply": "Apply",
   "gui.title": "Parameters",
   "gui.changed": "{n} changed",
+  "gui.locked": "{n} locked",
+  "grp.Surprise": "Surprise me",
+  "sur.wild": "Wildness",
+  "sur.wild.help": "How far from the catalogue a new piece may stray: close at 0, free shapes and one-off lustres at 1.",
+  "sur.form": "Shape",
+  "sur.form.help": "Surprise me makes a new profile: height, radii, wall.",
+  "sur.sculpt": "Sculpting and relief",
+  "sur.sculpt.help": "New lobes, twist, relief, collar rings and rim waves.",
+  "sur.handles": "Handles and lid",
+  "sur.handles.help": "Handles and a lid may come, go or change.",
+  "sur.glaze": "Glaze surface",
+  "sur.glaze.help": "New gloss, runs, crackle, wear, clay colour and the bare foot.",
+  "sur.lustre": "Lustre and firing",
+  "sur.lustre.help": "A new lustre: paste, kiln schedule, flame marks and glaze colour.",
+  "sur.deco": "Decoration",
+  "sur.deco.help": "A new painted pattern, or none.",
+  "sur.stage": "Stage and light",
+  "sur.stage.help": "Also rolls the room: light, backdrop, plinth, lens, viewing side. Off, the studio stays as it is.",
+  "sur.summary": "{pct} % · {n} of 7",
+  "lock.off": "Lock {name}: Surprise me will keep it",
+  "lock.on": "{name} is locked. Unlock",
+  "dice.title": "New random values for {group}",
+  "toast.locked": "{n} locked. Surprise me keeps what is locked.",
+  "toast.unlocked": "All locks released.",
+  "toast.allLocked": "Everything here is locked.",
+  "toast.noScope": "Nothing to change: switch on a scope under Surprise me.",
+  "toast.newFree": "A new piece, off the catalogue.",
+  "toast.newPart": "Part of the piece, rolled again.",
+  "toast.newRoom": "The studio, rearranged.",
+  "toast.rolledGroup": "New values: {group}.",
+  "toast.noRoom": "Nothing came up that would change this piece.",
   "help.idle": "Fine-tune the piece here. Drag the vessel to turn it. Every change can be undone.",
   "help.idle.fine": " Double-click a name to put it back.",
   "help.exposing": "Exposing",
@@ -781,10 +834,18 @@ const HU = {
 "film.layer":"Lüszterréteg","film.opaque":"átlátszatlan","film.passes":"áteresztés: {pct}","film.cover":"Fedőréteg","film.fill":"Fémtartalom, térf.%","film.saturated":"telített","film.radius":"Kolloidsugár","film.peak":"Csúcs, szemből",
 "slate.untitled":"Egyedi égetés","slate.variant":"{lustre}-változat","slate.thrown":"Korongozott edény","slate.height":"{form}, m.: {h} cm","slate.fired":"{temp} °C, {soak} perc redukcióban",
 "chart.wavelength":"Hullámhossz","chart.aria":"A kiégett réteg fényvisszaverése 400 és 700 nanométer között, 0, 45 és 70 fokos nézőszögnél",
-"qbar.aria":"Tervezőeszközök","qbar.mode.aria":"Hány vezérlő látsszon","qbar.simple":"Egyszerű","qbar.all":"Mind","qbar.surprise":"Lepj meg!","qbar.surprise.title":"Véletlen forma és lüszter (Shift: csak a lüszter)","qbar.undo":"Visszavonás","qbar.undo.title":"Visszavonás (Ctrl+Z)","qbar.redo":"Mégis","qbar.redo.title":"Mégis (Ctrl+Shift+Z)","qbar.more":"További műveletek",
+"qbar.aria":"Tervezőeszközök","qbar.mode.aria":"Hány vezérlő látsszon","qbar.simple":"Egyszerű","qbar.all":"Mind","qbar.surprise":"Lepj meg!","qbar.surprise.title":"Új darab a „Lepj meg!” csoport beállításai szerint (Shift: a forma marad)","qbar.undo":"Visszavonás","qbar.undo.title":"Visszavonás (Ctrl+Z)","qbar.redo":"Mégis","qbar.redo.title":"Mégis (Ctrl+Shift+Z)","qbar.more":"További műveletek",
 "menu.follow.title":"Amíg egy vezérlőt állítasz, a nézet a darab érintett részére megy",
 "paste.aria":"Ide illeszd be a paraméterek JSON-ját","paste.placeholder":"Ide illeszd be a kimásolt paramétereket","paste.cancel":"Mégse","paste.apply":"Alkalmaz",
-"gui.title":"Paraméterek","gui.changed":"{n} módosítva",
+"gui.title":"Paraméterek","gui.changed":"{n} módosítva","gui.locked":"{n} zárolva",
+"grp.Surprise":"Lepj meg!","sur.wild":"Merészség","sur.wild.help":"Mennyire térhet el az új darab a katalógustól: 0-nál alig, 1-nél szabad formák és egyedi lüszterek.",
+"sur.form":"Forma","sur.form.help":"A „Lepj meg!” új profilt ad: magasság, sugarak, falvastagság.","sur.sculpt":"Plasztika és dombormű","sur.sculpt.help":"Új gerezdek, csavarás, domborminta, gyűrűk és peremhullámok.",
+"sur.handles":"Fülek és fedő","sur.handles.help":"Fülek és fedő jöhetnek, mehetnek vagy változhatnak.","sur.glaze":"Mázfelület","sur.glaze.help":"Új fényesség, megfolyások, repedezés, kopás, agyagszín és a mázatlan talp.",
+"sur.lustre":"Lüszter és égetés","sur.lustre.help":"Új lüszter: paszta, égetési görbe, lángnyomok és mázszín.","sur.deco":"Díszítés","sur.deco.help":"Új festett minta, vagy semmi.",
+"sur.stage":"Színpad és fény","sur.stage.help":"A műtermet is váltja: fény, háttér, talapzat, objektív, nézet. Kikapcsolva a műterem marad.","sur.summary":"{pct} % · {n} / 7",
+"lock.off":"{name} zárolása: a „Lepj meg!” megtartja","lock.on":"{name} zárolva. Feloldás","dice.title":"Új véletlen értékek: {group}",
+"toast.locked":"{n} zárolva. A „Lepj meg!” megtartja, ami zárolva van.","toast.unlocked":"Minden zár feloldva.","toast.allLocked":"Itt minden zárolva van.",
+"toast.noScope":"Nincs mit változtatni: kapcsolj be egy területet a „Lepj meg!” csoportban.","toast.newFree":"Új darab, a katalóguson kívül.","toast.newPart":"A darab egy része újragurítva.","toast.newRoom":"Átrendezett műterem.","toast.rolledGroup":"Új értékek: {group}.","toast.noRoom":"Semmi sem jött ki, ami változtatna a darabon.",
 "help.idle":"Itt finomíthatsz a darabon. Húzással forgathatod. Minden változtatás visszavonható.","help.idle.fine":" Ha duplán kattintasz egy névre, visszaáll az értéke.","help.exposing":"Exponálás","help.exposing.text":"Lencseminták gyűjtése a mentendő képhez. Az Esc megszakítja.","help.preset":"alapérték: {v}","help.on":"be","help.off":"ki","help.ofHeight":"a magasság {pct}%-a","help.restore":"Visszaállítás",
 "more.fewer":"Kevesebb vezérlő","more.more":"Még {n} vezérlő a „Mind” nézetben",
 "toast.newPiece":"Új darab: {form}, {lustre} lüszter.","toast.newFiring":"Új égetés: {lustre} lüszter.","toast.copied":"Paraméterek kimásolva. A visszaállításhoz illeszd be őket ezen az oldalon.","toast.copyBlocked":"Itt a másolás le van tiltva. Másold ki a szöveget a mezőből.","toast.saved":"A kép elmentve.","toast.exposing":"A kép exponálása…","toast.cancelled":"Az exponálás megszakítva.","toast.reset":"Vissza a nyitó darabhoz.","toast.restored":"{n} paraméter visszaállítva.","toast.notSet":"Ez nem Eozin-paraméterkészlet.","toast.shapeRestored":"A forma visszaállítva.","toast.lustreRestored":"A lüszter visszaállítva.","toast.applied":"{name} beállítva.",
@@ -845,7 +906,7 @@ const HU = {
 "form.baluster":"Baluszter","form.bottle":"Palack","form.gourd":"Lopótök","form.tulip":"Tulipán","form.amphora":"Amfora","form.ginger":"Gyömbértartó","form.urn":"Fedeles urna","form.bowl":"Tál",
 "lustre.zold":"Zöld","lustre.zold.note":"smaragdzöld","lustre.hajnal":"Hajnal","lustre.hajnal.note":"rézvörös","lustre.labrador":"Labrador","lustre.labrador.note":"mélykék","lustre.ibolya":"Ibolya","lustre.ibolya.note":"kékeslila","lustre.bronz":"Bronz","lustre.bronz.note":"meleg bronz","lustre.gyongyhaz":"Gyöngyház","lustre.gyongyhaz.note":"irizáló fehér",
 "shot.hero":"Főnézet","shot.profile":"Profil","shot.lip":"Perem","shot.foot":"Talp","shot.detail":"Részlet",
-"menu.Copy parameters":"Paraméterek másolása","menu.Paste parameters…":"Paraméterek beillesztése…","menu.Save PNG":"Mentés PNG-ként","menu.Follow edits":"A nézet követi a szerkesztést","menu.Restore shape":"Forma visszaállítása","menu.Restore lustre":"Lüszter visszaállítása","menu.Reset everything":"Minden visszaállítása",
+"menu.Copy parameters":"Paraméterek másolása","menu.Paste parameters…":"Paraméterek beillesztése…","menu.Save PNG":"Mentés PNG-ként","menu.Follow edits":"A nézet követi a szerkesztést","menu.Lock all changed":"Minden módosított zárolása","menu.Unlock all":"Minden zár feloldása","menu.Restore shape":"Forma visszaállítása","menu.Restore lustre":"Lüszter visszaállítása","menu.Reset everything":"Minden visszaállítása",
 };
 const LANGS = ['en', 'hu'];
 const urlQ = new URLSearchParams(location.search);
@@ -3708,7 +3769,7 @@ const state = {
   maxR: 10, reach: 0, rise: 0, keyEl: 0.8, optics: null, basisN: 0, vertices: 0,
   frames: 0, framed: false, posed: false, userMoved: false, usable: 1, span: Infinity,           // camera fit
   scale: 1, fx: 0, envLod: 0, lod: 0, frame: 0, ms: 0, px: 0, n: 0, tuned: 0, settle: 8, raised: -Infinity, hold: 8000, drew: false, live: false, quality: '',   // adaptive quality
-  ctx: null, lidTop: 0, present: false, capture: null, crop: null, frameW: 0, freeW: 0, movedAt: 0, shotEv: 0,           // lens, presentation, exposure
+  ctx: null, lidTop: 0, view: null, present: false, capture: null, crop: null, frameW: 0, freeW: 0, movedAt: 0, shotEv: 0,           // lens, presentation, exposure
 };
 const LEVELS = Object.keys(DETAIL);                  // coarse to fine
 const meshLevel = () => LEVELS[Math.max(0, LEVELS.indexOf(P.detail) - state.lod)];   // the chosen detail, less what the adaptive logic has given up
@@ -3875,9 +3936,9 @@ function camStep(now) {
   if (t >= 1) { camLeg = null; controls.update(); controls.update(); }      // twice: nothing is left for the damping to drift on
   invalidate();
 }
-function frameCamera() {                             // the fitted view, at once
+function frameCamera(view) {                         // the fitted view, at once
   camLeg = null; setLens();
-  const p = fitPose();
+  const p = fitPose(state, null, view);
   if (p.span !== state.span) { state.span = p.span; layoutDirty = true; }
   state.posed = true;
   controls.target.copy(p.q);
@@ -4884,6 +4945,80 @@ const LUSTRE_KEYS = presetKeys('lustre').filter((k) => !['spectral', 'dust', 'we
 const FORM_KEYS = presetKeys('form');
 const presetState = (keys, set) => ({ ...Object.fromEntries(keys.map((k) => [k, DEFAULTS[k]])), ...set });
 
+// --- Surprise me, generator 2: what the dice may do with each parameter. One entry per parameter, so a control added
+// later cannot be left out unnoticed (the page warns about a key without an entry). An entry is one of
+//   num(scope, lo, hi, j0, j1, p, c)  a number: its centre c (a value, or where the rule takes it from: the blend of two
+//                                     shapes, the lustre family L, the fired film F) pulled toward a free draw over
+//                                     lo…hi by wildness^p, and jittered by ±(hi − lo) · lerp(j0, j1, wildness);
+//   by(scope, rule)                   written by a rule of makePiece2 (a choice, a count, a colour, a dependent value);
+//   fixed(reason)                     never randomised.
+// Scopes are the switches of the Surprise me folder; their order is the bit order of a #p2- link.
+const SCOPES = ['form', 'sculpt', 'handles', 'glaze', 'lustre', 'deco', 'stage'];
+const SCOPE_DEFAULT = 63, WILD_DEFAULT = 0.5;
+const RANGES = (() => {
+  const num = (s, lo, hi, j0, j1, p = 2, c) => ({ s, lo, hi, j0, j1, p, c });
+  const by = (s, rule) => ({ s, by: rule });
+  const fixed = (reason) => ({ fixed: reason });
+  const quality = fixed('rendering quality and performance: the device and the visitor decide'), feature = fixed('a rendering feature with a performance price');
+  const lens = fixed('the lens belongs to the views, the focus follows the hand'), grade = fixed('the finish of the picture: taste, and no variety between pieces');
+  const picture = fixed('calibration of the picture: the films are tested against it'), model = fixed('a strength of the lighting model, not a property of a piece or a room');
+  const off = fixed('off by default; on, it changes every piece the same way');
+  const T = {
+    // shape: two catalogue shapes blended, varied together, then repaired against each other (profile)
+    height: by('form', 'profile'), footRadius: by('form', 'profile'), footHeight: by('form', 'profile'), waistRadius: by('form', 'profile'),
+    bellyRadius: by('form', 'profile'), bellyPos: by('form', 'profile'), shoulderRadius: by('form', 'profile'), shoulderPos: by('form', 'profile'),
+    neckRadius: by('form', 'profile'), neckPos: by('form', 'profile'), lipRadius: by('form', 'profile'),
+    lipBead: num('form', 0, 0.3, 0.05, 0.2, 2, 'blend'), wall: num('form', 0.3, 0.7, 0.05, 0.25, 3, 0.45), softness: num('form', 0.25, 0.8, 0.05, 0.25, 2, 0.5),
+    handmade: num('form', 0.1, 0.65, 0.25, 0.4, 2, 0.35), squash: by('form', 'sometimes'), footTurn: num('form', 0.3, 0.9, 0.1, 0.3, 2, 0.6),
+    // sculpting: the shape's own, or a style drawn afresh; a relief cell never smaller than it can be modelled in
+    lobes: by('sculpt', 'style'), lobeDepth: by('sculpt', 'lobes'), lobeProfile: by('sculpt', 'lobes'), lobeStart: by('sculpt', 'lobes'), lobeEnd: by('sculpt', 'lobes'),
+    twist: by('sculpt', 'twist'), relief: by('sculpt', 'style'), reliefHeight: by('sculpt', 'relief'), reliefCount: by('sculpt', 'relief'), reliefRows: by('sculpt', 'relief'),
+    reliefStart: by('sculpt', 'relief'), reliefEnd: by('sculpt', 'relief'), rings: by('sculpt', 'rings'), ringHeight: by('sculpt', 'rings'), ringPos: by('sculpt', 'rings'),
+    rimWaves: by('sculpt', 'rim'), rimHeight: by('sculpt', 'rim'), rimFrom: by('sculpt', 'rim'),
+    // handles on closed shapes that are tall enough, a lid on a level rim it can cover
+    handles: by('handles', 'handles'), handleLow: by('handles', 'handles'), handleHigh: by('handles', 'handles'), handleReach: by('handles', 'handles'), handleArch: by('handles', 'handles'),
+    handleThick: by('handles', 'handles'), handleFlat: by('handles', 'handles'), handleBlend: by('handles', 'handles'), handleTaper: by('handles', 'handles'), handleRibs: by('handles', 'handles'),
+    lid: by('handles', 'lid'), lidRise: by('handles', 'lid'), lidOverhang: by('handles', 'lid'), finial: by('handles', 'lid'), finialSize: by('handles', 'lid'),
+    // glaze surface
+    bodyColor: by('glaze', 'colour'), glazeThick: num('glaze', 0.7, 1.5, 0.06, 0.3, 2, 1), pooling: num('glaze', 0.3, 1.2, 0.2, 0.4, 2, 'F'), breaking: num('glaze', 0.15, 0.9, 0.2, 0.4, 2, 'F'),
+    breakTone: by('glaze', 'colour'), runs: num('glaze', 0.1, 0.8, 0.25, 0.45, 2, 0.4), runScale: num('glaze', 0.3, 2.6, 0.04, 0.2, 2, 'F'), sag: num('glaze', 0.1, 0.6, 0.15, 0.4, 2, 0.3),
+    gloss: num('glaze', 0.72, 1, 0.08, 0.3, 3, 'F'), peel: num('glaze', 0.1, 0.6, 0.15, 0.4, 2, 0.3), wave: num('glaze', 0.1, 0.6, 0.15, 0.4, 2, 0.3), crackle: by('glaze', 'crackle'),
+    crackleSize: num('glaze', 0.5, 1.8, 0.15, 0.4, 2, 0.9), crackleStain: num('glaze', 0.2, 0.8, 0.15, 0.4, 2, 0.5), pinholes: num('glaze', 0, 0.35, 0.15, 0.4, 2, 0.12),
+    dust: num('glaze', 0, 0.35, 0.15, 0.4, 2, 0.15), wear: num('glaze', 0.05, 0.5, 0.15, 0.4, 2, 0.25), grit: num('glaze', 0.3, 0.9, 0.15, 0.4, 2, 0.6),
+    glazeLine: num('glaze', 0.3, 1.2, 0.08, 0.3, 2, 0.55), dripAmp: num('glaze', 0.2, 1.5, 0.1, 0.35, 2, 0.6), dripCount: by('glaze', 'drips'),
+    // lustre: the chemistry (glaze colour, paste, kiln, film trims) is drawn together and tested as a film; the rest follows it
+    glazeColor: by('lustre', 'colour'), cu: num('lustre', 0, 1, 0.05, 0.12, 3, 'L'), ag: num('lustre', 0, 0.8, 0.0625, 0.12, 3, 'L'), au: by('lustre', 'sometimes'),
+    bi: num('lustre', 0.2, 1, 0.0875, 0.15, 3, 'L'), coat: num('lustre', 0.45, 1.2, 0, 0.15, 3, 'L'), coverage: by('lustre', 'sometimes'), innerLustre: num('lustre', 0.3, 0.85, 0.1, 0.3, 2, 0.55),
+    kilnTemp: num('lustre', 560, 680, 0.067, 0.15, 3, 'L'), soak: num('lustre', 15, 80, 0.09, 0.2, 3, 'L'), reduction: num('lustre', 0.5, 1, 0.08, 0.15, 3, 'L'), reox: num('lustre', 0.1, 1, 0.055, 0.15, 3, 'L'),
+    activation: num('lustre', 92, 110, 0, 0.2, 3, 'L'), flash: num('lustre', 0.25, 0.75, 0.15, 0.3, 2, 'F'), flashScale: num('lustre', 7, 24, 0.3, 0.5, 2, 14), flashWarp: num('lustre', 0.4, 1.7, 0.4, 0.5, 2, 1),
+    flashStretch: num('lustre', 0.8, 4.5, 0.3, 0.5, 2, 2), flameBias: num('lustre', 0.05, 0.6, 0.3, 0.5, 2, 0.25), flameDir: by('lustre', 'any'), seed: by('lustre', 'any'),
+    front: num('lustre', 0.1, 1, 0.1, 0.3, 2, 'F'), halo: num('lustre', 0.1, 1, 0.1, 0.3, 2, 'F'), streak: num('lustre', 0.1, 1, 0.1, 0.3, 2, 'F'), mottle: num('lustre', 0.15, 0.9, 0.12, 0.3, 2, 'F'),
+    specks: num('lustre', 0.05, 0.6, 0.15, 0.3, 2, 'F'),
+    glassIndex: num('lustre', 1.5, 1.62, 0, 0.2, 3, 'L'), dispersion: num('lustre', 0.2, 0.7, 0.05, 0.3, 2, 'L'), thickVar: by('lustre', 'even'), thickScale: num('lustre', 4, 12, 0.25, 0.5, 2, 7),
+    lustrePool: num('lustre', -0.2, 0.7, 0.08, 0.3, 2, 0.35), mosaic: num('lustre', 0, 0.7, 0.08, 0.3, 2, 'F'), trimThick: num('lustre', 0.6, 2.2, 0.045, 0.1, 3, 'L'),
+    trimFill: num('lustre', 0.6, 1.3, 0, 0.1, 3, 'L'), trimCover: num('lustre', 0.7, 1.6, 0, 0.08, 3, 'L'), scatter: num('lustre', 0.7, 1, 0.05, 0.3, 2, 1),
+    // painted decoration: follows the relief on the piece
+    deco: by('deco', 'pattern'), decoCount: by('deco', 'pattern'), decoRows: by('deco', 'pattern'), decoSoft: num('deco', 0.15, 1, 0.08, 0.3, 2, 'F'),
+    decoThick: by('deco', 'around'), decoFill: by('deco', 'around'), decoSilver: by('deco', 'sometimes'), decoMatte: by('deco', 'sometimes'),
+    // stage and light: only when asked for
+    env: by('stage', 'choice'), envRot: by('stage', 'any'), envInt: num('stage', 0.8, 1.3, 0.1, 0.4, 2, 1), keyInt: num('stage', 1.8, 3.4, 0.15, 0.4, 2, 2.6),
+    keyLock: by('stage', 'key'), keyAz: by('stage', 'key'), keyEl: by('stage', 'key'), keySoft: num('stage', 1, 3.5, 0.15, 0.4, 2, 2), keySpec: off,
+    backdrop: by('stage', 'choice'), backdropTone: num('stage', 0.04, 0.3, 0.15, 0.4, 2, 0.12), pool: num('stage', 0.3, 0.9, 0.15, 0.4, 2, 0.6),
+    plinth: fixed('a piece without its plinth is another layout of the page, not a variation'), plinthMat: by('stage', 'choice'), plinthGloss: num('stage', 0.1, 0.7, 0.2, 0.45, 2, 0.35),
+    floorGloss: off, occlusion: model, bounce: model,
+    focal: by('stage', 'choice'), fstop: lens, dof: lens, focusLevel: lens, stillSamples: quality, look: by('stage', 'choice'), grain: grade, chroma: grade, halation: grade,
+    exposure: picture, tone: picture, bloom: grade, vignette: grade, frame: fixed('the format of the presentation'),
+    spin: fixed('a preference about motion'), roomRefl: feature, reflDetail: quality, selfRefl: feature, detail: quality, pixelRatio: quality, adaptive: quality, upscale: quality,
+    sharpen: quality, spectral: quality,
+  };
+  for (const k in DEFAULTS) if (!T[k]) console.warn('RANGES: no entry for', k);          // a parameter the dice do not know: give it a range, a rule or a reason
+  for (const k in T) { if (!(k in DEFAULTS)) console.warn('RANGES: unknown key', k); if (T[k].s && !SCOPES.includes(T[k].s)) console.warn('RANGES: unknown scope', k); }
+  return T;
+})();
+const SCOPE_KEYS = Object.fromEntries(SCOPES.map((s) => [s, Object.keys(RANGES).filter((k) => RANGES[k].s === s)]));
+const PIECE_KEYS = SCOPES.slice(0, 6).flatMap((s) => SCOPE_KEYS[s]);                   // what makes the piece; the stage is the seventh scope
+const keysOfBits = (bits) => new Set(SCOPES.flatMap((s, i) => (bits >> i & 1 ? SCOPE_KEYS[s] : [])));
+
 // Controls that can do nothing in the current state are greyed out, so a dead slider is not taken for a broken one.
 // The third entry is what the help strip says about such a row.
 const reliefOn = () => P.relief !== 'None' && Math.abs(P.reliefHeight) > 1e-4;
@@ -4919,11 +5054,11 @@ const DEPENDS = [
 
 const SCHEMA = {}, ctl = {}, why = {}, said = {}, folders = [], keyOf = new WeakMap();
 const BASE = { ...START };                           // what the "changed" dots compare against: the presets last applied
-let helpKey = null, helpHtml = '', markDirty = true, hiddenChanged = 0, tintDirty = true, tintAt = 0, histTimer = 0;
+let helpKey = null, helpHtml = '', markDirty = true, hiddenChanged = 0, hiddenLocked = 0, tintDirty = true, tintAt = 0, histTimer = 0;
 // The parameter schema stands on its own: presets, paste, undo and the hash work whether or not the configurator exists.
 const embedded = !!document.querySelector('meta[name="eozin:embedded"]');
 const controlsEl = $('#controls');
-const MENU = ['Copy parameters', 'Paste parameters…', 'Save PNG', 'Follow edits', 'Restore shape', 'Restore lustre', 'Reset everything'].filter((n) => !(embedded && n === 'Save PNG'));
+const MENU = ['Copy parameters', 'Paste parameters…', 'Save PNG', 'Follow edits', 'Lock all changed', 'Unlock all', 'Restore shape', 'Restore lustre', 'Reset everything'].filter((n) => !(embedded && n === 'Save PNG'));
 for (const group of GUI_DEF) {
   EN['grp.' + group.title] = group.title;
   for (const it of group.items) {
@@ -4938,7 +5073,7 @@ for (const [keys, , reason] of DEPENDS) EN['dep.' + keys[0]] = reason;
 for (const [id, f] of Object.entries(FORMS)) EN['form.' + id] = f.name;
 for (const [id, l] of Object.entries(LUSTRES)) { EN['lustre.' + id] = l.name; EN[`lustre.${id}.note`] = l.note; }
 for (const [id, s] of Object.entries(SHOTS)) EN['shot.' + id] = s.name;
-for (const n of ['Copy parameters', 'Paste parameters…', 'Save PNG', 'Follow edits', 'Restore shape', 'Restore lustre', 'Reset everything']) EN['menu.' + n] = n;
+for (const n of ['Copy parameters', 'Paste parameters…', 'Save PNG', 'Follow edits', 'Lock all changed', 'Unlock all', 'Restore shape', 'Restore lustre', 'Reset everything']) EN['menu.' + n] = n;
 for (const k in HU) if (!(k in EN)) console.warn('Eozin words: no English for', k);
 for (const k in EN) if (!(k in HU)) console.warn('Eozin words: no Hungarian for', k);
 // The display face (Federo) has no ő or ű: what is set in it must do without them.
@@ -4958,6 +5093,12 @@ function syncControls() {
     if (said[k] === text) continue;
     said[k] = text;
     for (const el of ctl[k].domElement.querySelectorAll('input, select')) { if (text) el.setAttribute('aria-description', text); else el.removeAttribute('aria-description'); }
+  }
+  for (const k in surCtl) {
+    const text = say(`sur.${k}.help`);
+    if (said['sur.' + k] === text) continue;
+    said['sur.' + k] = text;
+    for (const el of surCtl[k].domElement.querySelectorAll('input')) el.setAttribute('aria-description', text);
   }
   markDirty = true;
   showHelp(helpKey);
@@ -5003,21 +5144,43 @@ function buildPanel() {
   // A wheel notch over a slider track would change its value whenever the list has no scrollbar: keep the wheel for scrolling.
   gui.domElement.addEventListener('wheel', (ev) => { if (ev.target.closest('.slider')) ev.stopPropagation(); }, { capture: true, passive: true });
   const small = window.matchMedia('(max-width: 720px)');
+  const oneAtATime = (folder) => folder.$title.addEventListener('click', () => {  // a phone: one folder at a time, its title brought to the top of the list
+    if (!small.matches || folder._closed) return;
+    for (const f of gui.folders) if (f !== folder) f.close();
+    setTimeout(() => { scroller.scrollTop += folder.domElement.getBoundingClientRect().top - scroller.getBoundingClientRect().top; }, reduceMotion.matches ? 0 : 320);   // once lil-gui's opening transition is through
+  });
+  // Surprise me: how far the dice may go and what they may touch. Not parameters of the piece: no part of presets, undo, links or Copy parameters.
+  recallScopes(); surFolder = gui.addFolder(say('grp.Surprise'));
+  surCtl.wild = surFolder.add(SUR, 'wild', 0, 1, 0.05);
+  for (const s of SCOPES) surCtl[s] = surFolder.add(SUR, s);
+  for (const k in surCtl) { surCtl[k].name(say('sur.' + k)).onChange(saveSur); keyOf.set(surCtl[k].domElement, 'sur.' + k); }
+  oneAtATime(surFolder); surFolder.close();
   for (const group of GUI_DEF) {
     const folder = gui.addFolder(say('grp.' + group.title));
     folders.push({ folder, group });
+    const diced = group.items.some((it) => RANGES[it.key]?.s);
+    if (diced) {                                     // the dice of the group: new values for its unlocked rows. Beside the title, not in it (the title is itself a button)
+      const dice = document.createElement('button');
+      dice.type = 'button'; dice.className = 'dice';
+      dice.innerHTML = '<svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><rect x="1.5" y="1.5" width="11" height="11" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.3"/><circle cx="4.6" cy="4.6" r="1.1" fill="currentColor"/><circle cx="7" cy="7" r="1.1" fill="currentColor"/><circle cx="9.4" cy="9.4" r="1.1" fill="currentColor"/></svg>';
+      dice.addEventListener('click', () => roll({ keys: group.items.map((i) => i.key), group: group.title }));
+      folder.$title.after(dice); folder.domElement.classList.add('diced'); diceEls.push({ dice, group });
+    }
     for (const it of group.items) {
       const kind = SCHEMA[it.key].kind;
       const c = it.color ? folder.addColor(P, it.key) : it.options ? folder.add(P, it.key, it.options) : it.min === undefined ? folder.add(P, it.key) : folder.add(P, it.key, it.min, it.max, it.step);
       c.name(say('p.' + it.key)).onChange(() => { changed(kind); if (group.preset) rematch(group.preset); focusOn(it.key); if (hold.id && (it.key === 'focal' || it.key === 'fstop' || it.key === 'focusLevel')) releaseShot(); else if (it.key === 'focusLevel') lens.aim = null; });
       ctl[it.key] = c;
       keyOf.set(c.domElement, it.key);
+      if (RANGES[it.key]?.s) {                       // a lock: Surprise me and the dice keep this value
+        const lb = document.createElement('button');
+        lb.type = 'button'; lb.className = 'lock';
+        lb.innerHTML = '<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path class="shackle" d="M3.5 5.5V4a2.5 2.5 0 0 1 5 0v1.5" fill="none" stroke="currentColor" stroke-width="1.3"/><rect x="2.5" y="5.5" width="7" height="5" rx="1" fill="currentColor"/></svg>';
+        lb.addEventListener('click', () => setLock(it.key, !locks.has(it.key)));
+        c.domElement.append(lb); lockEls[it.key] = lb;
+      } else if (diced) c.domElement.classList.add('nolock');
     }
-    folder.$title.addEventListener('click', () => {  // a phone: one folder at a time, its title brought to the top of the list
-      if (!small.matches || folder._closed) return;
-      for (const f of gui.folders) if (f !== folder) f.close();
-      setTimeout(() => { scroller.scrollTop += folder.domElement.getBoundingClientRect().top - scroller.getBoundingClientRect().top; }, reduceMotion.matches ? 0 : 320);   // once lil-gui's opening transition is through
-    });
+    oneAtATime(folder);
   }
   for (const { folder, group } of folders) folder.open((small.matches ? ['Lustre metals'] : ['Shape', 'Lustre metals']).includes(group.title));   // by the group's own title, not its translation
   gui.onFinishChange(() => { commit(); focusEnd(); }); // a slider released, a number entered, a choice made
@@ -5034,7 +5197,7 @@ function buildPanel() {
   });
   gui.domElement.addEventListener('dblclick', (ev) => {
     const row = ev.target.closest('.controller');
-    if (row && keyOf.has(row) && (ev.target === row || ev.target.closest('.name'))) restoreKeys([keyOf.get(row)]);
+    if (row && ctl[keyOf.get(row)] && (ev.target === row || ev.target.closest('.name'))) restoreKeys([keyOf.get(row)]);
   });
   // Number fields: PageUp / PageDown move ten steps, Home / End go to the ends of the range.
   gui.domElement.addEventListener('keydown', (ev) => {
@@ -5079,6 +5242,10 @@ function relabelPanel() {                            // every word of the panel,
   if (!gui) return;
   localise(controlsEl);
   for (const { folder, group } of folders) folder.title(say('grp.' + group.title));
+  surFolder.title(say('grp.Surprise'));
+  for (const k in surCtl) surCtl[k].name(say('sur.' + k));
+  for (const k in lockEls) paintLock(k);
+  for (const { dice, group } of diceEls) { const text = say('dice.title', { group: say('grp.' + group.title) }); dice.setAttribute('aria-label', text); dice.title = text; }
   for (const k in ctl) {
     const c = ctl[k], it = SCHEMA[k];
     c.name(say('p.' + k));
@@ -5153,7 +5320,7 @@ const PRESET = { lustre: { keys: LUSTRE_KEYS, table: {} }, form: { keys: FORM_KE
 for (const [id, preset] of Object.entries(LUSTRES)) PRESET.lustre.table[id] = normState(presetState(LUSTRE_KEYS, preset.set));
 for (const [id, form] of Object.entries(FORMS)) PRESET.form.table[id] = normState(presetState(FORM_KEYS, form.set));
 const chipEls = { lustre: {}, form: {} };
-let pieceHash = '';                                  // 'piece-<seed>' while a Surprise piece is on show untouched
+let pieceHash = '';                                  // 'p2-<seed>-<wildness>-<scopes>' (or 'piece-<seed>', the first generator) while a Surprise piece is on show untouched
 function setHash(id) {                               // the link names the lustre on show, a Surprise piece by its seed, or nothing
   id = id || pieceHash;
   if (location.hash === (id ? '#' + id : '')) return;
@@ -5168,14 +5335,16 @@ function markPreset(id, group) {
 function rematch(group) {                            // no group: both; returns the matching preset id, or null
   if (!group) return { lustre: rematch('lustre'), form: rematch('form') };
   const { keys, table } = PRESET[group];
+  const had = pieceHash;
   pieceHash = '';                                    // whatever asks what is on show has changed it: no longer the linked piece
   const id = Object.keys(table).find((name) => keys.every((k) => P[k] === table[name][k])) || null;
   markPreset(id, group);
   if (group === 'lustre') setHash(id);
+  else if (had && location.hash === '#' + had) setHash(Object.keys(chipEls.lustre || {}).find((k) => chipEls.lustre[k].getAttribute('aria-pressed') === 'true') || null);   // a reshaped piece is not the one its link names
   markDirty = true;
   return id;
 }
-const adoptBase = () => { for (const k of FORM_KEYS) BASE[k] = P[k]; for (const k of LUSTRE_KEYS) BASE[k] = P[k]; };   // a pasted or random piece is its own starting point
+const adoptBase = (keys = [...FORM_KEYS, ...LUSTRE_KEYS]) => { for (const k of keys) BASE[k] = P[k]; };   // a pasted or random piece is its own starting point
 
 // --- undo history: whole parameter states as JSON; the camera is not part of it
 // and the baseline of the 'changed' marks travels with each state, so undoing a random or pasted piece brings its presets back too
@@ -5257,6 +5426,11 @@ function markChanged() {
     folder.$title.dataset.changed = n ? say('gui.changed', { n }) : '';
   }
   for (const [name, keys] of [['Restore shape', FORM_KEYS], ['Restore lustre', LUSTRE_KEYS]]) $(`#qmenu [data-run="${name}"]`).disabled = keys.every((k) => P[k] === BASE[k]);
+  hiddenLocked = 0;
+  for (const k of locks) if (ctl[k]._hidden) hiddenLocked++;
+  $('#qmenu [data-run="Lock all changed"]').disabled = !Object.keys(lockEls).some((k) => P[k] !== BASE[k] && !locks.has(k));
+  $('#qmenu [data-run="Unlock all"]').disabled = !locks.size;
+  surFolder.$title.dataset.changed = say('sur.summary', { pct: Math.round(SUR.wild * 100), n: SCOPES.filter((s) => SUR[s]).length });   // closed, the folder still says what the dice will do
   syncMore();
   showHelp(helpKey);
 }
@@ -5274,6 +5448,7 @@ function showHelp(key) {
   if (!gui) return;
   let html = idleHelp();
   if (state.capture) html = `<b>${say('help.exposing')}</b> <span class="rng">${Math.min(acc.n, state.capture.N)}/${state.capture.N}</span><br>${say('help.exposing.text')}`;
+  else if (key && key.startsWith('sur.')) html = `<b>${say(key)}</b>${key === 'sur.wild' ? ' <span class="rng">0–1</span>' : ''}<br>${say(key + '.help')}`;
   else if (key) {
     const it = SCHEMA[key], c = ctl[key], base = BASE[key];
     const range = (it.min !== undefined ? `${num(it.min)}–${num(it.max)} · ` : '') + say('help.preset', { v: base === true ? say('help.on') : base === false ? say('help.off') : optName(base) })
@@ -5289,7 +5464,7 @@ function showHelp(key) {
 function syncMore() {
   if (!gui) return;
   const hidden = Object.values(ctl).filter((c) => c._hidden).length;
-  moreLink.textContent = controlsEl.dataset.mode === 'all' ? say('more.fewer') : say('more.more', { n: hidden }) + (hiddenChanged ? ` · ${say('gui.changed', { n: hiddenChanged })}` : '');
+  moreLink.textContent = controlsEl.dataset.mode === 'all' ? say('more.fewer') : say('more.more', { n: hidden }) + (hiddenChanged ? ` · ${say('gui.changed', { n: hiddenChanged })}` : '') + (hiddenLocked ? ` · ${say('gui.locked', { n: hiddenLocked })}` : '');
 }
 function setMode(m) {
   if (!gui) { prefs.set('eozin:mode', m); return; }   // remembered for when the configurator is opened
@@ -5300,7 +5475,7 @@ function setMode(m) {
   $('#mode-all').setAttribute('aria-pressed', String(m === 'all'));
   controlsEl.dataset.mode = m;
   prefs.set('eozin:mode', m);
-  if (helpKey && ctl[helpKey]._hidden) showHelp(null);
+  if (helpKey && ctl[helpKey]?._hidden) showHelp(null);
   markDirty = tintDirty = true;
   syncMore();
 }
@@ -5385,7 +5560,331 @@ function makePiece(seed, lustreOnly = false) {
   if (lu.deco === 'Scales') { lu.decoCount = 14; lu.decoRows = 9; } else if (lu.deco === 'Bands') lu.decoRows = 5 + Math.floor(r() * 6);
   return { seed, form, family, look, params: { ...s, ...lu } };
 }
-let lastPiece = { form: 'baluster', family: 'zold' };
+// --- Surprise me, generator 2. A piece is a pure function of (seed, wildness, the keys it may write, the state the
+// other keys keep). Every draw has a stream of its own, hashed from the seed, the name of the draw and the attempt:
+// which other keys are rolled, kept or locked cannot move it, and a parameter added later takes a new name and moves
+// nothing. Numbers follow RANGES; the shape is repaired by clamping each value against the ones before it, and only
+// the lustre film is drawn again (seeded) until it is neither black, clipped nor dull. A change to any rule or number
+// here changes the piece a #p2- link names: it needs a new generator and a new link prefix. The first generator
+// (makePiece, above) stays as it was for #piece- links.
+const MOTIF2 = { ...MOTIF, Hammered: [0.14, 14, 7] };
+const BAND2 = { baluster: [0.07, 0.63], bottle: [0.05, 0.46], gourd: [0.06, 0.5], tulip: [0.1, 0.55], amphora: [0.1, 0.5], ginger: [0.1, 0.74], urn: [0.1, 0.5], bowl: [0.52, 0.9] };   // where a relief sits on each shape
+const RELIEF_FOR2 = { baluster: ['Leaves', 'Vines'], bottle: ['Scales', 'Spiral ribs'], gourd: ['Vines', 'Leaves'], tulip: ['Spiral ribs'], amphora: ['Spiral ribs', 'Leaves', 'Scales'],
+  ginger: ['Vines', 'Scales', 'Cabochons'], urn: ['Spiral ribs', 'Leaves'], bowl: ['Cabochons', 'Scales'] };
+const PROFILE = ['height', 'footRadius', 'footHeight', 'waistRadius', 'bellyRadius', 'bellyPos', 'shoulderRadius', 'shoulderPos', 'neckRadius', 'neckPos', 'lipRadius', 'lipBead'];
+const CHEM = ['glazeColor', 'cu', 'ag', 'au', 'bi', 'coat', 'kilnTemp', 'soak', 'reduction', 'reox', 'activation', 'glassIndex', 'dispersion', 'trimThick', 'trimFill', 'trimCover'];   // what decides the film: drawn and tested together
+const hash32 = (seed, tag, a = 0) => {
+  let h = (seed ^ 0x9E3779B9) >>> 0;
+  for (let i = 0; i < tag.length; i++) h = Math.imul(h ^ tag.charCodeAt(i), 0x01000193) >>> 0;
+  h = Math.imul(h ^ (a + 0x7F4A7C15), 0x85EBCA6B) >>> 0; h ^= h >>> 13; h = Math.imul(h, 0xC2B2AE35) >>> 0;
+  return (h ^ (h >>> 16)) >>> 0;
+};
+// Colour as hue, saturation, lightness and back, in plain arithmetic: part of the generator, so it does not lean on a library.
+const hexHsl = (hex) => {
+  const n = parseInt(hex.slice(1), 16), r = (n >> 16 & 255) / 255, g = (n >> 8 & 255) / 255, b = (n & 255) / 255, mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, d = mx - mn;
+  if (!d) return [0, 0, l];
+  const s = d / (l > 0.5 ? 2 - mx - mn : mx + mn), h = mx === r ? (g - b) / d + (g < b ? 6 : 0) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return [h / 6, s, l];
+};
+const hslHex = (h, s, l) => {
+  h = ((h % 1) + 1) % 1;
+  const q = l < 0.5 ? l * (1 + s) : l + s - l * s, p = 2 * l - q, f = (t) => { t = ((t % 1) + 1) % 1; return t < 1 / 6 ? p + (q - p) * 6 * t : t < 0.5 ? q : t < 2 / 3 ? p + (q - p) * (2 / 3 - t) * 6 : p; };
+  return '#' + [f(h + 1 / 3), f(h), f(h - 1 / 3)].map((v) => Math.round(clamp(v, 0, 1) * 255).toString(16).padStart(2, '0')).join('');
+};
+const filmLook2 = (s) => { const k = filmLook(s); k.mx = Math.max(...k.rgb); return k; };
+const hueOf = (c) => { const mx = Math.max(...c), mn = Math.min(...c), d = mx - mn; return !d ? 0 : (mx === c[0] ? ((c[1] - c[2]) / d + 6) % 6 : mx === c[1] ? (c[2] - c[0]) / d + 2 : (c[0] - c[1]) / d + 4) / 6; };   // of a film colour, in turns
+const lookOk = (k) => k.mx >= 0.13 && k.mx <= 0.6 && k.Y <= 0.32 && k.chroma >= 0.55;   // not black; not clipped or neon; not too light; not dull
+const familyLook2 = {};
+function makePiece2(seed, w, opts = {}) {
+  w = Math.round(clamp(w, 0, 1) * 20) / 20;                                   // in twentieths, as a link carries it
+  const base = opts.base || DEFAULTS, mask = opts.mask || null, can = (k) => (mask ? mask.has(k) : RANGES[k].s !== 'stage' || !!opts.stage);
+  const out = {}, cur = (k) => (k in out ? out[k] : base[k]);                // what a later draw sees: this roll's value, or the kept one
+  const put = (k, v) => { if (!can(k)) return; const it = SCHEMA[k]; out[k] = it.min !== undefined && typeof v === 'number' ? norm(it, v) : v; };   // on the control's own step: a later draw sees what the panel will show
+  let att = 0;                                                                // the attempt of the group being drawn (the lustre)
+  const S = (tag) => mulberry32(hash32(seed, tag, att)), U = (tag) => S(tag)(), sgn = (tag) => U(tag) * 2 - 1;
+  const N = (key, c, ww = w) => {
+    const g = RANGES[key], r = S(key), u1 = r(), u2 = r();
+    return clamp(lerp(c ?? g.c, g.lo + u2 * (g.hi - g.lo), Math.pow(ww, g.p)) + (2 * u1 - 1) * (g.hi - g.lo) * lerp(g.j0, g.j1, ww), g.lo, g.hi);
+  };
+  const pickW = (tag, items, weights) => { let t = 0; for (const q of weights) t += q; let u = U(tag) * t; for (let i = 0; i < items.length; i++) { u -= weights[i]; if (u < 0) return items[i]; } return items[items.length - 1]; };
+  const meta = {};
+
+  // ---- shape: two catalogue shapes blended, the proportions varied together
+  const ids = Object.keys(FORMS), fa = ids[Math.floor(U('form.a') * ids.length)], others = ids.filter((i) => i !== fa), fb = others[Math.floor(U('form.b') * others.length)];
+  const t = Math.pow(w, 1.5) * U('form.t') * 0.85, A = presetState(FORM_KEYS, FORMS[fa].set), B = presetState(FORM_KEYS, FORMS[fb].set);
+  meta.form = fa; meta.formB = fb; meta.blend = t;
+  if (PROFILE.some(can)) {
+    const v = {}; for (const k of PROFILE) v[k] = lerp(A[k], B[k], t);
+    const wide = 1 + sgn('form.wide') * lerp(0.05, 0.16, w), mouth = 1 + sgn('form.mouth') * lerp(0.05, 0.22, w);
+    v.height *= 1 + sgn('height') * lerp(0.07, 0.22, w);
+    for (const k of ['footRadius', 'waistRadius', 'bellyRadius', 'shoulderRadius', 'neckRadius', 'lipRadius']) v[k] *= wide * (1 + sgn(k) * 0.16 * w) * (k === 'neckRadius' || k === 'lipRadius' ? mouth : 1);
+    for (const k of ['bellyPos', 'shoulderPos', 'neckPos']) v[k] += sgn(k) * 0.05 * w;
+    v.footHeight *= 1 + sgn('footHeight') * (0.1 + 0.3 * w);
+    v.lipBead = N('lipBead', v.lipBead);
+    for (const k of PROFILE) put(k, v[k]);
+  }
+  put('wall', N('wall')); put('softness', N('softness')); put('handmade', N('handmade'));
+  put('squash', U('squash.on') < 0.25 * w ? (sgn('squash') >= 0 ? 1 : -1) * (0.04 + 0.14 * w * U('squash.amt')) : 0);
+  put('footTurn', N('footTurn'));
+  // repair: each relation moves the side this roll may write; a kept (locked, out of scope) side stays where it is
+  const fix = (k, lo, hi) => { if (can(k) && k in out) put(k, hi < lo ? lo : clamp(out[k], lo, hi)); };
+  const R4 = ['bellyRadius', 'shoulderRadius', 'neckRadius', 'lipRadius'];
+  fix('height', 12, 44);
+  const H = cur('height');
+  fix('wall', 0.3, 0.7);
+  fix('footHeight', 0.6, Math.min(3.5, 0.12 * H));
+  fix('bellyPos', Math.max(0.16, cur('footHeight') / H + 0.07), 0.62);       // the builder orders the knots itself; these margins keep sliders and mesh in agreement
+  fix('shoulderPos', cur('bellyPos') + 0.12, 0.86);
+  fix('neckPos', cur('shoulderPos') + 0.07, 0.95);
+  fix('shoulderPos', cur('bellyPos') + 0.12, cur('neckPos') - 0.07);         // and back down, for a kept neck or shoulder
+  fix('bellyPos', 0.16, cur('shoulderPos') - 0.12);
+  fix('bellyRadius', 4.5, 13.5); fix('shoulderRadius', 1.8, 14); fix('neckRadius', Math.max(1.5, 2.2 * cur('wall') + 0.5), 14.5); fix('lipRadius', 1.8, 15.5);   // a neck that leaves a bore
+  let maxR = Math.max(...R4.map(cur));
+  { const want = clamp(maxR, 0.2 * H, Math.min(15.5, 1.15 * H)); if (want !== maxR) for (const k of R4) if (can(k) && k in out) put(k, out[k] * want / maxR); }   // neither a pole nor a plate
+  fix('neckRadius', Math.max(1.5, 2.2 * cur('wall') + 0.5), 14.5); fix('lipRadius', 1.8, 15.5); fix('shoulderRadius', 1.8, 14);
+  const yb = cur('bellyPos') * H, ys = cur('shoulderPos') * H, yn = cur('neckPos') * H;   // no step steeper than a wall can turn
+  fix('shoulderRadius', cur('bellyRadius') - 1.8 * (ys - yb), cur('bellyRadius') + 1.8 * (ys - yb));
+  fix('neckRadius', Math.max(1.5, cur('shoulderRadius') - 1.8 * (yn - ys)), cur('shoulderRadius') + 1.8 * (yn - ys));
+  fix('lipRadius', Math.max(1.8, cur('neckRadius') - 1.8 * (H - yn)), cur('neckRadius') + 1.8 * (H - yn));
+  maxR = Math.max(...R4.map(cur));
+  fix('footRadius', Math.max(2.6, 0.3 * maxR, 0.115 * H), Math.min(0.8 * maxR, 11));   // the piece stands
+  fix('waistRadius', Math.max(0.55 * cur('footRadius'), 1.8, 3 * cur('wall') + 0.8, cur('bellyRadius') - 2.4 * (yb - cur('footHeight'))), Math.min(1.08 * cur('footRadius'), cur('bellyRadius')));
+  fix('wall', 0.3, Math.min(0.7, 0.28 * Math.min(cur('neckRadius'), cur('waistRadius'), cur('lipRadius'))));
+  const open = cur('lipRadius') >= 0.75 * maxR && cur('lipRadius') >= 1.02 * cur('neckRadius');   // the mouth is (nearly) the widest part
+  const closed = cur('neckRadius') <= 0.6 * maxR;
+  meta.open = open; meta.closed = closed;
+
+  // ---- sculpting: the tamer the roll, the more often the leading shape keeps its own (a tulip its petals, an amphora its reeding)
+  const D = t < 0.5 ? A : B, own = U('sculpt.own') < 0.6 * (1 - w);
+  const style = own ? (D.lobes > 0 ? (D.relief !== 'None' ? 'both' : 'lobes') : D.relief !== 'None' ? 'relief' : 'plain')
+    : pickW('sculpt.style', ['relief', 'lobes', 'plain', 'both'], [lerp(0.62, 0.45, w), lerp(0.2, 0.3, w), lerp(0.18, 0.13, w), 0.12 * w]);
+  meta.style = style; meta.own = own;
+  const lobed = style === 'lobes' || style === 'both', nl = !lobed ? 0 : own ? D.lobes : Math.max(open ? 6 : 4, 4 + Math.floor(U('lobes') * (5 + 6 * w)));   // a wide mouth cut in four or five reads as creases, not lobes
+  put('lobes', nl);
+  put('lobeDepth', !lobed ? DEFAULTS.lobeDepth : Math.min(own ? D.lobeDepth * (1 + 0.15 * sgn('lobeDepth')) : lerp(0.045, 0.075 + 0.07 * w, U('lobeDepth')), 0.9 / Math.max(nl, 1)));
+  put('lobeProfile', !lobed ? DEFAULTS.lobeProfile : own ? D.lobeProfile : pickW('lobeProfile', ['Gadroon', 'Sine', 'Flute'], [0.6, 0.15 + 0.15 * w, 0.05 + 0.2 * w]));
+  put('lobeStart', !lobed ? DEFAULTS.lobeStart : own ? D.lobeStart : lerp(0.05, 0.22, U('lobeStart')));
+  put('lobeEnd', !lobed ? DEFAULTS.lobeEnd : own ? D.lobeEnd : open && U('lobeEnd.rim') < 0.6 ? 1 : lerp(0.6, 0.95, U('lobeEnd')));
+  const reliefOn = style === 'relief' || style === 'both', motifs = Object.keys(MOTIF2), fav = RELIEF_FOR2[fa];
+  put('relief', !reliefOn ? 'None' : own ? D.relief : pickW('relief', motifs, motifs.map((m) => (fav.includes(m) ? 3 : m === 'Hammered' ? 0.6 * w : 0.25 + 1.2 * w))));
+  if (cur('relief') === 'None') for (const k of ['reliefHeight', 'reliefCount', 'reliefRows', 'reliefStart', 'reliefEnd']) put(k, DEFAULTS[k]);
+  else {
+    const mine = own && cur('relief') === D.relief, m = mine ? [Math.abs(D.reliefHeight), D.reliefCount, D.reliefRows] : MOTIF2[cur('relief')] || MOTIF2.Leaves;
+    const band = mine ? [D.reliefStart, D.reliefEnd] : [lerp(BAND2[fa][0], BAND2[fb][0], t), lerp(BAND2[fa][1], BAND2[fb][1], t)];
+    let b0 = clamp(band[0] + sgn('reliefStart') * (0.02 + 0.06 * w), 0.04, 0.6), b1 = clamp(band[1] + sgn('reliefEnd') * (0.03 + 0.08 * w), b0 + 0.2, 0.92);
+    put('reliefStart', b0); put('reliefEnd', b1); b0 = cur('reliefStart'); b1 = cur('reliefEnd');
+    const carved = cur('relief') !== 'Hammered' && U('relief.carved') < 0.15 * w;
+    let h = m[0] * (1 + sgn('reliefHeight') * (0.1 + 0.35 * w)), n = Math.round(m[1] * (1 + sgn('reliefCount') * (0.1 + 0.3 * w))), rows = Math.max(1, Math.round(m[2] * (1 + sgn('reliefRows') * (0.1 + 0.4 * w))));
+    // a cell of the motif is never smaller than its relief can be modelled in: nine heights wide and tall
+    const rBand = Math.min(cur('bellyRadius'), Math.max(cur('waistRadius'), 0.7 * cur('bellyRadius'))), bandH = Math.abs(b1 - b0) * H;
+    h = clamp(h, 0.1, 0.34);
+    n = clamp(n, 3, Math.max(3, Math.floor(6.283 * rBand / (9 * h))));
+    rows = clamp(rows, 1, Math.max(1, Math.floor(bandH / (cur('relief') === 'Spiral ribs' ? 3 : 9 * h))));
+    if (cur('relief') === 'Hammered') {              // planished facets stay the size of a hammer's face, however large the body
+      n = Math.max(n, Math.min(Math.floor(6.283 * rBand / (9 * h)), Math.ceil(6.283 * rBand / 3.2)));
+      rows = Math.max(rows, Math.min(Math.floor(bandH / (9 * h)), Math.ceil(bandH / 3.2)));
+    }
+    put('reliefHeight', carved ? -0.6 * h : h); put('reliefCount', n); put('reliefRows', rows);
+  }
+  const spiral = cur('lobes') > 0 || cur('relief') !== 'None';
+  const tw = !spiral ? 0 : own ? Math.round(D.twist * (1 + 0.2 * sgn('twist')))
+    : U('twist.on') < (cur('lobes') > 0 ? 0.3 + 0.3 * w : 0.1 + 0.2 * w) ? Math.round((sgn('twist.dir') >= 0 ? 1 : -1) * lerp(20, 60 + 100 * w, U('twist'))) : 0;
+  put('twist', cur('relief') !== 'None' ? clamp(tw, -90, 90) : open && !own ? clamp(tw, -45, 45) : tw);   // a relief folds under more; lobes that run out at a wide rim must not lean far
+  // collar rings: at the root of the neck, or low on the foot; never inside the relief band
+  let nr = own ? D.rings : pickW('rings', [0, 1, 2, 3, 4], [0.25, 0.3, 0.3, 0.12 + 0.1 * w, 0.2 * w]);
+  nr = Math.min(nr, Math.max(0, Math.floor(0.12 * H / 0.85) + 1));
+  let rp = own ? D.ringPos : U('ringPos.low') < 0.2 ? lerp(0.07, 0.13, U('ringPos')) : lerp(cur('shoulderPos'), cur('neckPos'), U('ringPos'));
+  if (cur('relief') !== 'None' && rp > cur('reliefStart') - 0.04 && rp < cur('reliefEnd') + 0.04) { rp = cur('reliefEnd') + 0.06; if (rp > 0.95) nr = 0; }
+  put('rings', nr); put('ringPos', nr ? clamp(rp, 0.06, 0.95) : DEFAULTS.ringPos); put('ringHeight', !nr ? DEFAULTS.ringHeight : own ? D.ringHeight : lerp(0.09, 0.2, U('ringHeight')));
+  const waves = open && (can('lid') || base.lid === 'None') && (own ? D.rimWaves > 0 : U('rimWaves.on') < 0.25 + 0.35 * w);   // a kept lid needs its level rim
+  put('rimWaves', waves ? (cur('lobes') > 0 ? (cur('lobes') > 10 ? cur('lobes') / 2 | 0 : cur('lobes')) : 4 + Math.floor(U('rimWaves') * (3 + 4 * w))) : 0);
+  put('rimHeight', cur('rimWaves') ? lerp(0.3, 0.6 + 0.3 * w, U('rimHeight')) : DEFAULTS.rimHeight); put('rimFrom', cur('rimWaves') ? lerp(0.6, 0.85, U('rimFrom')) : DEFAULTS.rimFrom);
+
+  // ---- handles and lid
+  const hadH = lerp(A.handles, B.handles, t) > 1, hadLid = D.lid !== 'None';
+  const pH = cur('rimWaves') > 0 && w < 0.8 ? 0 : H < 18 ? 0 : closed ? (hadH ? 0.85 : 0.12 + 0.25 * w) : 0.05 * w;
+  let nh = U('handles.on') < pH ? pickW('handles', [2, 1, 3, 4], [0.8, 0.15, w > 0.6 ? 0.04 : 0, w > 0.6 ? 0.03 : 0]) : 0;
+  const thick = Math.min(lerp(0.9, 1.6 + 0.3 * w, U('handleThick')), 0.055 * H);
+  if (nh > 2 && 6.283 * cur('neckRadius') / nh < 4 * thick) nh = 2;          // three or four need room around the neck
+  put('handles', nh);
+  if (cur('handles') === 0) for (const k of ['handleLow', 'handleHigh', 'handleReach', 'handleArch', 'handleThick', 'handleFlat', 'handleBlend', 'handleTaper', 'handleRibs']) put(k, DEFAULTS[k]);
+  else {
+    const hi = clamp(cur('neckPos') + lerp(-0.04, 0.05, U('handleHigh')), 0.3, 0.93), lo = Math.min(cur('shoulderPos') + lerp(-0.08, 0.03, U('handleLow')), hi - 0.16);
+    put('handleHigh', hi); put('handleLow', clamp(lo, 0.12, 0.9));
+    put('handleReach', Math.min(lerp(2.6, 4.2 + 2 * w, U('handleReach')), 0.6 * maxR)); put('handleArch', lerp(0.15, 0.45 + 0.35 * w, U('handleArch')));
+    put('handleThick', thick); put('handleFlat', lerp(0.65, 0.95 + 0.3 * w, U('handleFlat'))); put('handleBlend', lerp(0.5, 1, U('handleBlend')));
+    put('handleTaper', lerp(0.3, 0.9, U('handleTaper'))); put('handleRibs', pickW('handleRibs', [0, 1, 2, 3], [0.25, 0.45, 0.2, 0.1]));
+  }
+  const lidAble = cur('rimWaves') === 0 && cur('lipRadius') >= 2.2 && cur('lipRadius') <= 9.5 && cur('lipRadius') <= 0.9 * maxR;
+  put('lid', lidAble && U('lid.on') < (hadLid ? 0.85 : 0.15 + 0.15 * w) ? pickW('lid', ['Domed', 'Conical', 'Flat'], [0.45, 0.3, 0.25]) : 'None');
+  if (cur('lid') === 'None') for (const k of ['lidRise', 'lidOverhang', 'finial', 'finialSize']) put(k, DEFAULTS[k]);
+  else {
+    const rr = { Domed: [0.3, 0.6], Conical: [0.5, 0.9], Flat: [0.08, 0.2] }[cur('lid')];
+    put('lidRise', lerp(rr[0], rr[1], U('lidRise'))); put('lidOverhang', lerp(0.2, 0.6, U('lidOverhang')));
+    put('finial', pickW('finial', ['Ball', 'Bud', 'Acorn', 'Disc', 'None'], [1, 1, 1, 1, 0.3]));
+    put('finialSize', Math.min(lerp(1.2, 2.2 + 0.6 * w, U('finialSize')), 0.2 + 0.55 * (cur('lipRadius') + cur('lidOverhang'))));
+  }
+
+  // ---- lustre: a family, left behind as the wildness grows; a film that is dull, black, clipped or neon is drawn again
+  const fams = Object.keys(LUSTRES), family = pickW('lustre.family', fams, fams.map((f) => FAMILY_WEIGHT[f] || 1));
+  const familyMode = CHEM.every(can);                                         // all of the chemistry is this roll's to write
+  const PRE = presetState(LUSTRE_KEYS, LUSTRES[family].set), want = (familyLook2[family] ||= filmLook2(PRE)), wantHue = hueOf(want.rgb);
+  meta.family = family; meta.familyMode = familyMode;
+  let lu = null;
+  if (CHEM.some(can)) for (att = 0; att < 32; att++) {
+    // Twelve tries at the wildness asked for, then tamer and tamer. With some of the chemistry kept: the family's film
+    // with the kept values in it, and after sixteen tries the film on show varied instead.
+    const local = !familyMode && att >= 16, L = local ? base : PRE;
+    const ww = w * Math.pow(0.6, Math.max(0, (local ? att - 16 : att) - 11)), free = Math.pow(ww, 3), pearl = !local && family === 'gyongyhaz' && free < 0.5, c = {};
+    const [h0, s0, l0] = hexHsl(L.glazeColor);
+    c.glazeColor = hslHex(h0 + sgn('glazeColor') * (0.025 + 0.2 * ww * ww), clamp(s0 + sgn('glazeColor.s') * (0.08 + 0.15 * ww), 0, 1),
+      clamp(l0 * (pearl ? lerp(0.92, 1.08, U('glazeColor.l')) : lerp(0.8, 1.25, U('glazeColor.l'))), 0.03, pearl ? 0.9 : 0.22));   // a pearl piece stays a white pot
+    for (const k of CHEM) if (RANGES[k].lo !== undefined) c[k] = N(k, L[k], ww);
+    c.au = U('au.on') < 0.25 * ww * ww ? lerp(0.05, 0.5, U('au')) : L.au;
+    if (pearl) c.cu = c.ag = c.au = 0;                                        // its film holds no metal
+    if (!local && family === 'bronz' && free < 0.5) { c.bi = Math.min(c.bi, L.bi); c.reox = Math.min(c.reox, L.reox); }   // bronze may come out paler, never deeper
+    const cand = {};
+    for (const k of CHEM) { const it = SCHEMA[k]; cand[k] = can(k) ? c[k] : base[k]; if (it.min !== undefined) cand[k] = norm(it, cand[k]); }
+    const k = filmLook2(cand);
+    const d = local ? 0 : Math.hypot(k.rgb[0] - want.rgb[0], k.rgb[1] - want.rgb[1], k.rgb[2] - want.rgb[2]) / Math.max(1e-3, Math.hypot(...want.rgb));
+    const hg = Math.abs(hueOf(k.rgb) - wantHue);
+    lu = cand; meta.look = k; meta.attempts = att + 1; meta.local = local;
+    // The wilder the roll, the further from its family the film may be in depth and tone. Its hue stays within 40° of the
+    // family's: free chemistry drifts to blue and violet, and green, red and bronze would become rare.
+    if (lookOk(k) && (local || (d < 0.45 + 3 * free && Math.min(hg, 1 - hg) < 1 / 9))) break;
+    if (att === 31) { lu = familyMode ? PRE : base; meta.look = familyMode ? want : filmLook2(Object.fromEntries(LUSTRE_KEYS.map((q) => [q, base[q]]))); meta.fellBack = true; }   // nothing passed: the preset itself, or the film left as it is
+  }
+  att = 0;
+  if (lu) for (const k of CHEM) put(k, lu[k]);
+  const fired = CHEM.some(can) && !meta.local;                               // this roll fired a family's film; otherwise the film on show stays the reference
+  const pearly = fired ? family === 'gyongyhaz' && w < 0.8 : cur('cu') === 0 && cur('ag') === 0 && cur('au') === 0;
+  const F = (k) => (fired ? PRE[k] : base[k]);                               // the centre a film or glaze field starts from
+  put('coverage', U('coverage.on') < 0.25 * w ? lerp(0.7, 1, U('coverage')) : 1);
+  put('innerLustre', N('innerLustre'));
+  put('flash', N('flash', F('flash'))); put('flashScale', N('flashScale')); put('flashWarp', N('flashWarp')); put('flashStretch', N('flashStretch')); put('flameBias', N('flameBias'));
+  put('flameDir', Math.floor(U('flameDir') * 360)); put('seed', Math.floor(U('seed') * 100));
+  for (const k of ['front', 'halo', 'streak', 'mottle', 'specks']) put(k, N(k, F(k)));
+  put('thickVar', clamp(F('thickVar') + sgn('thickVar') * (0.15 + 0.1 * w), 0.15, pearly ? 1 : cur('trimCover') > 1.4 ? 0.35 : 0.6));   // a second-order film keeps its depth even; mother-of-pearl lives on its unevenness
+  put('thickScale', N('thickScale')); put('lustrePool', N('lustrePool')); put('scatter', N('scatter'));
+
+  // ---- glaze surface
+  const crk = pearly ? lerp(0.2, 0.5, U('crackle')) : U('crackle.on') < 0.12 + 0.2 * w ? lerp(0.15, 0.6, U('crackle')) : 0;
+  put('crackle', crk); put('crackleSize', !crk ? DEFAULTS.crackleSize : N('crackleSize')); put('crackleStain', N('crackleStain')); put('mosaic', N('mosaic', F('mosaic')));
+  { const [h0, s0, l0] = hexHsl(DEFAULTS.bodyColor); put('bodyColor', hslHex(h0 + sgn('bodyColor') * (0.01 + 0.04 * w), clamp(s0 + sgn('bodyColor.s') * (0.05 + 0.15 * w), 0.12, 0.55), clamp(l0 + sgn('bodyColor.l') * (0.03 + 0.15 * w), 0.45, 0.8))); }
+  { const [h0, s0, l0] = hexHsl(DEFAULTS.breakTone); put('breakTone', hslHex(h0 + sgn('breakTone') * (0.01 + 0.05 * w), clamp(s0 + sgn('breakTone.s') * (0.05 + 0.15 * w), 0.2, 0.6), clamp(l0 + sgn('breakTone.l') * (0.03 + 0.1 * w), 0.25, 0.55))); }
+  put('glazeThick', N('glazeThick')); put('pooling', N('pooling', F('pooling'))); put('breaking', N('breaking', F('breaking')));
+  put('runs', N('runs')); put('runScale', N('runScale', F('runScale'))); put('sag', N('sag')); put('gloss', N('gloss', F('gloss')));
+  for (const k of ['peel', 'wave', 'pinholes', 'dust', 'wear', 'grit']) put(k, N(k));
+  put('glazeLine', Math.min(N('glazeLine'), 0.1 * H)); put('dripCount', U('dripCount.on') < 0.1 ? 0 : 4 + Math.floor(U('dripCount') * (6 + 4 * w))); put('dripAmp', N('dripAmp'));
+
+  // ---- painted decoration: goes with the relief that is on the piece
+  const rOn = cur('relief') !== 'None' && Math.abs(cur('reliefHeight')) > 1e-4;
+  put('deco', pearly ? 'Marbled veins' : rOn && U('deco.relief') < 0.7 - 0.2 * w ? 'Relief motif'
+    : pickW('deco', rOn ? ['Bands', 'None', 'Marbled veins', 'Whiplash vines'] : ['Whiplash vines', 'Bands', 'Scales', 'None', 'Marbled veins'], rOn ? [1, 1, 0.6 * w, 0.6 * w] : [1, 1, 1, 0.8, 0.3 + 0.7 * w]));
+  put('decoCount', cur('deco') === 'Scales' ? Math.round(lerp(14 - 4 * w, 14 + 6 * w, U('decoCount'))) : Math.round(lerp(8, 18, U('decoCount'))));
+  put('decoRows', cur('deco') === 'Scales' ? Math.round(lerp(9 - 3 * w, 9 + 5 * w, U('decoRows'))) : 5 + Math.floor(U('decoRows') * 6));
+  // Broad bands lie flat on the body: painted in a film as far from the ground as a relief's highlights are, they turn
+  // into stripes of the complementary colour. They stay closer to the ground lustre, with a softer edge.
+  const banded = cur('deco') === 'Bands', dT = banded ? 1 + (F('decoThick') - 1) * 0.4 : F('decoThick');
+  put('decoSoft', banded ? Math.max(N('decoSoft', F('decoSoft')), 0.55) : N('decoSoft', F('decoSoft'))); put('decoThick', clamp(dT * (1 + sgn('decoThick') * (banded ? 0.03 + 0.07 * w : 0.03 + 0.2 * w)), 0.6, 1.6));
+  put('decoFill', clamp(F('decoFill') * (1 + sgn('decoFill') * (0.05 + 0.25 * w)), 0.6, 1.4)); put('decoSilver', U('decoSilver.on') < 0.3 * w ? sgn('decoSilver') * 0.5 : F('decoSilver'));
+  put('decoMatte', U('decoMatte.on') < 0.1 + 0.2 * w ? lerp(0.1, 0.5, U('decoMatte')) : F('decoMatte'));
+
+  // ---- stage and light: only when asked for
+  if (opts.stage) {
+    // The room is turned with the side the piece is seen from: each lighting set keeps about the relation to the lens it
+    // was built for (default: light rotation 20°, view 0.5 rad), so the lit side is the one on show. A dark set, or the
+    // Nocturne look, takes no less light than its default.
+    const vth = opts.view ? opts.view.theta : lerp(-0.9, 0.9, U('view.theta')), vdeg = vth * 180 / Math.PI, turn = (a) => ((Math.round(a) % 360) + 360) % 360;
+    put('env', pickW('env', Object.keys(ENVS), [3, 2, 2, 1, 1])); put('envRot', turn(vdeg - 9 + sgn('envRot') * lerp(20, 50, w)));
+    put('look', pickW('look', ['Print', 'Neutral', 'Catalogue', 'Nocturne'], [3, 1, 1, 1])); put('focal', pickW('focal', [35, 45, 60, 85], [1, 3, 2, 1]));
+    const dark = cur('env') !== 'Atelier softboxes' || cur('look') === 'Nocturne';
+    put('envInt', dark ? Math.max(N('envInt'), DEFAULTS.envInt) : N('envInt')); put('keyInt', dark ? Math.max(N('keyInt'), DEFAULTS.keyInt) : N('keyInt'));
+    const free = U('keyLock') < 0.1 + 0.3 * w;                                // the spotlight leaves the main lamp, and stays on the side of the lens
+    put('keyLock', !free); put('keyAz', free ? turn(vdeg + (sgn('keyAz.side') >= 0 ? 1 : -1) * lerp(15, 75, U('keyAz'))) : DEFAULTS.keyAz); put('keyEl', free ? Math.round(lerp(25, 65, U('keyEl'))) : DEFAULTS.keyEl);
+    put('keySoft', N('keySoft')); put('backdrop', U('backdrop') < 0.2 + 0.1 * w ? 'Void' : 'Cove'); put('backdropTone', N('backdropTone')); put('pool', N('pool'));
+    put('plinthMat', pickW('plinthMat', PLINTHS, [1, 1.5, 1, 1])); put('plinthGloss', N('plinthGloss'));
+    if (!opts.view) meta.view = { theta: vth, el: lerp(0.08, 0.38, U('view.el')) };   // the side the piece is seen from: not a parameter (opts.view: the view is kept, the light comes to it)
+  }
+  return { seed, w, params: out, meta };
+}
+{ const got = makePiece2(1, WILD_DEFAULT, { stage: true }).params;                // a rule of the table that the generator forgot to write
+  for (const k in RANGES) if (RANGES[k].s && !(k in got)) console.warn('RANGES: makePiece2 does not write', k); }
+
+// --- what Surprise me is set to (the Surprise me folder of the configurator), remembered between visits; and the locks
+const SUR = { wild: WILD_DEFAULT, ...Object.fromEntries(SCOPES.map((s, i) => [s, !!(SCOPE_DEFAULT >> i & 1)])) };
+{ const w = Number(prefs.get('eozin:wild') ?? NaN);
+  if (w >= 0 && w <= 1) SUR.wild = Math.round(w * 20) / 20; }
+// The remembered scopes come back with the configurator, where their switches are: the page without it has no way
+// to show or to set them, and its button rolls the whole piece.
+function recallScopes() {
+  const b = Number(prefs.get('eozin:scopes') ?? NaN);
+  if (Number.isInteger(b) && b >= 0 && b <= 127) SCOPES.forEach((s, i) => { SUR[s] = !!(b >> i & 1); });
+}
+const surBits = () => SCOPES.reduce((b, s, i) => b | (SUR[s] ? 1 << i : 0), 0);
+const shiftBits = (b) => (b & 0b0111000) || 0b0111000;                       // Shift: the shape stays; glaze, lustre and decoration as far as they are switched on
+const locks = new Set();                                                     // keys the dice leave alone; for this visit, not part of a link or of undo
+const lockEls = {}, diceEls = [], surCtl = {};                                // their buttons in the configurator, while it exists
+let surFolder = null;
+function setLock(key, on) {
+  if (!RANGES[key]?.s) return;
+  if (on) locks.add(key); else locks.delete(key);
+  paintLock(key); markDirty = true;
+}
+function paintLock(key) {
+  const b = lockEls[key];
+  if (!b) return;
+  const on = locks.has(key), text = say(on ? 'lock.on' : 'lock.off', { name: say('p.' + key) });
+  b.setAttribute('aria-pressed', String(on)); b.setAttribute('aria-label', text); b.title = text;
+  ctl[key].domElement.classList.toggle('locked', on);
+}
+function saveSur() { prefs.set('eozin:wild', String(SUR.wild)); prefs.set('eozin:scopes', String(surBits())); markDirty = true; }
+
+// --- links to generator 2 pieces: #p2-<seed>-<wildness>-<scopes>, each in base 36 (wildness in twentieths, scopes as their bits)
+const P2 = /^p2-(0|[1-9a-z][0-9a-z]{0,5})-([0-9a-k])-([1-9a-z][0-9a-z]?)$/;
+function parseP2(id) {
+  const m = P2.exec(id);
+  if (!m) return null;
+  const seed = parseInt(m[1], 36), w = parseInt(m[2], 36) / 20, bits = parseInt(m[3], 36);
+  return bits >= 1 && bits <= 127 ? { seed, w, bits } : null;
+}
+const formatP2 = (seed, w, bits) => `p2-${seed.toString(36)}-${Math.round(w * 20).toString(36)}-${bits.toString(36)}`;
+const onStep = (k, v) => (SCHEMA[k].min !== undefined && typeof v === 'number' ? norm(SCHEMA[k], v) : v);
+const pieceDefaults = () => Object.fromEntries(PIECE_KEYS.map((k) => [k, onStep(k, DEFAULTS[k])]));   // the opening piece: what a link is rebuilt on
+// The piece a link names: the roll on the opening piece. Keys outside its scopes take the opening piece's values.
+function linkedPiece(seed, w, bits) {
+  const mask = keysOfBits(bits), pc = makePiece2(seed, w, { mask, base: { ...P, ...pieceDefaults() }, stage: !!(bits & 64) });
+  return { pc, mask, params: { ...pieceDefaults(), ...pc.params } };
+}
+// A piece has a link only while the link would rebuild exactly what is on show: not after a roll in which a lock
+// mattered, a roll of one group, or a roll of some scopes on a piece that was not the opening one.
+function linkOf(pc, bits) {
+  const want = linkedPiece(pc.seed, pc.w, bits).params;
+  return Object.keys(want).every((k) => P[k] === want[k]) ? formatP2(pc.seed, pc.w, bits) : '';
+}
+
+// --- variety: of a handful of candidates the one least like the last two pieces; never the same shape or lustre family twice running
+const recent = [];
+const featuresOf = (c, p) => ({ form: c.meta.blend < 0.5 ? c.meta.form : c.meta.formB, family: c.meta.family, deco: p.deco, relief: p.relief,
+  style: (p.lobes > 0 ? 'lobes' : '') + (p.relief !== 'None' ? 'relief' : ''), handles: p.handles > 0, lid: p.lid !== 'None' });
+function novelty(c, mask) {
+  const a = recent[0], b = recent[1];
+  if (!a) return 9;
+  const f = featuresOf(c, { ...P, ...c.params });
+  if (PROFILE.every((k) => mask.has(k)) && f.form === a.form) return -1;
+  if (CHEM.every((k) => mask.has(k)) && f.family === a.family) return -1;
+  let s = 0;
+  for (const k of ['deco', 'relief', 'style', 'handles', 'lid']) { if (f[k] !== a[k]) s += 1; if (b && f[k] !== b[k]) s += 0.5; }
+  if (b && f.form === b.form) s -= 1;                                         // nor the piece before last over again
+  if (b && f.family === b.family) s -= 1;
+  return Math.max(s, 0);
+}
+function remember(c, mask) {
+  const f = featuresOf(c, P), a = recent[0];
+  if (a && mask && !PROFILE.every((k) => mask.has(k))) f.form = a.form;       // the shape, or the film, was not this roll's
+  if (a && mask && !CHEM.every((k) => mask.has(k))) f.family = a.family;
+  recent.unshift(f); recent.length = Math.min(recent.length, 2);
+}
 // The caption names a varied piece after the presets it came from, for as long as the piece is unchanged (and again when undo brings it back).
 function akin(pc, lustreOnly) {
   if (!lustreOnly && !Object.keys(PRESET.form.table).some((id) => chipEls.form[id]?.getAttribute('aria-pressed') === 'true')) kinOf.set(kinSig(FORM_KEYS), pc.form);
@@ -5393,25 +5892,81 @@ function akin(pc, lustreOnly) {
   while (kinOf.size > 160) kinOf.delete(kinOf.keys().next().value);
   updateSlate();
 }
-const actions = {
-  'Surprise me': (lustreOnly, seed) => {             // a curated random piece (makePiece); never the form or the lustre family just shown
-    commit();
-    let pc;
-    for (let i = 0; i < 12; i++) {
-      pc = makePiece(seed ?? Math.floor(Math.random() * 36 ** 6), lustreOnly);
-      if (seed !== undefined || ((lustreOnly || pc.form !== lastPiece.form) && pc.family !== lastPiece.family)) break;
+// The same for generator 2: a name only where it is true. A wild roll is a thrown vessel with a one-off firing; a roll
+// that left the shape or the film alone keeps the name it had (was: what the caption said before the roll).
+function akin2(pc, mask, was) {
+  const some = (keys) => keys.some((k) => mask.has(k)), all = (keys) => keys.every((k) => mask.has(k));
+  const form = all(PROFILE) ? (pc.w < 0.75 ? featuresOf(pc, P).form : null) : some(PROFILE) ? null : was.form;
+  const lustre = pc.meta.familyMode ? (pc.w ** 3 < 0.5 ? pc.meta.family : null) : some(CHEM) ? null : was.lustre;
+  const name = (keys, id) => { if (id) kinOf.set(kinSig(keys), id); else kinOf.delete(kinSig(keys)); };
+  name(FORM_KEYS, form); name(LUSTRE_KEYS, lustre);
+  while (kinOf.size > 160) kinOf.delete(kinOf.keys().next().value);
+  updateSlate();
+  return { form: all(PROFILE) && form, lustre: pc.meta.familyMode && lustre };   // the names this roll gave
+}
+const kinNow = () => {                               // what the caption calls the piece on show
+  const pressed = (g) => Object.keys(chipEls[g]).find((k) => chipEls[g][k].getAttribute('aria-pressed') === 'true');
+  return { form: pressed('form') || kinOf.get(kinSig(FORM_KEYS)), lustre: pressed('lustre') || kinOf.get(kinSig(LUSTRE_KEYS)) };
+};
+const formWord = (id) => (LANG === 'hu' ? say('form.' + id).toLocaleLowerCase('hu') : say('form.' + id));
+function rollLegacy(seed, lustreOnly = false) {      // a #piece- link: the first generator, as it always was
+  commit();
+  const pc = makePiece(seed, lustreOnly);
+  if (!lustreOnly) state.framed = state.userMoved = false;
+  applyParams(pc.params); sr.reset = true;
+  rematch();
+  pieceHash = lustreOnly ? '' : 'piece-' + pc.seed.toString(36); setHash(null);
+  adoptBase(); commit();
+  remember({ meta: { blend: 0, form: lustreOnly && recent[0] ? recent[0].form : pc.form, family: pc.family } }); akin(pc, lustreOnly);
+  toast(lustreOnly ? say('toast.newFiring', { lustre: say('lustre.' + pc.family) }) : say('toast.newPiece', { form: formWord(pc.form), lustre: say('lustre.' + pc.family) }), undoAction);
+  showPressed();
+  return pc;
+}
+// One roll of the dice, for both Surprise me buttons, the dice of a folder and a #p2- link.
+// o: { lustreOnly } Shift · { keys, group } the dice of a folder · { seed, w, bits } a link
+function roll(o = {}) {
+  const a = document.activeElement;
+  if (gui && a && a.tagName === 'INPUT' && gui.domElement.contains(a)) a.blur();   // a focused field would keep its old text
+  commit();
+  const link = o.seed !== undefined, w = Math.round(clamp(o.w ?? SUR.wild, 0, 1) * 20) / 20, bits = o.bits ?? (o.lustreOnly ? shiftBits(surBits()) : surBits());
+  const mask = o.keys ? new Set(o.keys.filter((k) => RANGES[k]?.s)) : keysOfBits(bits);
+  if (!link) for (const k of locks) mask.delete(k);
+  if (!mask.size) { toast(say(o.keys || (bits && locks.size) ? 'toast.allLocked' : 'toast.noScope')); return null; }
+  const stage = [...mask].some((k) => RANGES[k].s === 'stage'), was = kinNow();
+  let pc = null, params, best = -Infinity;
+  if (link) ({ pc, params } = linkedPiece(o.seed, w, bits));
+  else {
+    const base = { ...P }, off = camera.position.clone().sub(controls.target);
+    const view = o.keys && stage ? { theta: Math.atan2(off.x, off.z) } : null;   // the dice of a folder leave the camera: its light is set for the view on show
+    for (let i = 0; i < 8 || (best < 0 && i < 40); i++) {  // Math.random chooses seeds only: everything about a piece comes from its seed
+      const c = makePiece2(Math.floor(Math.random() * 36 ** 6), w, { mask, base, stage, view });
+      const sc = Object.keys(c.params).some((k) => c.params[k] !== P[k]) ? novelty(c, mask) : -2;   // a roll that changes nothing is no roll (a small group can draw what it had)
+      if (sc > best) { pc = c; best = sc; }
+      if (i >= 2 && best >= 3) break;
     }
-    lastPiece = { form: lustreOnly ? lastPiece.form : pc.form, family: pc.family };
-    if (!lustreOnly) state.framed = state.userMoved = false;
-    applyParams(pc.params); sr.reset = true;
-    rematch();
-    pieceHash = lustreOnly ? '' : 'piece-' + pc.seed.toString(36); setHash(null);
-    adoptBase(); commit();
-    akin(pc, lustreOnly);
-    toast(lustreOnly ? say('toast.newFiring', { lustre: say('lustre.' + pc.family) }) : say('toast.newPiece', { form: LANG === 'hu' ? say('form.' + pc.form).toLocaleLowerCase('hu') : say('form.' + pc.form), lustre: say('lustre.' + pc.family) }), undoAction);
-    showPressed();
-    return pc;
-  },
+    if (best === -2) { toast(say('toast.noRoom')); return null; }   // forty draws and none differs: the piece leaves these keys no room (handles on a bowl)
+    params = pc.params;
+  }
+  if (FORM_KEYS.some((k) => k in params && params[k] !== P[k])) state.framed = state.userMoved = false;
+  if (stage && !o.keys && pc.meta.view) { state.rollView = pc.meta.view; state.framed = state.userMoved = false; }
+  // One call: at most one new mesh, one capture of the room, and the studio only if the lighting set changed. The whole
+  // state is handed over, so a set with kept keys left out is not taken for one saved by an older version (applyParams).
+  applyParams({ ...P, ...params }); sr.reset = true;
+  rematch();
+  if (!o.keys) { pieceHash = link ? formatP2(o.seed, w, bits) : linkOf(pc, bits); if (pieceHash) setHash(null); }
+  adoptBase(Object.keys(params)); commit();          // one undo step; what was rolled is the new starting point of the 'changed' marks
+  remember(pc, mask);
+  const named = akin2(pc, mask, was);
+  toast(o.keys ? say('toast.rolledGroup', { group: say('grp.' + o.group) })
+    : named.form && named.lustre ? say('toast.newPiece', { form: formWord(named.form), lustre: say('lustre.' + named.lustre) })
+    : named.lustre && !FORM_KEYS.some((k) => mask.has(k)) ? say('toast.newFiring', { lustre: say('lustre.' + named.lustre) })
+    : [...mask].every((k) => RANGES[k].s === 'stage') ? say('toast.newRoom')
+    : PROFILE.every((k) => mask.has(k)) && CHEM.every((k) => mask.has(k)) ? say('toast.newFree') : say('toast.newPart'), undoAction);
+  showPressed();
+  return pc;
+}
+const actions = {
+  'Surprise me': (lustreOnly, seed) => (seed !== undefined ? rollLegacy(seed, lustreOnly) : roll({ lustreOnly })),   // with a seed: the piece of a #piece- link
   'Copy parameters': async () => {
     const text = JSON.stringify(P);
     try { await navigator.clipboard.writeText(text); toast(say('toast.copied')); }
@@ -5455,6 +6010,7 @@ const actions = {
   'Reset': () => {                                   // back to the state the page opens in, camera included
     commit();
     pieceHash = ''; applyParams(START); markPreset('zold', 'lustre'); markPreset('baluster', 'form'); setHash(null);
+    for (const k of [...locks]) setLock(k, false);
     Object.assign(BASE, START);
     state.framed = state.posed = state.userMoved = false;
     releaseShot(); dropFollow();
@@ -5507,6 +6063,12 @@ const menuRuns = {
   'Restore shape': () => { state.framed = false; restoreKeys(FORM_KEYS, say('toast.shapeRestored')); },
   'Restore lustre': () => restoreKeys(LUSTRE_KEYS, say('toast.lustreRestored')),
   'Follow edits': () => { setFollow(!follow.on); toast(say(follow.on ? 'toast.follow.on' : 'toast.follow.off')); },
+  'Lock all changed': () => {                        // what was set by hand since the last roll stays through the next ones
+    let n = 0;
+    for (const k in RANGES) if (RANGES[k].s && P[k] !== BASE[k] && !locks.has(k)) { setLock(k, true); n++; }
+    if (n) toast(say('toast.locked', { n }));
+  },
+  'Unlock all': () => { if (!locks.size) return; for (const k of [...locks]) setLock(k, false); toast(say('toast.unlocked')); },
   'Reset everything': () => actions.Reset(),
 };
 // --- the presets on the page: lustre and shape tiles in the catalogue, the camera views on the plate
@@ -5608,12 +6170,16 @@ if (fromHash) {
   Object.assign(BASE, PRESET.lustre.table[location.hash.slice(1)]);
 }
 { const m = /^#piece-([0-9a-z]{1,7})$/.exec(location.hash);                            // a link to a Surprise piece: made again from its seed
-  if (m) { const pc = makePiece(parseInt(m[1], 36)); applyParams(pc.params, { silent: true }); rematch(); pieceHash = m[0].slice(1); setHash(null); adoptBase(); lastPiece = pc; akin(pc, false); } }
+  if (m) { const pc = makePiece(parseInt(m[1], 36)); applyParams(pc.params, { silent: true }); rematch(); pieceHash = m[0].slice(1); setHash(null); adoptBase(); remember({ meta: { blend: 0, form: pc.form, family: pc.family } }); akin(pc, false); } }
+{ const q = parseP2(location.hash.slice(1));                                           // a link to a piece of generator 2: rolled again on the opening piece
+  if (q) { const { pc, mask, params } = linkedPiece(q.seed, q.w, q.bits); applyParams({ ...P, ...params }, { silent: true }); rematch(); pieceHash = formatP2(q.seed, q.w, q.bits); setHash(null);
+    adoptBase(Object.keys(params)); remember(pc, mask); akin2(pc, mask, {}); if (pc.meta.view) state.rollView = pc.meta.view; } }
 hist.now = JSON.stringify(P); hist.base = JSON.stringify(BASE);                        // the piece the page opens with is the first undo state
 window.addEventListener('hashchange', () => {        // a link to another lustre, followed while the page is open
   const id = location.hash.slice(1);
   if (Object.hasOwn(LUSTRES, id) && chipEls.lustre[id].getAttribute('aria-pressed') !== 'true') chipEls.lustre[id].click();
   else if (/^piece-[0-9a-z]{1,7}$/.test(id) && id !== pieceHash) actions['Surprise me'](false, parseInt(id.slice(6), 36));
+  else { const q = parseP2(id); if (q && id !== pieceHash) roll(q); }
 });
 syncControls();
 
@@ -5766,9 +6332,10 @@ function tick(now) {
     let v;
     if (state.posed && follow.home) { sph.setFromVector3(follow.home.off); v = { theta: sph.theta, el: Math.PI / 2 - sph.phi }; }
     else if (state.posed && camLeg) v = { theta: camLeg.th0 + camLeg.dth, el: Math.PI / 2 - camLeg.ph1 };
+    if (state.rollView) { v = state.rollView; state.rollView = null; }   // a roll of the stage chose the side to look from
     dropFollow();                                    // or its delayed return would undo this fit
     if (hold.id !== 'hero' || !state.posed) releaseShot();   // the fitted view replaces a shot; Hero is the fitted view
-    if (!first && !reduceMotion.matches) flyCamera(fitPose(state, null, v), 700); else frameCamera();
+    if (!first && !reduceMotion.matches) flyCamera(fitPose(state, null, v), 700); else frameCamera(v);
     state.framed = true; resize();
   }
   const cap = state.capture, want = cap || hold.shot || follow.hold ? 0 : 1;
@@ -5824,7 +6391,7 @@ requestAnimationFrame(tick);
 
 if (urlQ.get('configurator') === '1') configurator();
 
-window.eozin = { U, P, makePiece, applyParams, state, renderer, scene, camera, controls, get gui() { return gui; }, configurator, setLang, get lang() { return LANG; }, say, words: { EN, HU }, invalidate, actions, menu: menuRuns, setMode, undo, redo, rematch, takeShot, setPresent, setFollow, follow, fitPose, flyCamera, acc, post, composer, sr, srPass };   // handle for the console
+window.eozin = { U, P, makePiece, makePiece2, roll, RANGES, surprise: SUR, locks, setLock, parseP2, formatP2, applyParams, state, renderer, scene, camera, controls, get gui() { return gui; }, configurator, setLang, get lang() { return LANG; }, say, words: { EN, HU }, invalidate, actions, menu: menuRuns, setMode, undo, redo, rematch, takeShot, setPresent, setFollow, follow, fitPose, flyCamera, acc, post, composer, sr, srPass };   // handle for the console
 </script>
 </body>
 </html>
