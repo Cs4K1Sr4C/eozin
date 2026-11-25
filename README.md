@@ -663,14 +663,14 @@ the control definitions and has one entry per parameter, of three kinds:
   another);
 - `fixed`, with the reason.
 
-Of the 156 parameters 114 make the piece, 15 make the stage and 27 are fixed. The page
+Of the 156 parameters 114 make the piece, 23 make the stage and 19 are fixed. The page
 warns in the console (`RANGES: no entry for …`) about a parameter without an entry, so a
 control added later cannot be left out unnoticed. To add one: give it a `RANGES` entry
 and, unless it is fixed or a plain number with a centre, a line in `makePiece2`. A
 second warning (`RANGES: makePiece2 does not write …`) names an entry with a scope
 that a full roll does not write.
 
-**Wildness** (0–1 in steps of 0.05, default 0.5) scales four things: how far two
+**Wildness** (0–1 in steps of 0.05, default 0.6) scales four things: how far two
 catalogue shapes are blended (up to 0.85 · wildness^1.5), the jitter of every number,
 the pull toward the whole range, and how far the lustre may leave its family (the
 allowed colour distance from the family's film is 0.45 + 3 · wildness³; its hue stays
@@ -775,13 +775,21 @@ version. They depend on the rules and on the catalogue shapes and lustres, so a 
 preset changes the pieces of its family; a change to the rules of the second
 generator needs a new prefix (`#p3-`).
 
-**What Surprise me never touches** (the 27 fixed parameters): rendering quality and
+**What Surprise me never touches** (the 19 fixed parameters): rendering quality and
 performance (pixel ratio, mesh detail, upscaling, sharpening, adaptive quality, still
 quality, spectral samples, reflection detail), the room and self reflections, the
-turntable, the lens settings that belong to the views (aperture, depth of field, focus
-height), the presentation frame, exposure and tone curve (the films are tested against
-them), the finish of the picture (bloom, vignette, grain, fringing, halation), contact
-shading and lustre bounce, key glint and floor polish, and the plinth itself.
+turntable, depth of field and focus height, the presentation frame, exposure and tone
+curve (the films are tested against them), contact shading and lustre bounce, and the
+plinth itself.
+
+**With the Stage scope on** the dice also set the finish of the picture: the aperture
+(f/2.8 to f/8, mostly f/4 and f/5.6), bloom, vignette, grain, fringing and halation
+(near their defaults on a tame roll, further with wildness), and now and then a key
+glint or a polished floor. These eight keys joined the stage scope after the first
+`#p2-` links with the stage bit were made, so such a link from before sets them too
+now; links without the stage bit are unchanged. These additions were load-tested and
+their values checked on one seed; they have not been through a soak or looked at on
+contact sheets.
 
 **Cost.** The generator takes well under a millisecond per piece and never builds a
 mesh. A roll is one `applyParams`: at most one new mesh and one capture of the room,
@@ -978,7 +986,27 @@ its fragment work should gain more; none has been measured. This is why the ladd
 now checks each step of the scale and takes back one that did not shorten the frame
 by a tenth (see *Adaptive quality*): in a run with adaptive quality on (400 x 360, Draft mesh, turntable running) the ladder stepped to 0.77 after its first eight frames at 1.48 s a frame, found 1.43 s, went back to scale 1 and went on with stage rungs 1 to 4. The rule has not run on a real GPU, and its tenth is a choice, not a measurement.
 
-**Fewer triangles in motion (built, measured, switched off).** The small window is bound
+**Mesh detail is Fine by default, and frames in motion draw a lighter list.** The
+default mesh is now Fine (880 x 660 cells on the wall, 806,115 vertices on the default
+piece against 292,802 at Standard); a phone-sized screen (720 px or narrower) keeps
+Standard, whose cells are already under a pixel there. The page opens on the Standard
+mesh and builds the Fine one once the curtain is up; a set of parameters applied at once
+(Surprise me, a preset, a link) shows at Standard first and at Fine 0.3 s later. The
+coarser index lists described below are now **on** (`sr.lod`), at every scale, with the
+cell limit raised from 1.25 to 2.5 drawn pixels, and are made with the mesh rather than
+in the first frame of a drag. Stills, exposures, the shadow map and the room capture
+keep the full list. Measured on SwiftShader, 760 x 520 window (stage 460 x 520), default
+piece, lens blur as loaded, adaptive quality off, 0.57 degrees of orbit a frame: a frame
+in motion took 3.4 to 3.8 s with the Fine default against 3.8 to 4.0 s with the previous
+file at Standard (two runs each, 7 frames after the first); on the same page, lists off
+against on, 8.5 to 8.9 s against 3.4 s. A frame in motion drawn from the lists differs
+from one drawn from the full list by 41.7 dB PSNR (largest single difference 164 of
+255, lens blur and grain off, one pose). Time to the curtain was the same within noise
+(48.8 s against 47.8 s in one pair at this size). Not measured: the time a still takes
+to gather at Fine (every sample draws 2.75 times the vertices), memory, any real GPU,
+any phone. The text below is the record of the first trial, when the lists were off.
+
+**Fewer triangles in motion (first trial: built, measured, then switched off).** The small window is bound
 by triangles because a turned mesh has cells well under a drawn pixel there. The page
 can now make coarser index lists over the same vertices (every 2nd, 4th and 8th
 column, rows merged up to the same spacing, never across the edge of foot, wall, lip or

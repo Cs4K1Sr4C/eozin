@@ -1029,7 +1029,7 @@ const DEFAULTS = {
   env: 'Atelier softboxes', envRot: 20, envInt: 1, keyInt: 2.6, keyLock: true, keyAz: 38, keyEl: 46, keySoft: 2, keySpec: 0,
   backdrop: 'Cove', backdropTone: 0.12, pool: 0.6, plinthMat: 'Black stone',
   roomRefl: true, reflDetail: 'High', selfRefl: true, plinthGloss: 0.35, floorGloss: 0, exposure: 1, tone: 'ACES', bloom: 0.22, vignette: 0.3,
-  occlusion: 0.9, bounce: 1, spin: 1.2, plinth: true, detail: 'Standard', pixelRatio: 2, adaptive: true, upscale: 'Auto', sharpen: 0.4,
+  occlusion: 0.9, bounce: 1, spin: 1.2, plinth: true, detail: 'Fine', pixelRatio: 2, adaptive: true, upscale: 'Auto', sharpen: 0.4,
   // camera and film
   focal: 45, fstop: 4, dof: 'Always', focusLevel: 0.5, stillSamples: 32, look: 'Print', grain: 0.15, chroma: 0.5, halation: 0.2, frame: 'Free',
 };
@@ -1039,6 +1039,7 @@ const DEFAULTS = {
 const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)'), phoneSized = window.matchMedia('(max-width: 720px)').matches;
 const START = {
   ...DEFAULTS, spin: reduceMotion.matches ? 0 : DEFAULTS.spin,
+  detail: phoneSized ? 'Standard' : DEFAULTS.detail,   // on a phone-sized screen the Standard mesh is already finer than a pixel
   reflDetail: phoneSized ? 'Standard' : DEFAULTS.reflDetail, dof: phoneSized ? 'Stills' : DEFAULTS.dof, stillSamples: phoneSized ? 16 : DEFAULTS.stillSamples,
 };
 const P = { ...START };
@@ -2916,7 +2917,7 @@ for (const m of [vesselMesh, handleMesh, lidMesh]) { m.castShadow = true; m.rece
 // Switched off (sr.lod): a still gathered at a reduced scale keeps a faded trace of the last picture in motion, so it
 // came out one 8-bit step different in about 1 pixel of 1700 with the lists on. See 'Fewer triangles in motion' in the
 // README for what was measured; `eozin.sr.lod = true` in the console tries it.
-const LOD = { tau: 1.25, live: false, v: new THREE.Vector3(), w: new THREE.Vector3(), s: new THREE.Vector2() };
+const LOD = { tau: 2.5, live: false, v: new THREE.Vector3(), w: new THREE.Vector3(), s: new THREE.Vector2() };
 function lodBuild(geometry, [R, C1]) {
   const pos = geometry.attributes.position.array, surf = geometry.attributes.aSurf.array, full = geometry.index.array, C = C1 - 1;
   const gap = new Float32Array(R), st = Math.max(1, C >> 4), lists = [], ranges = [{ start: 0, count: full.length, h: 0 }];
@@ -3448,7 +3449,7 @@ const acc = { n: 0, F: 5, A: 0 };                    // samples in the sum; focu
 // (reprojected from depth), clipped to what the new frame allows, and kept only briefly on the piece, whose lustre
 // changes with the view. 'Off' never enters any of it: resize() then lowers the canvas itself, as it always did.
 const SR_STEPS = [1, 0.77, 0.67, 0.5], SR_FIXED = { Quality: 0.77, Balanced: 0.67, Performance: 0.5 };
-const sr = { scale: 1, jx: 0, jy: 0, k: 0, reset: true, rest: false, dead: false, calm: false, keep: false, sig: '', turn: 0, az: null, floor: 0, paid: 0, px: 0, lod: false,
+const sr = { scale: 1, jx: 0, jy: 0, k: 0, reset: true, rest: false, dead: false, calm: false, keep: false, sig: '', turn: 0, az: null, floor: 0, paid: 0, px: 0, lod: true,
   vp: new THREE.Matrix4(), prevVP: new THREE.Matrix4(), view: new THREE.Matrix4(), prevView: new THREE.Matrix4(), model: new THREE.Matrix4(), prevModel: new THREE.Matrix4(),
   m: new THREE.Matrix4(), vdir: new THREE.Vector3(), pdir: new THREE.Vector3() };
 const srMode = () => (sr.dead ? 'Off' : P.upscale);
@@ -4128,7 +4129,7 @@ function lensBegin(refine, N) {
   dofPass.taps = state.fx >= 1 ? 24 : 48;
   const on = srOn();
   accumPass.enabled = refine && !on; srPass.enabled = on;
-  LOD.live = on && !refine && sr.lod;
+  LOD.live = !refine && sr.lod;
   if (LOD.live) lodReady();
   const sharp0 = post.uSharp.value;
   post.uSharp.value = 0;
@@ -4431,6 +4432,7 @@ function rebuildGeometry(level) {
   groundProfile(); groundLights();
   fitShadow();
   shadowDirty();
+  if (sr.lod && level !== 'Draft') lodReady();        // the lists for frames in motion are made with the mesh at rest, not in the first frame of a drag
   invalidate();
 }
 
@@ -4954,7 +4956,7 @@ const presetState = (keys, set) => ({ ...Object.fromEntries(keys.map((k) => [k, 
 //   fixed(reason)                     never randomised.
 // Scopes are the switches of the Surprise me folder; their order is the bit order of a #p2- link.
 const SCOPES = ['form', 'sculpt', 'handles', 'glaze', 'lustre', 'deco', 'stage'];
-const SCOPE_DEFAULT = 63, WILD_DEFAULT = 0.5;
+const SCOPE_DEFAULT = 63, WILD_DEFAULT = 0.6;
 const RANGES = (() => {
   const num = (s, lo, hi, j0, j1, p = 2, c) => ({ s, lo, hi, j0, j1, p, c });
   const by = (s, rule) => ({ s, by: rule });
@@ -5002,12 +5004,13 @@ const RANGES = (() => {
     decoThick: by('deco', 'around'), decoFill: by('deco', 'around'), decoSilver: by('deco', 'sometimes'), decoMatte: by('deco', 'sometimes'),
     // stage and light: only when asked for
     env: by('stage', 'choice'), envRot: by('stage', 'any'), envInt: num('stage', 0.8, 1.3, 0.1, 0.4, 2, 1), keyInt: num('stage', 1.8, 3.4, 0.15, 0.4, 2, 2.6),
-    keyLock: by('stage', 'key'), keyAz: by('stage', 'key'), keyEl: by('stage', 'key'), keySoft: num('stage', 1, 3.5, 0.15, 0.4, 2, 2), keySpec: off,
+    keyLock: by('stage', 'key'), keyAz: by('stage', 'key'), keyEl: by('stage', 'key'), keySoft: num('stage', 1, 3.5, 0.15, 0.4, 2, 2), keySpec: by('stage', 'sometimes'),
     backdrop: by('stage', 'choice'), backdropTone: num('stage', 0.04, 0.3, 0.15, 0.4, 2, 0.12), pool: num('stage', 0.3, 0.9, 0.15, 0.4, 2, 0.6),
     plinth: fixed('a piece without its plinth is another layout of the page, not a variation'), plinthMat: by('stage', 'choice'), plinthGloss: num('stage', 0.1, 0.7, 0.2, 0.45, 2, 0.35),
-    floorGloss: off, occlusion: model, bounce: model,
-    focal: by('stage', 'choice'), fstop: lens, dof: lens, focusLevel: lens, stillSamples: quality, look: by('stage', 'choice'), grain: grade, chroma: grade, halation: grade,
-    exposure: picture, tone: picture, bloom: grade, vignette: grade, frame: fixed('the format of the presentation'),
+    floorGloss: by('stage', 'sometimes'), occlusion: model, bounce: model,
+    focal: by('stage', 'choice'), fstop: by('stage', 'choice'), dof: lens, focusLevel: lens, stillSamples: quality, look: by('stage', 'choice'),
+    grain: num('stage', 0, 0.4, 0.15, 0.4, 2, 0.15), chroma: num('stage', 0.1, 0.9, 0.15, 0.4, 2, 0.5), halation: num('stage', 0, 0.5, 0.15, 0.4, 2, 0.2),
+    exposure: picture, tone: picture, bloom: num('stage', 0.08, 0.4, 0.15, 0.4, 2, 0.22), vignette: num('stage', 0.1, 0.55, 0.15, 0.4, 2, 0.3), frame: fixed('the format of the presentation'),
     spin: fixed('a preference about motion'), roomRefl: feature, reflDetail: quality, selfRefl: feature, detail: quality, pixelRatio: quality, adaptive: quality, upscale: quality,
     sharpen: quality, spectral: quality,
   };
@@ -5310,7 +5313,12 @@ function applyParams(values, { silent } = {}) {
     gui?.controllersRecursive().forEach((c) => c.updateDisplay());
     updateStage(); updateMaterial(); syncControls();
     shadowDirty();
-    if (geo) geoDirty = meshLevel();                 // uniforms alone need no new mesh
+    if (geo) {                                       // uniforms alone need no new mesh
+      const level = meshLevel();
+      clearTimeout(geoTimer); geoTimer = 0;
+      if (level === 'Fine') { geoDirty = 'Standard'; geoTimer = setTimeout(() => { geoTimer = 0; geoDirty = meshLevel(); }, 320); }   // the piece is there at once, its finest mesh a moment later
+      else geoDirty = level;
+    }
   }
   return n;
 }
@@ -5804,6 +5812,9 @@ function makePiece2(seed, w, opts = {}) {
     put('keyLock', !free); put('keyAz', free ? turn(vdeg + (sgn('keyAz.side') >= 0 ? 1 : -1) * lerp(15, 75, U('keyAz'))) : DEFAULTS.keyAz); put('keyEl', free ? Math.round(lerp(25, 65, U('keyEl'))) : DEFAULTS.keyEl);
     put('keySoft', N('keySoft')); put('backdrop', U('backdrop') < 0.2 + 0.1 * w ? 'Void' : 'Cove'); put('backdropTone', N('backdropTone')); put('pool', N('pool'));
     put('plinthMat', pickW('plinthMat', PLINTHS, [1, 1.5, 1, 1])); put('plinthGloss', N('plinthGloss'));
+    // the finish of the picture and the glints of the room: near their defaults on a tame roll, further with wildness
+    put('fstop', pickW('fstop', [2.8, 4, 5.6, 8], [0.4 + w, 3, 2, 0.4 + w])); for (const k of ['grain', 'chroma', 'halation', 'bloom', 'vignette']) put(k, N(k));
+    put('keySpec', U('keySpec.on') < 0.1 + 0.25 * w ? lerp(0.2, 0.7, U('keySpec')) : DEFAULTS.keySpec); put('floorGloss', U('floorGloss.on') < 0.1 + 0.25 * w ? lerp(0.15, 0.6, U('floorGloss')) : DEFAULTS.floorGloss);
     if (!opts.view) meta.view = { theta: vth, el: lerp(0.08, 0.38, U('view.el')) };   // the side the piece is seen from: not a parameter (opts.view: the view is kept, the light comes to it)
   }
   return { seed, w, params: out, meta };
@@ -6242,7 +6253,7 @@ function warmPrograms() {
   renderer.getContext().flush();
 }
 warmPrograms();
-rebuildGeometry(P.detail);
+rebuildGeometry(P.detail === 'Fine' ? 'Standard' : P.detail);   // the first picture from the Standard mesh; the Fine one follows once the curtain is up (opened)
 
 // Adaptive quality: hold a usable frame rate on slower GPUs. Pixels go first, which keeps the piece as designed, then
 // the costly extras of the stage (setFx). By then the triangles are far below a pixel and shading follows their count,
@@ -6305,6 +6316,7 @@ function firstDone() {
   return true;
 }
 function opened() {                                  // the first pictures are drawn and the room is captured: lift the curtain, and let the camera settle into its place
+  if (meshLevel() === 'Fine' && !geoTimer) geoTimer = setTimeout(() => { geoTimer = 0; geoDirty = meshLevel(); }, 600);
   const done = () => statusEl.remove();
   if (reduceMotion.matches) { done(); return; }
   statusEl.classList.add('out');
