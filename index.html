@@ -1955,7 +1955,7 @@ function statueRig(p) {
     ball(P0, [0.52 * th, 0.58, hipW / 2 + 0.22 * th], 0, 0);
     limb(P0, chest, 0.5 * th * lerp(1.15, 0.6, p.humWaist), 0.55 * th, 0.5);
     ball(chest, [0.56 * th * lerp(0.8, 1.3, p.humChest), 0.8, shW / 2 * 0.8], tw, lean * 0.6, 0.5);
-    limb(add(S0, side, shW / 2), add(S0, side, -shW / 2), 0.34 * th, 0.34 * th, 0.4);
+    limb(add(S0, side, shW / 2), add(S0, side, -shW / 2), 0.28 * th, 0.28 * th, 0.4);
     if (p.humBust > 0.02) for (const s of [1, -1]) ball(add(add(chest, side, s * 0.33 * shW / 2 * 1.2), [0.42 * th * lerp(0.8, 1.3, p.humChest), 0.05, 0]), 0.36 * p.humBust * th + 0.08, 0, 0, 0.25);
     const nb = add(S0, up, 0.1), hb = add(nb, [Math.sin(lean * 0.4), Math.cos(lean * 0.4), 0], 0.3 + 0.7 * p.humNeck), tilt = 30 * p.humHeadTilt * D2R, turn = 70 * p.humHeadTurn * D2R;
     limb(nb, hb, 0.2 * th + 0.03, 0.17 * th + 0.03, 0.3);
@@ -1965,14 +1965,14 @@ function statueRig(p) {
     if (p.humBun > 0.02) ball(add(hc, dir(tilt + 2.3, turn), hr * 0.98), 0.42 * hr * p.humBun + 0.05, 0, 0, 0.1);
     const hips = [1, -1].map((s) => add(P0, [0, -0.12, s * hipW / 2]));
     const leg = (hp, knee, ankle, s) => {
-      limb(hp, knee, 0.42 * th, 0.3 * th, 0.45); limb(knee, ankle, 0.3 * th, 0.17 * th, 0.2);
+      limb(hp, knee, 0.42 * th, 0.28 * th, 0.4); limb(knee, ankle, 0.28 * th, 0.16 * th, 0.06);
       limb(add(ankle, [0, -0.02, 0]), add(ankle, [0.62, -0.1, s * 0.08]), 0.16 * th + 0.02, 0.12 * th + 0.02, 0.15);
     };
     const shoulders = [1, -1].map((s) => add(add(S0, side, s * shW / 2), [0, -0.05, 0]));
     const arm = (sh, hand, s, bend) => {             // two bones to a hand that is put where it belongs: the elbow goes out and back
       const d = Math.hypot(hand[0] - sh[0], hand[1] - sh[1], hand[2] - sh[2]), L = upper + fore, reach = Math.min(d, 0.995 * L), m = mix(sh, hand, upper / L * reach / d);
       const off = Math.sqrt(Math.max(0, upper * upper - (upper / L * reach) ** 2)) * bend, el = add(m, [-0.85 * off, -0.2 * off, s * 0.3 * off]), w = mix(sh, hand, reach / d);
-      limb(sh, el, 0.27 * th, 0.21 * th, 0.3); limb(el, w, 0.21 * th, 0.14 * th, 0.2); ball(w, [0.2 * th + 0.02, 0.15 * th + 0.02, 0.17 * th + 0.02], 0, 0, 0.15);
+      limb(sh, el, 0.26 * th, 0.2 * th, 0.3); limb(el, w, 0.2 * th, 0.14 * th, 0.05); ball(w, [0.2 * th + 0.02, 0.15 * th + 0.02, 0.17 * th + 0.02], 0, 0, 0.15);
     };
     if (seated) {
       const kA = (15 + 60 * p.humKnee) * D2R, kB = 8 * D2R, fy = 0.17 * th + 0.05;
@@ -2005,13 +2005,13 @@ function statueRig(p) {
     const paw = (c, s) => limb(add(c, [0, -0.02, 0]), add(c, [lt * 1.5, -0.04, s * 0.03]), lt * 0.95 + 0.03, lt * 0.85 + 0.03, 0.12);
     for (const s of [1, -1]) {
       const fs = add(S0, [0, -0.3 * g, s * g * 0.55]), ff = [fs[0] + (sit ? 0.25 : 0.1), lt, fs[2] + s * 0.05], fk = mix(fs, ff, 0.52); fk[0] -= sit ? 0.05 : 0.12;
-      limb(fs, fk, lt * 1.35, lt * 1.0, 0.35); limb(fk, ff, lt * 1.0, lt * 0.8, 0.15); paw(ff, s);
+      limb(fs, fk, lt * 1.35, lt * 0.95, 0.3); limb(fk, ff, lt * 0.95, lt * 0.8, 0.05); paw(ff, s);
       if (sit) {                                     // the haunch folded beside the rump, the hind foot under the knee
         const hp = add(H0, [0.25 * g, 0.05, s * g * 0.78]), kn = add(hp, [1.1 * g, -0.1 * g, s * 0.12]), ft = [kn[0] + 0.15, lt, kn[2] + s * 0.05];
         ball(mix(hp, kn, 0.45), [g * 0.95, g * 0.8, g * 0.42], s * 0.12, 0.2, 0.4); limb(kn, ft, lt * 1.1, lt * 0.9, 0.25); paw(ft, s);
       } else {
         const hs = add(H0, [-0.05, -0.2 * g, s * g * 0.5]), hk = add(hs, [0.28 * ll * 0.5, -0.45 * ll, s * 0.03]), hh = add(hk, [-0.34 * ll * 0.5, -0.3 * ll, 0]), hf = [hh[0] + 0.12, lt, hh[2]];
-        limb(hs, hk, lt * 1.75, lt * 1.1, 0.4); limb(hk, hh, lt * 1.1, lt * 0.78, 0.15); limb(hh, hf, lt * 0.78, lt * 0.8, 0.12); paw(hf, s);
+        limb(hs, hk, lt * 1.75, lt * 1.05, 0.3); limb(hk, hh, lt * 1.05, lt * 0.78, 0.05); limb(hh, hf, lt * 0.78, lt * 0.8, 0.05); paw(hf, s);
       }
     }
     const na = (sit ? 62 : 18 + 60 * p.quadNeckUp) * D2R, nl = lerp(0.5, 3.4, p.quadNeck), nt = add(S0, [0, 0.35 * g, 0]), hb = add(nt, dir(na), nl + 0.5 * g);
@@ -2024,19 +2024,19 @@ function statueRig(p) {
       const eb = add(hc, [-0.25 * hr * Math.cos(turn) - s * 0.5 * hr * Math.sin(turn), hr * 0.62, s * 0.5 * hr * Math.cos(turn) - 0.25 * hr * Math.sin(turn)]), el = lerp(0.2, 1.9, p.quadEars) * hr;
       limb(eb, add(eb, [-0.12 * el, el, s * 0.22 * el]), hr * 0.3, hr * lerp(0.26, 0.05, p.quadEarPoint), 0.12);
     }
-    const tl = lerp(0, 5, p.quadTail), n = 7;
+    const tl = lerp(0, 5, p.quadTail), n = 12;
     if (tl > 0.15) for (let i = 0, a = sit ? [H0[0] - g * 0.8, lt * 0.8, 0] : add(H0, [-g * 0.85, 0.3 * g, 0]), ang = sit ? Math.PI * 0.75 : lerp(250, 125, p.quadTailCurl) * D2R; i < n; i++) {
       const b = sit ? add(a, [Math.cos(ang) * tl / n, 0, Math.sin(ang) * tl / n]) : add(a, dir(ang), tl / n);   // a seated animal lays its tail round itself; a standing one carries it
-      limb(a, b, lt * lerp(0.75, 0.4, i / n), lt * lerp(0.75, 0.4, (i + 1) / n), 0.15); a = b; ang += sit ? -(p.quadTailCurl * 1.6 + 0.5) * 2.2 / n : (p.quadTailCurl - 0.35) * 2.4 / n;
+      limb(a, b, lt * lerp(0.75, 0.4, i / n), lt * lerp(0.75, 0.4, (i + 1) / n), i ? 0.03 : 0.2); a = b; ang += sit ? -(p.quadTailCurl * 1.6 + 0.5) * 2.2 / n : (p.quadTailCurl - 0.35) * 2.4 / n;
     }
   } else {
     const bl = lerp(1.3, 2.3, p.aviBody), bh = lerp(0.8, 1.25, p.aviPlump), pitch = (5 + 45 * p.aviPitch) * D2R, ll = p.aviLegs * 2.6, C = [0, ll + bh * 0.95, 0], fd = dir(pitch);
     ball(C, [bl, bh, bh * 0.92], 0, pitch, 0.5);
     ball(add(C, dir(pitch - 0.5), bl * 0.45), bh * lerp(0.75, 1.02, p.aviBreast), 0, 0, 0.6);
-    const n = 5, nl = lerp(0.25, 4.4, p.aviNeck), cv = p.aviNeckCurve;
+    const n = 10, nl = lerp(0.25, 4.4, p.aviNeck), cv = p.aviNeckCurve;
     let a = add(C, fd, bl * 0.72), ang = (55 + 35 * cv) * D2R;
     const nr = bh * lerp(0.5, 0.26, p.aviNeck);
-    for (let i = 0; i < n; i++) { const b = add(a, dir(ang), nl / n); limb(a, b, lerp(nr * 1.25, nr, i / n), lerp(nr * 1.25, nr, (i + 1) / n), 0.45); a = b; ang += i < n / 2 ? cv * 0.5 / n * 2 : -cv * 1.9 / n * 2; }
+    for (let i = 0; i < n; i++) { const b = add(a, dir(ang), nl / n); limb(a, b, lerp(nr * 1.25, nr, i / n), lerp(nr * 1.25, nr, (i + 1) / n), i ? 0.04 : 0.45); a = b; ang += i < n / 2 ? cv * 0.5 / n * 2 : -cv * 1.9 / n * 2; }
     const hr = lerp(0.3, 0.72, p.aviHead), turn = 70 * p.aviHeadTurn * D2R, hc = add(a, [0.1 * hr, 0.35 * hr, 0]);
     ball(hc, [hr * 1.08, hr * 0.95, hr * 0.92], turn, 0, 0.3);
     const bd = dir((-8 - 50 * p.aviBeakDroop) * D2R, turn), bk = lerp(0.25, 2.6, p.aviBeak) * hr;
@@ -2047,7 +2047,7 @@ function statueRig(p) {
     const ws = lerp(0.3, 1.15, p.aviWings), lift = p.aviWingLift;
     for (const s of [1, -1]) {
       const wc = add(C, [-0.18 * bl - 0.3 * bl * ws, 0.15 * bh + 0.9 * bh * lift, s * bh * (0.74 + 0.25 * lift)]);
-      ball(wc, [bl * 0.95 * ws + 0.2, bh * 0.52 * ws + 0.1, 0.16 + 0.05 * bh], s * (0.16 + 0.5 * lift), pitch - 0.25 + 0.9 * lift, 0.25);
+      ball(wc, [bl * 0.8 * ws + 0.12, bh * 0.58 * ws + 0.1, 0.16 + 0.05 * bh], s * (0.16 + 0.5 * lift), pitch - 0.25 + 0.9 * lift, 0.25);
       if (ll > 0.25) { const hp = add(C, [0.05 * bl, -bh * 0.7, s * bh * 0.38]), ft = [hp[0] + 0.1, 0.07, hp[2] + s * 0.05]; limb(hp, ft, 0.11, 0.075, 0.1); for (const t of [-0.5, 0, 0.5]) limb(ft, add(ft, [0.5 * Math.cos(t), 0, 0.5 * Math.sin(t)]), 0.075, 0.05, 0.05); limb(ft, add(ft, [-0.3, 0, 0]), 0.07, 0.05, 0.05); }
     }
     ground = ll > 0.25 ? 0 : -0.22 * bh;             // a bird without legs sits: the plane takes a slice off its belly
@@ -2074,9 +2074,12 @@ function buildStatue(p, level) {
     if (q[0] === 0) { T[o + 1] = (q[1] - cx) * S; T[o + 2] = (q[2] - ground) * S; T[o + 3] = (q[3] - cz) * S; T[o + 4] = (q[4] - cx) * S; T[o + 5] = (q[5] - ground) * S; T[o + 6] = (q[6] - cz) * S; T[o + 7] = q[7] * S; T[o + 8] = q[8] * S; T[o + 9] = q[9] * S; }
     else { T[o + 1] = (q[1] - cx) * S; T[o + 2] = (q[2] - ground) * S; T[o + 3] = (q[3] - cz) * S; for (let j = 4; j <= 7; j++) T[o + j] = q[j] * S; if (q[0] === 1) { T[o + 8] = q[7] * S; for (let j = 0; j < 4; j++) T[o + 9 + j] = q[8 + j]; } else T[o + 8] = q[8] * S; }
   });
-  const field = (x, y, z) => {
+  const ALL = Int32Array.from({ length: np }, (_, i) => i * 16);
+  let near = null;                                   // with a list, the smallest part distance is noted per part (for the lists of the blocks)
+  const field = (x, y, z, L = ALL) => {
     let d = 1e9;
-    for (let o = 0; o < np * 16; o += 16) {
+    for (let q = 0; q < L.length; q++) {
+      const o = L[q];
       let e, k;
       if (T[o] === 0) {
         const ax = T[o + 1], ay = T[o + 2], az = T[o + 3], bx = T[o + 4] - ax, by = T[o + 5] - ay, bz = T[o + 6] - az, px = x - ax, py = y - ay, pz = z - az;
@@ -2092,28 +2095,36 @@ function buildStatue(p, level) {
         const ox = Math.max(qx, 0), oz = Math.max(qz, 0), plan = Math.sqrt(ox * ox + oz * oz) + Math.min(Math.max(qx, qz), 0) - rd, ry = Math.min(rd, 0.25 * T[o + 5]), oy = Math.max(qy, 0), op = Math.max(plan + ry, 0);
         e = Math.sqrt(op * op + oy * oy) + Math.min(Math.max(plan + ry, qy), 0) - ry; k = T[o + 8];
       }
+      if (near) near[q] = e;
       const h = Math.max(k - Math.abs(d - e), 0) / k;
       d = Math.min(d, e) - 0.25 * h * h * k;
     }
     return Math.max(d, -y);                          // it stands on the ground: a flat, bare foot
   };
   // the grid: coarse first, fine only where the surface can be
-  const cell = p.height / ({ Draft: 64, Standard: 150, Fine: 215 }[level] || 150), B = 4, pad = 2 * cell;
+  const cell = Math.max(p.height, (hi[0] - lo[0]) * S, (hi[2] - lo[2]) * S) / ({ Draft: 72, Standard: 190, Fine: 280 }[level] || 190), B = 4, pad = 2 * cell;   // by its longest side, so a low wide figure costs what a tall one does
   const x0 = (lo[0] - cx) * S - pad, y0 = -pad, z0 = (lo[2] - cz) * S - pad;
   const nb = [Math.ceil(((hi[0] - lo[0]) * S + 2 * pad) / (cell * B)), Math.ceil((p.height + 2 * pad) / (cell * B)), Math.ceil(((hi[2] - lo[2]) * S + 2 * pad) / (cell * B))];
   const nx = nb[0] * B, ny = nb[1] * B, nz = nb[2] * B, px = nx + 1, py = ny + 1, pxy = px * py, val = new Float32Array(px * py * (nz + 1)).fill(1e3), far = cell * B * 0.87 + cell + 0.25 * prims.reduce((m, q) => Math.max(m, q[0] === 0 ? q[9] : q[0] === 1 ? q[7] : q[8]), 0) * S;
   const cb = new Float32Array((nb[0] + 1) * (nb[1] + 1) * (nb[2] + 1)), cpx = nb[0] + 1, cpxy = cpx * (nb[1] + 1);
   for (let k = 0; k <= nb[2]; k++) for (let j = 0; j <= nb[1]; j++) for (let i = 0; i <= nb[0]; i++) cb[i + j * cpx + k * cpxy] = field(x0 + i * B * cell, y0 + j * B * cell, z0 + k * B * cell);
-  const live = [];
+  // Each block that can hold surface keeps a list of the parts that can matter in it: a part further off than the
+  // nearest one by more than the block's size and the widest melt changes nothing there. Most blocks know three or four.
+  const live = [], lists = [], kmax = far - cell * B * 0.87 - cell, reachB = cell * B * 0.87 + 2 * cell;
   for (let k = 0; k < nb[2]; k++) for (let j = 0; j < nb[1]; j++) for (let i = 0; i < nb[0]; i++) {
     let m = 1e9;
     for (let c = 0; c < 8; c++) m = Math.min(m, Math.abs(cb[i + (c & 1) + (j + (c >> 1 & 1)) * cpx + (k + (c >> 2)) * cpxy]));
     if (m > far * 1.75) continue;
-    live.push(i, j, k);
-    for (let c = 0; c <= B; c++) for (let b = 0; b <= B; b++) for (let a = 0; a <= B; a++) { const o = i * B + a + (j * B + b) * px + (k * B + c) * pxy; if (val[o] === 1e3) val[o] = field(x0 + (i * B + a) * cell, y0 + (j * B + b) * cell, z0 + (k * B + c) * cell); }
+    near = new Float64Array(np); field(x0 + (i + 0.5) * B * cell, y0 + (j + 0.5) * B * cell, z0 + (k + 0.5) * B * cell);
+    let lowest = 1e9; for (let q = 0; q < np; q++) lowest = Math.min(lowest, near[q]);
+    const L = []; for (let q = 0; q < np; q++) if (near[q] - reachB < lowest + reachB + 4 * kmax) L.push(q * 16);
+    near = null;
+    const Lb = Int32Array.from(L);
+    live.push(i, j, k); lists.push(Lb);
+    for (let c = 0; c <= B; c++) for (let b = 0; b <= B; b++) for (let a = 0; a <= B; a++) { const o = i * B + a + (j * B + b) * px + (k * B + c) * pxy; if (val[o] === 1e3) val[o] = field(x0 + (i * B + a) * cell, y0 + (j * B + b) * cell, z0 + (k * B + c) * cell, Lb); }
   }
   // surface nets: one vertex in every cell the surface crosses, at the mean of its crossings; one quad for every crossed edge
-  const vid = new Int32Array(nx * ny * nz).fill(-1), P3 = [], EDGE = [[0, 1], [2, 3], [4, 5], [6, 7], [0, 2], [1, 3], [4, 6], [5, 7], [0, 4], [1, 5], [2, 6], [3, 7]], cv = new Float32Array(8);
+  const vid = new Int32Array(nx * ny * nz).fill(-1), vb = [], P3 = [], EDGE = [[0, 1], [2, 3], [4, 5], [6, 7], [0, 2], [1, 3], [4, 6], [5, 7], [0, 4], [1, 5], [2, 6], [3, 7]], cv = new Float32Array(8);
   for (let q = 0; q < live.length; q += 3) for (let c = 0; c < B; c++) for (let b = 0; b < B; b++) for (let a = 0; a < B; a++) {
     const i = live[q] * B + a, j = live[q + 1] * B + b, k = live[q + 2] * B + c, o = i + j * px + k * pxy;
     let neg = 0;
@@ -2121,7 +2132,7 @@ function buildStatue(p, level) {
     if (neg === 0 || neg === 8) continue;
     let sx = 0, sy = 0, sz = 0, m = 0;
     for (const [e0, e1] of EDGE) if ((cv[e0] < 0) !== (cv[e1] < 0)) { const t = cv[e0] / (cv[e0] - cv[e1]); sx += lerp(e0 & 1, e1 & 1, t); sy += lerp(e0 >> 1 & 1, e1 >> 1 & 1, t); sz += lerp(e0 >> 2, e1 >> 2, t); m++; }
-    vid[i + j * nx + k * nx * ny] = P3.length / 3;
+    vid[i + j * nx + k * nx * ny] = P3.length / 3; vb.push(q / 3);
     P3.push(x0 + (i + sx / m) * cell, y0 + (j + sy / m) * cell, z0 + (k + sz / m) * cell);
   }
   const N = P3.length / 3, pos = new Float32Array(P3), nrm = new Float32Array(N * 3), uv0 = new Float32Array(N), surf = new Float32Array(N * 4), ao = new Float32Array(N), e = cell * 0.5;
@@ -2129,12 +2140,13 @@ function buildStatue(p, level) {
   let maxR = 0, top = 0;
   for (let v = 0; v < N; v++) {
     let x = pos[v * 3], y = pos[v * 3 + 1], z = pos[v * 3 + 2], gx = 0, gy = 1, gz = 0, d = 0;
+    const L = lists[vb[v]];
     for (let it = 0; it < 2; it++) {                 // settle the vertex onto the surface, along the field's slope
-      d = field(x, y, z); gx = field(x + e, y, z) - d; gy = field(x, y + e, z) - d; gz = field(x, y, z + e) - d;
+      d = field(x, y, z, L); gx = field(x + e, y, z, L) - d; gy = field(x, y + e, z, L) - d; gz = field(x, y, z + e, L) - d;
       const l = Math.hypot(gx, gy, gz) || 1; gx /= l; gy /= l; gz /= l;
       if (it === 0) { const s = clamp(d, -cell, cell); x -= s * gx; y -= s * gy; z -= s * gz; if (y < 0) y = 0; }
     }
-    const lap = (field(x + 2 * e * gx, y + 2 * e * gy, z + 2 * e * gz) - d - 2 * e) / (2 * e), under = gy < -0.7 && y < 0.02 * H + cell;   // how the field opens along the normal: under 0 in a hollow, where parts meet
+    const lap = (field(x + 2 * e * gx, y + 2 * e * gy, z + 2 * e * gz, L) - d - 2 * e) / (2 * e), under = gy < -0.7 && y < 0.02 * H + cell;   // how the field opens along the normal: under 0 in a hollow, where parts meet
     let sh = 0;
     for (let s = 1; s <= 3; s++) { const r = s * 0.035 * H; sh += Math.max(0, r - field(x + r * gx, y + r * gy, z + r * gz)) / r / s; }
     surf[v * 4] = clamp(-3.2 * lap - 0.12, -0.6, 1); surf[v * 4 + 2] = under ? -1 : y - p.glazeLine * 0.5; surf[v * 4 + 3] = under ? 0 : 1;
@@ -6903,7 +6915,7 @@ requestAnimationFrame(tick);
 
 if (urlQ.get('configurator') === '1') configurator();
 
-window.eozin = { U, P, makePiece, makePiece2, roll, RANGES, surprise: SUR, locks, setLock, parseP2, formatP2, applyParams, state, renderer, scene, camera, controls, get gui() { return gui; }, configurator, setLang, get lang() { return LANG; }, say, words: { EN, HU }, invalidate, actions, menu: menuRuns, setMode, undo, redo, rematch, takeShot, setPresent, setFollow, follow, fitPose, flyCamera, acc, post, composer, sr, srPass };   // handle for the console
+window.eozin = { U, P, makePiece, makePiece2, buildStatue, roll, RANGES, surprise: SUR, locks, setLock, parseP2, formatP2, applyParams, state, renderer, scene, camera, controls, get gui() { return gui; }, configurator, setLang, get lang() { return LANG; }, say, words: { EN, HU }, invalidate, actions, menu: menuRuns, setMode, undo, redo, rematch, takeShot, setPresent, setFollow, follow, fitPose, flyCamera, acc, post, composer, sr, srPass };   // handle for the console
 </script>
 </body>
 </html>

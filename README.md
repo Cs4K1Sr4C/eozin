@@ -331,7 +331,7 @@ Standing figure, Seated figure, Sitting cat, Horse, Songbird, Swan) are modelled
 whole on a skeleton, with limbs. `statueRig` lays tapered limbs, ellipsoids and an
 optional base slab along a posed skeleton; `buildStatue` melts them into one distance
 field (a smooth union, *Modelling softness*), draws the surface out of it with surface
-nets on a grid that is refined only near the surface (64, 150 or 215 cells to the
+nets on a grid that is refined only near the surface (72, 200 or 300 cells to the
 height at Draft, Standard, Fine) and settles each vertex onto the field. The glaze
 gets hollows to pool in and shade from the same field, and the underside is bare.
 
@@ -351,14 +351,20 @@ statue, a pierced bowl or a shell dish cannot be made with either method. A stat
 has no inside, takes no relief, lobes, handles or lid, and does without the traced
 self-reflections (so does a figural vase); its camera views *Lip* and *Foot* aim at
 the thrown form's levels. Their look was judged on a handful of renders in a software
-renderer: ten catalogue pieces and six random figural vases. Random statuettes were
-checked for valid parameters (600 seeds), not looked at one by one. Build time of a
-statuette was not measured.
+renderer: the ten catalogue pieces, six random figural vases and ten random statuettes
+(none broken; a long neck or tail still shows faint rings where its links meet), and
+600 seeds checked for valid parameters. A statuette's grid is sized by its longest
+side, and each block of the grid knows which parts of the body can matter in it, so
+the field is not summed over all of them. Built on this machine, the six catalogue
+statuettes took 75 to 210 ms at Draft, 0.3 to 1.3 s at Standard (37,000 to 117,000
+vertices) and 0.7 to 2.7 s at Fine (80,000 to 253,000), one run each; the build blocks
+the page while it runs.
 
 **Links.** The figures are scope bit 7 of a `#p2-` link. Links made before have the
 bit clear and name the same pieces as before (the same parameter hash over 60 seeds
 against the previous file); `#piece-` links draw from the eight thrown forms as they
-always did.
+always did (40 seeds and 10 lustre-only seeds give the parameters they gave before the
+second generator, the figure keys aside, which stay at None).
 
 ## Parameters
 
