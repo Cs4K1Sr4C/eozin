@@ -312,6 +312,54 @@ when the camera is moved.
   held; the bare foot shows coarse grog, grains of kiln sand and a rubbed foot ring. All
   of it is for close-ups and fades before it could shimmer.
 
+## Figures
+
+Two kinds of figure, both chosen with *Figure* in the configurator and both on the
+Surprise dice as an eighth scope, *Figures* (on by default; about four rolls in ten
+come out as a figure). Ten new tiles in the Shape picker open their catalogue forms.
+
+**Figural vases** (*Torso*, *Bird*, *Animal*; tiles Torso, Bird, Cat, Owl) are the
+thrown form modelled into a body, the mouth still at the top. `figureWarp` is a smooth
+warp of space, so the wall keeps its section and glaze, relief, handles and lid go with
+it: the section is made wider or deeper at a level, the axis is led off the vertical,
+and patches of wall are pushed out, round or pointed (a beak, ears, a tail). The parts
+sit on the knots of the profile, so the Shape sliders move them with the body. 31
+parameters, 10 or 11 to a kind, plus *Modelling* (strength) and *Facing*.
+
+**Statuettes** (*Human statuette*, *Animal statuette*, *Bird statuette*; tiles
+Standing figure, Seated figure, Sitting cat, Horse, Songbird, Swan) are modelled
+whole on a skeleton, with limbs. `statueRig` lays tapered limbs, ellipsoids and an
+optional base slab along a posed skeleton; `buildStatue` melts them into one distance
+field (a smooth union, *Modelling softness*), draws the surface out of it with surface
+nets on a grid that is refined only near the surface (64, 150 or 215 cells to the
+height at Draft, Standard, Fine) and settles each vertex onto the field. The glaze
+gets hollows to pool in and shade from the same field, and the underside is bare.
+
+- *Human* (2 poses, 22 sliders): slenderness, head, neck, shoulders, chest, bust,
+  waist, hips, leg and arm length, lean, twist, sway, head turn and tilt, each arm,
+  elbows, stance, stride, raised knee (seated), hair bun.
+- *Animal* (2 poses, 15 sliders): body length, girth, legs and their thickness, chest,
+  back, neck and its carriage, head, muzzle, ears and their point, tail and its curl,
+  head turn. A short muzzle and pointed ears give a cat, a long muzzle and neck a horse.
+- *Bird* (17 sliders): body, plumpness, posture, breast, neck and its curve, head and
+  its turn, beak and its droop, crest, tail with lift and fan, wings and their lift,
+  legs (0 sets the bird down on its belly, as a swan).
+
+**What they are not.** These are stylised studio figures in the manner of modern
+lustre figurines: smooth bodies, no faces, fingers, clothing or props. A portrait
+statue, a pierced bowl or a shell dish cannot be made with either method. A statuette
+has no inside, takes no relief, lobes, handles or lid, and does without the traced
+self-reflections (so does a figural vase); its camera views *Lip* and *Foot* aim at
+the thrown form's levels. Their look was judged on a handful of renders in a software
+renderer: ten catalogue pieces and six random figural vases. Random statuettes were
+checked for valid parameters (600 seeds), not looked at one by one. Build time of a
+statuette was not measured.
+
+**Links.** The figures are scope bit 7 of a `#p2-` link. Links made before have the
+bit clear and name the same pieces as before (the same parameter hash over 60 seeds
+against the previous file); `#piece-` links draw from the eight thrown forms as they
+always did.
+
 ## Parameters
 
 The groups of the parameter model, as the configurator shows them:
@@ -663,7 +711,7 @@ the control definitions and has one entry per parameter, of three kinds:
   another);
 - `fixed`, with the reason.
 
-Of the 156 parameters 114 make the piece, 23 make the stage and 19 are fixed. The page
+Of the 248 parameters 206 make the piece (92 of them the figures, see *Figures*), 23 make the stage and 19 are fixed. The page
 warns in the console (`RANGES: no entry for …`) about a parameter without an entry, so a
 control added later cannot be left out unnoticed. To add one: give it a `RANGES` entry
 and, unless it is fixed or a plain number with a centre, a line in `makePiece2`. A
