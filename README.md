@@ -335,18 +335,27 @@ nets on a grid that is refined only near the surface (72, 200 or 300 cells to th
 height at Draft, Standard, Fine) and settles each vertex onto the field. The glaze
 gets hollows to pool in and shade from the same field, and the underside is bare.
 
-- *Human* (2 poses, 22 sliders): slenderness, head, neck, shoulders, chest, bust,
+- *Human* (2 poses, 4 hair styles, 27 sliders): slenderness, head, neck, shoulders, chest, bust,
   waist, hips, leg and arm length, lean, twist, sway, head turn and tilt, each arm,
-  elbows, stance, stride, raised knee (seated), hair bun.
-- *Animal* (2 poses, 15 sliders): body length, girth, legs and their thickness, chest,
+  elbows, stance, stride, raised knee (seated), hair bun; and the detail: *Face* (brow,
+  eye sockets pressed in, nose, lips, ears; 0 leaves an egg), jaw, *Definition* (calves,
+  shoulder caps, seat), hands with a thumb, feet with a heel.
+- *Animal* (2 poses, 21 sliders): body length, girth, legs and their thickness, chest,
   back, neck and its carriage, head, muzzle, ears and their point, tail and its curl,
-  head turn. A short muzzle and pointed ears give a cat, a long muzzle and neck a horse.
-- *Bird* (17 sliders): body, plumpness, posture, breast, neck and its curve, head and
+  head turn; and the detail: mane with a forelock, hooves or paws, eye sockets under a
+  brow, jaw, *Definition* (shoulder and quarter), tail fullness. A short muzzle and
+  pointed ears give a cat; a long muzzle and neck, a mane, hooves and a full tail a horse.
+- *Bird* (20 sliders): body, plumpness, posture, breast, neck and its curve, head and
   its turn, beak and its droop, crest, tail with lift and fan, wings and their lift,
-  legs (0 sets the bird down on its belly, as a swan).
+  legs (0 sets the bird down on its belly, as a swan); and the detail: eye sockets,
+  flight feathers laid over each other on the wing and separate feathers in the tail,
+  toe length.
 
 **What they are not.** These are stylised studio figures in the manner of modern
-lustre figurines: smooth bodies, no faces, fingers, clothing or props. A portrait
+lustre figurines: smooth bodies, a face as a modeller's thumb leaves it, mitten hands;
+no fingers, clothing or props. Hollows (eye sockets) are pressed into the finished
+body as a smooth subtraction. The detail controls were looked at on the six catalogue
+statuettes and one close view of a head, not on random pieces. A portrait
 statue, a pierced bowl or a shell dish cannot be made with either method. A statuette
 has no inside, takes no relief, lobes, handles or lid, and does without the traced
 self-reflections (so does a figural vase); its camera views *Lip* and *Foot* aim at
@@ -717,7 +726,7 @@ the control definitions and has one entry per parameter, of three kinds:
   another);
 - `fixed`, with the reason.
 
-Of the 248 parameters 206 make the piece (92 of them the figures, see *Figures*), 23 make the stage and 19 are fixed. The page
+Of the 263 parameters 221 make the piece (107 of them the figures, see *Figures*), 23 make the stage and 19 are fixed. The page
 warns in the console (`RANGES: no entry for …`) about a parameter without an entry, so a
 control added later cannot be left out unnoticed. To add one: give it a `RANGES` entry
 and, unless it is fixed or a plain number with a centre, a line in `makePiece2`. A
